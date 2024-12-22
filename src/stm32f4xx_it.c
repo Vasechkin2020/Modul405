@@ -20,41 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f4xx_it.h"
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-/* USER CODE END Includes */
 
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN TD */
-
-/* USER CODE END TD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
-
-/* External variables --------------------------------------------------------*/
 extern TIM_HandleTypeDef htim6;
 extern TIM_HandleTypeDef htim7;
 
@@ -64,6 +30,15 @@ extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart5;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart6;
+
+extern DMA_HandleTypeDef hdma_spi1_rx;
+extern DMA_HandleTypeDef hdma_spi1_tx;
+
+extern DMA_HandleTypeDef hdma_uart4_rx;
+extern DMA_HandleTypeDef hdma_uart5_rx;
+extern DMA_HandleTypeDef hdma_usart2_rx;
+extern DMA_HandleTypeDef hdma_usart6_rx;
+
 
 /* USER CODE BEGIN EV */
 
@@ -224,13 +199,13 @@ void EXTI15_10_IRQHandler(void)
   HAL_GPIO_EXTI_IRQHandler(micMotor0_Pin); // Обработчик прерывания EXTI для кнопки
   HAL_GPIO_EXTI_IRQHandler(micMotor3_Pin); // Обработчик прерывания EXTI для кнопки
 }
-//**********************
+//***************************************** SPI *************************************************************
 /**  * @brief This function handles SPI1 global interrupt.  */
 void SPI1_IRQHandler(void)
 {
   HAL_SPI_IRQHandler(&hspi1);
 }
-//**********************
+//****************************************** UART ***********************************************************
 /**  * @brief This function handles USART2 global interrupt.  */
 void USART2_IRQHandler(void)
 {
@@ -252,4 +227,40 @@ void UART5_IRQHandler(void)
 void USART6_IRQHandler(void)
 {
   HAL_UART_IRQHandler(&huart6);
+}
+//********************************************** DMA *********************************************************
+/**  * @brief This function handles DMA1 stream0 global interrupt.  */
+void DMA1_Stream0_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&hdma_uart5_rx);
+}
+
+/**  * @brief This function handles DMA1 stream2 global interrupt.  */
+void DMA1_Stream2_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&hdma_uart4_rx);
+}
+
+/**  * @brief This function handles DMA1 stream5 global interrupt.  */
+void DMA1_Stream5_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&hdma_usart2_rx);
+}
+
+/**   * @brief This function handles DMA2 stream0 global interrupt.  */
+void DMA2_Stream0_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&hdma_spi1_rx);
+}
+
+/**  * @brief This function handles DMA2 stream1 global interrupt.  */
+void DMA2_Stream1_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&hdma_usart6_rx);
+}
+
+/**  * @brief This function handles DMA2 stream3 global interrupt.  */
+void DMA2_Stream3_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&hdma_spi1_tx);
 }
