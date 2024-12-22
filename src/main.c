@@ -22,6 +22,7 @@
 // #include "slaveSPI.h"
 
 void SystemClock_Config(void);
+volatile uint32_t millisCounter = 0;
 
 int main(void)
 {
@@ -49,10 +50,30 @@ int main(void)
 
   DEBUG_PRINTF("\r\n Это ОТЛАДОЧНЫЙ режим вывода \r\n");
 
-  /* Infinite loop */
+  initMotor(); // Начальная инициализация и настройка шаговых моторов
+  // setZeroMotor(); // Установка в ноль
+  setMotor10();
+  HAL_Delay(500);
+  setMotor0();
+  HAL_Delay(5000);
+  setSpeedMotor(0.5); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
+ 
+  initLaser(); // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
+  //  testMotorRun();
+  
+  initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
+
+  // HAL_Delay(999);
+  timeSpi = millis(); // Запоминаем время начала цикла
+  // DEBUG_PRINTF("%lli LOOP !!!!!!!!!!!!!!!!!!!!!!!!!!! \r\n",timeSpi);
+
   while (1)
   {
+    workingSPI();         // Отработка действий по обмену по шине SPI
+    workingLaser();       // Отработка действий по лазерным датчикам
     workingTimer();       // Отработка действий по таймеру в 1, 50, 60 милисекунд
+    workingStopTimeOut(); // Остановка драйверов и моторов при обрыве связи
+    workingMotor();       // Отработка действий по таймеру в 1, 50, 60 милисекунд
 
     // DEBUG_PRINTF("float %.2f Привет \n", 3.1415625);
     // HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin);     // Инвертирование состояния выхода.

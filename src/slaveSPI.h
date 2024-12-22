@@ -58,12 +58,12 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     if (hspi == &hspi1)
     {
-        HAL_GPIO_WritePin(Analiz1_GPIO_Port, Analiz1_Pin, GPIO_PIN_SET); // Инвертирование состояния выхода.
+        HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, GPIO_PIN_SET); // Инвертирование состояния выхода.
         flag_data = true;                                                // Флаг что обменялись данными. По этому флагу происходит обработка полученных данных и подготовка данных к следующей передаче
         DEBUG_PRINTF("-up-\n");
         HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin);                      // Инвертирование состояния выхода.
         spi.all++;                                                         // Считаем сколько было обменов данными всего
-        HAL_GPIO_WritePin(Analiz1_GPIO_Port, Analiz1_Pin, GPIO_PIN_RESET); // Инвертирование состояния выхода.
+        HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, GPIO_PIN_RESET); // Инвертирование состояния выхода.
 
         // //копировнаие данных из моей уже заполненной структуры в буфер для DMA
         // memset(txBuffer, 0, sizeof(txBuffer)); // Очистка буфера

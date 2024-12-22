@@ -10,7 +10,7 @@
 #include <stdint.h>
 
 #include "laser80M.h"
-// #include "motor.h"
+#include "motor.h"
 #include "sk60plus.h"
 #include "slaveSPI.h"
 
@@ -178,7 +178,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
         dataUART[1].statusDMA = status;
         // HAL_GPIO_WritePin(Step_Motor1_GPIO_Port, Step_Motor1_Pin, GPIO_PIN_RESET);
     }
-    else if (huart->Instance == UART5
+    else if (huart->Instance == UART5)
     {
         // HAL_GPIO_WritePin(Step_Motor2_GPIO_Port, Step_Motor2_Pin, GPIO_PIN_SET);
         dataUART[2].flag = 1;                                                                   // Обработка полученных данных
@@ -187,7 +187,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
         dataUART[2].statusDMA = status;
         // HAL_GPIO_WritePin(Step_Motor2_GPIO_Port, Step_Motor2_Pin, GPIO_PIN_RESET);
     }
-    else if (huart->Instance == UART6)
+    else if (huart->Instance == USART6)
     {
         // HAL_GPIO_WritePin(Step_Motor3_GPIO_Port, Step_Motor3_Pin, GPIO_PIN_SET);
         dataUART[3].flag = 1;                                                                   // Обработка полученных данных
@@ -361,28 +361,28 @@ void initLaser() // Инициализация лазеров в зависим�
     // Это общие данные для любых датчиков
     dataUART[0].num = 0;
     dataUART[0].adr = rx_bufferUART1;
-    dataUART[0].huart = &huart1;
+    dataUART[0].huart = &huart2;
 
     dataUART[1].num = 1;
     dataUART[1].adr = rx_bufferUART2;
-    dataUART[1].huart = &huart2;
+    dataUART[1].huart = &huart4;
 
     dataUART[2].num = 2;
     dataUART[2].adr = rx_bufferUART3;
-    dataUART[2].huart = &huart3;
+    dataUART[2].huart = &huart5;
 
     dataUART[3].num = 3;
     dataUART[3].adr = rx_bufferUART4;
-    dataUART[3].huart = &huart4;
+    dataUART[3].huart = &huart6;
 
-    HAL_UART_DMAStop(&huart1);                                             // Остановка DMA
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rx_bufferUART1, RX_BUFFER_SIZE); // Двнные оказываются в буфере rx_bufferUART1
     HAL_UART_DMAStop(&huart2);                                             // Остановка DMA
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart2, rx_bufferUART2, RX_BUFFER_SIZE); // Двнные оказываются в буфере rx_bufferUART1
-    HAL_UART_DMAStop(&huart3);                                             // Остановка DMA
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart3, rx_bufferUART3, RX_BUFFER_SIZE); // Двнные оказываются в буфере rx_bufferUART1
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart2, rx_bufferUART1, RX_BUFFER_SIZE); // Двнные оказываются в буфере rx_bufferUART1
     HAL_UART_DMAStop(&huart4);                                             // Остановка DMA
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_bufferUART4, RX_BUFFER_SIZE); // Двнные оказываются в буфере rx_bufferUART1
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_bufferUART2, RX_BUFFER_SIZE); // Двнные оказываются в буфере rx_bufferUART1
+    HAL_UART_DMAStop(&huart5);                                             // Остановка DMA
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart5, rx_bufferUART3, RX_BUFFER_SIZE); // Двнные оказываются в буфере rx_bufferUART1
+    HAL_UART_DMAStop(&huart6);                                             // Остановка DMA
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart6, rx_bufferUART4, RX_BUFFER_SIZE); // Двнные оказываются в буфере rx_bufferUART1
 
 #ifdef LASER80
     lenDataLaser = 11;
@@ -552,7 +552,7 @@ void workingSPI()
 #ifdef SPI_protocol
     if (flag_data) // Если обменялись данными
     {
-        HAL_GPIO_WritePin(Analiz2_GPIO_Port, Analiz2_Pin, GPIO_PIN_SET); // Инвертирование состояния выхода.
+        // HAL_GPIO_WritePin(Analiz2_GPIO_Port, Analiz2_Pin, GPIO_PIN_SET); // Инвертирование состояния выхода.
         flag_data = false;
         flagTimeOut = true; // Флаг для выключения по таймауту
         timeSpi = millis(); // Запоминаем время обмена
@@ -583,7 +583,7 @@ void workingSPI()
         //     DEBUG_PRINTF(" %x", txBuffer[i]);
         // }
         DEBUG_PRINTF("-----\n");
-        HAL_GPIO_WritePin(Analiz2_GPIO_Port, Analiz2_Pin, GPIO_PIN_RESET); // Инвертирование состояния выхода.
+        // HAL_GPIO_WritePin(Analiz2_GPIO_Port, Analiz2_Pin, GPIO_PIN_RESET); // Инвертирование состояния выхода.
     }
 #endif
 }
