@@ -26,6 +26,10 @@ void Error_Handler(void);
 #define Led1_Pin GPIO_PIN_15
 #define Led1_GPIO_Port GPIOA
 
+#define Analiz_Pin GPIO_PIN_2
+#define Analiz_GPIO_Port GPIOB
+
+
 #ifdef __cplusplus
 }
 #endif

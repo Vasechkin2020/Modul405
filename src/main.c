@@ -34,7 +34,10 @@ int main(void)
   /* Infinite loop */
   while (1)
   {
-    DEBUG_PRINTF("float %.2f Привет \n",3.1415625);
+    DEBUG_PRINTF("float %.2f Привет \n", 3.1415625);
+    HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin);     // Инвертирование состояния выхода.
+    HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin);     // Инвертирование состояния выхода.
+    HAL_GPIO_TogglePin(Analiz_GPIO_Port, Analiz_Pin); // Инвертирование состояния выхода.
     HAL_Delay(500);
   }
 }
