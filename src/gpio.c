@@ -22,6 +22,7 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, Step_Motor2_Pin | Dir_Motor2_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(GPIOA, Step_Motor1_Pin | Dir_Motor1_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(GPIOB, Step_Motor3_Pin | Dir_Motor3_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(laserEn_GPIO_Port, laserEn_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PB10 PB11 */
   GPIO_InitStruct.Pin = GPIO_PIN_10 | GPIO_PIN_11;
@@ -49,37 +50,37 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(Analiz_GPIO_Port, &GPIO_InitStruct);
 
-//***************************************
+  //***************************************
   GPIO_InitStruct.Pin = En_Motor_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(En_Motor_GPIO_Port, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = Dir_Motor2_Pin|Dir_Motor0_Pin;
+  GPIO_InitStruct.Pin = Dir_Motor2_Pin | Dir_Motor0_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = Step_Motor2_Pin|Step_Motor0_Pin;
+  GPIO_InitStruct.Pin = Step_Motor2_Pin | Step_Motor0_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-  
+
   GPIO_InitStruct.Pin = Dir_Motor3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(Dir_Motor3_GPIO_Port, &GPIO_InitStruct);
-  
+
   GPIO_InitStruct.Pin = Step_Motor3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(Step_Motor3_GPIO_Port, &GPIO_InitStruct);
-  
+
   GPIO_InitStruct.Pin = Step_Motor1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
@@ -91,10 +92,12 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(Dir_Motor1_GPIO_Port, &GPIO_InitStruct);
-
-
-
-
+  
+  GPIO_InitStruct.Pin = laserEn_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(laserEn_GPIO_Port, &GPIO_InitStruct);
 
 
 

@@ -71,6 +71,8 @@ void Error_Handler(void);
 #define Dir_Motor3_GPIO_Port GPIOB
 #define Analiz_Pin GPIO_PIN_2
 #define Analiz_GPIO_Port GPIOB
+#define laserEn_Pin GPIO_PIN_13
+#define laserEn_GPIO_Port GPIOB
 #define Step_Motor1_Pin GPIO_PIN_11
 #define Step_Motor1_GPIO_Port GPIOA
 #define Dir_Motor1_Pin GPIO_PIN_12

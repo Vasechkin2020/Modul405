@@ -68,6 +68,10 @@ extern "C"
 #define Step_Motor3_Pin GPIO_PIN_0
 #define Step_Motor3_GPIO_Port GPIOB
 
+#define laserEn_Pin GPIO_PIN_13
+#define laserEn_GPIO_Port GPIOB
+
+
 #ifdef __cplusplus
 }
 #endif
