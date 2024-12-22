@@ -39,6 +39,10 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *spiHandle)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /* SPI1 interrupt Init */
+    HAL_NVIC_SetPriority(SPI1_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(SPI1_IRQn);
   }
 }
 
@@ -52,5 +56,7 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef *spiHandle)
     /**SPI1 GPIO Configuration
     PA4     ------> SPI1_NSS     PA5     ------> SPI1_SCK     PA6     ------> SPI1_MISO    PA7     ------> SPI1_MOSI    */
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7);
+    /* SPI1 interrupt Deinit */
+    HAL_NVIC_DisableIRQ(SPI1_IRQn);
   }
 }
