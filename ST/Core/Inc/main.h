@@ -57,6 +57,18 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define micMotor1_Pin GPIO_PIN_13
+#define micMotor1_GPIO_Port GPIOC
+#define micMotor1_EXTI_IRQn EXTI15_10_IRQn
+#define micMotor0_Pin GPIO_PIN_14
+#define micMotor0_GPIO_Port GPIOC
+#define micMotor0_EXTI_IRQn EXTI15_10_IRQn
+#define micMotor3_Pin GPIO_PIN_15
+#define micMotor3_GPIO_Port GPIOC
+#define micMotor3_EXTI_IRQn EXTI15_10_IRQn
+#define micMotor2_Pin GPIO_PIN_0
+#define micMotor2_GPIO_Port GPIOC
+#define micMotor2_EXTI_IRQn EXTI0_IRQn
 #define Dir_Motor2_Pin GPIO_PIN_1
 #define Dir_Motor2_GPIO_Port GPIOC
 #define Led2_Pin GPIO_PIN_2

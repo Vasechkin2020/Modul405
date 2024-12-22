@@ -178,18 +178,10 @@ void PendSV_Handler(void)
   /* USER CODE END PendSV_IRQn 1 */
 }
 
-/**
-  * @brief This function handles System tick timer.
-  */
+/**   * @brief This function handles System tick timer.  */
 void SysTick_Handler(void)
 {
-  /* USER CODE BEGIN SysTick_IRQn 0 */
-
-  /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
-  /* USER CODE BEGIN SysTick_IRQn 1 */
-
-  /* USER CODE END SysTick_IRQn 1 */
 }
 
 /******************************************************************************/
@@ -199,18 +191,28 @@ void SysTick_Handler(void)
 /* please refer to the startup file (startup_stm32f4xx.s).                    */
 /******************************************************************************/
 
-/**
-  * @brief This function handles TIM6 global interrupt, DAC1 and DAC2 underrun error interrupts.
-  */
+/**  * @brief This function handles TIM6 global interrupt, DAC1 and DAC2 underrun error interrupts.  */
 void TIM6_DAC_IRQHandler(void)
 {
   HAL_TIM_IRQHandler(&htim6);
 }
 
-/**
-  * @brief This function handles TIM7 global interrupt.
-  */
+/**   * @brief This function handles TIM7 global interrupt.  */
 void TIM7_IRQHandler(void)
 {
   HAL_TIM_IRQHandler(&htim7);
+}
+
+/**   * @brief This function handles EXTI line0 interrupt.  */
+void EXTI0_IRQHandler(void)
+{
+  HAL_GPIO_EXTI_IRQHandler(micMotor2_Pin);
+}
+
+/**   * @brief This function handles EXTI line[15:10] interrupts.  */
+void EXTI15_10_IRQHandler(void)
+{
+  HAL_GPIO_EXTI_IRQHandler(micMotor1_Pin);
+  HAL_GPIO_EXTI_IRQHandler(micMotor0_Pin);
+  HAL_GPIO_EXTI_IRQHandler(micMotor3_Pin);
 }

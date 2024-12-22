@@ -23,6 +23,7 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOA, Step_Motor1_Pin | Dir_Motor1_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(GPIOB, Step_Motor3_Pin | Dir_Motor3_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(laserEn_GPIO_Port, laserEn_Pin, GPIO_PIN_RESET);
+  
 
   /*Configure GPIO pins : PB10 PB11 */
   GPIO_InitStruct.Pin = GPIO_PIN_10 | GPIO_PIN_11;
@@ -99,6 +100,16 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(laserEn_GPIO_Port, &GPIO_InitStruct);
 
+  GPIO_InitStruct.Pin = micMotor1_Pin|micMotor0_Pin|micMotor3_Pin|micMotor2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
