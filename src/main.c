@@ -8,9 +8,17 @@
 #include "main.h"
 #include "i2c.h"
 #include "spi.h"
+
+#include "config.h"
+
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+
+#include "code.h"
+// #include "motor.h"
+// #include "laser80M.h"
+// #include "slaveSPI.h"
 
 void SystemClock_Config(void);
 
@@ -19,26 +27,35 @@ int main(void)
   HAL_Init();
   SystemClock_Config();
 
-  /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  
   MX_I2C1_Init();
+  
   MX_SPI1_Init();
+  
   MX_UART4_Init();
   MX_UART5_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_USART6_UART_Init();
+
   MX_TIM6_Init();
   MX_TIM7_Init();
+
+  HAL_TIM_Base_Start_IT(&htim6); // Таймер для общего цикла
+
+  DEBUG_PRINTF("\r\n Это ОТЛАДОЧНЫЙ режим вывода \r\n");
 
   /* Infinite loop */
   while (1)
   {
-    DEBUG_PRINTF("float %.2f Привет \n", 3.1415625);
-    HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin);     // Инвертирование состояния выхода.
-    HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin);     // Инвертирование состояния выхода.
-    HAL_GPIO_TogglePin(Analiz_GPIO_Port, Analiz_Pin); // Инвертирование состояния выхода.
-    HAL_Delay(500);
+    workingTimer();       // Отработка действий по таймеру в 1, 50, 60 милисекунд
+
+    // DEBUG_PRINTF("float %.2f Привет \n", 3.1415625);
+    // HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin);     // Инвертирование состояния выхода.
+    // HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin);     // Инвертирование состояния выхода.
+    // HAL_GPIO_TogglePin(Analiz_GPIO_Port, Analiz_Pin); // Инвертирование состояния выхода.
+    // HAL_Delay(500);
   }
 }
 
