@@ -39,6 +39,7 @@ extern DMA_HandleTypeDef hdma_uart5_rx;
 extern DMA_HandleTypeDef hdma_usart2_rx;
 extern DMA_HandleTypeDef hdma_usart6_rx;
 
+extern I2C_HandleTypeDef hi2c1;
 
 /* USER CODE BEGIN EV */
 
@@ -275,4 +276,10 @@ void DMA2_Stream1_IRQHandler(void)
 void DMA2_Stream3_IRQHandler(void)
 {
   HAL_DMA_IRQHandler(&hdma_spi1_tx);
+}
+//************************************* I2C ********************************************************
+/**  * @brief This function handles I2C1 event interrupt.  */
+void I2C1_EV_IRQHandler(void)
+{
+  HAL_I2C_EV_IRQHandler(&hi2c1);
 }
