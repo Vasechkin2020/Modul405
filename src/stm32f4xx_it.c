@@ -190,25 +190,25 @@ void TIM7_IRQHandler(void)
 /**   * @brief This function handles EXTI line0 interrupt.  */
 void EXTI0_IRQHandler(void)
 {
-  HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin);     // Инвертирование состояния выхода.
+  // HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin);     // Инвертирование состояния выхода.
   HAL_GPIO_EXTI_IRQHandler(micMotor2_Pin); // Обработчик прерывания EXTI для кнопки
 }
 /**  * @brief This function handles EXTI line4 interrupt.  */
 void EXTI4_IRQHandler(void)
 {
-  HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin);     // Инвертирование состояния выхода.
+  // HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin);     // Инвертирование состояния выхода.
   HAL_GPIO_EXTI_IRQHandler(micMotor0_Pin);
 }
 /**   * @brief This function handles EXTI line[9:5] interrupts.  */
 void EXTI9_5_IRQHandler(void)
 {
-  HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin);     // Инвертирование состояния выхода.
+  // HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin);     // Инвертирование состояния выхода.
   HAL_GPIO_EXTI_IRQHandler(micMotor3_Pin);
 }
 /**   * @brief This function handles EXTI line[15:10] interrupts.  */
 void EXTI15_10_IRQHandler(void)
 {
-  HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin);     // Инвертирование состояния выхода.
+  // HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin);     // Инвертирование состояния выхода.
   HAL_GPIO_EXTI_IRQHandler(micMotor1_Pin); // Обработчик прерывания EXTI для кнопки
 }
 //***************************************** SPI *************************************************************

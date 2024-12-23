@@ -53,7 +53,7 @@ int main(void)
 
   initMotor(); // Начальная инициализация и настройка шаговых моторов
   // setZeroMotor(); // Установка в ноль
-  // testMotorRun();
+  testMotorRun();
 
   setMotor10();
   HAL_Delay(500);
