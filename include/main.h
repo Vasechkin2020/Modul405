@@ -19,6 +19,11 @@ extern "C"
 
 #include "stm32f4xx_hal.h"
 
+// ВЫБОР С КАКИМИ ДАТЧИКАМИ РАБОТАЕМ. НУЖНО ОСТАВИТЬТОЛЬКО ОДНУ СРОЧКУ, ОСТАЛЬНЫЕ ЗАКОММЕНТИРОВАТЬ
+// #define LASER80 yes
+#define LASER60 yes
+    // #define LASER50 yes
+
     struct dataUART
     {
         uint8_t flag;      // Флаг готовности данных
@@ -71,9 +76,9 @@ extern "C"
 #define laserEn_Pin GPIO_PIN_13
 #define laserEn_GPIO_Port GPIOB
 
-#define micMotor0_Pin GPIO_PIN_14
-#define micMotor0_GPIO_Port GPIOC
-#define micMotor0_EXTI_IRQn EXTI15_10_IRQn
+#define micMotor0_Pin GPIO_PIN_4
+#define micMotor0_GPIO_Port GPIOB
+#define micMotor0_EXTI_IRQn EXTI4_IRQn
 
 #define micMotor1_Pin GPIO_PIN_13
 #define micMotor1_GPIO_Port GPIOC
@@ -83,10 +88,9 @@ extern "C"
 #define micMotor2_GPIO_Port GPIOC
 #define micMotor2_EXTI_IRQn EXTI0_IRQn
 
-#define micMotor3_Pin GPIO_PIN_15
-#define micMotor3_GPIO_Port GPIOC
-#define micMotor3_EXTI_IRQn EXTI15_10_IRQn
-
+#define micMotor3_Pin GPIO_PIN_5
+#define micMotor3_GPIO_Port GPIOB
+#define micMotor3_EXTI_IRQn EXTI9_5_IRQn
 
 #ifdef __cplusplus
 }
