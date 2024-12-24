@@ -55,7 +55,7 @@ int main(void)
   BNO055_Init(); // Инициализация датчика на шине I2C
   initMotor();  // Начальная инициализация и настройка шаговых моторов
   // setZeroMotor(); // Установка в ноль
-  testMotorRun();
+  // testMotorRun();
 
   setMotor10();
   HAL_Delay(500);

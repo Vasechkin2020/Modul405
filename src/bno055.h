@@ -195,6 +195,7 @@ void BNO055_Init();
 void BNO055_Reset();                // Перезапуск датчика
 void BNO055_SetMode(uint8_t mode_); // Установка нужного режима работы
 void BNO055_getStatusInfo();        // Запрос информации о статусе датчика
+void BNO055_getRevInfo();           // Информация о прошивках датчика
 
 //****************************************** РЕАЛИЗАЦИЯ ФУНКЦИЙ ***********************************
 
@@ -315,6 +316,7 @@ void BNO055_Init()
         BNO055_Write(eBNO055_REGISTER_PWR_MODE, eNORMAL_POWER_MODE); // Нормальный режим работы по питанию
         HAL_Delay(25);
         BNO055_getStatusInfo();
+        BNO055_getRevInfo();  
     }
     else
     {
@@ -362,7 +364,7 @@ void BNO055_SetMode(uint8_t mode_)
 // Запрос информации о статусе датчика
 void BNO055_getStatusInfo()
 {
-    DEBUG_PRINTF(" ===================== BNO055_getStatusInfo =============== \n");
+    DEBUG_PRINTF(" === BNO055_getStatusInfo ===\n");
 
     BNO055_Write(eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
 
@@ -433,42 +435,34 @@ void BNO055_getStatusInfo()
     }
 }
 
-// void BNO055_getRevInfo()
-// {
-//     DEBUG_PRINTF(" ===================================== BNO055_getRevInfo ===========================================");
-//     // set_TCA9548A(multi_line_BNO);
-//     uint8_t a, b;
-//     WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
+// Информация о прошивках датчика
+void BNO055_getRevInfo()
+{
+    DEBUG_PRINTF(" === BNO055_getRevInfo ===\n");
+    BNO055_Write(eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
 
-//     /* Check the accelerometer revision */
-//     BNO055.accel_rev = ReadByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_ACC_ID);
-//     DEBUG_PRINTF("BNO055.accel_rev: ");
-//     DEBUG_PRINTF(BNO055.accel_rev);
+    /* Check the accelerometer revision */
+    BNO055_Read(eBNO055_REGISTER_ACC_ID, &BNO055.accel_rev, 1);
+    DEBUG_PRINTF("BNO055.accel_rev: %i\n", BNO055.accel_rev);
 
-//     /* Check the magnetometer revision */
-//     BNO055.mag_rev = ReadByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_MAG_ID);
-//     DEBUG_PRINTF("BNO055.mag_rev: ");
-//     DEBUG_PRINTF(BNO055.mag_rev);
+    /* Check the magnetometer revision */
+    BNO055_Read(eBNO055_REGISTER_MAG_ID, &BNO055.mag_rev,1);
+    DEBUG_PRINTF("BNO055.mag_rev: %i\n", BNO055.mag_rev);
 
-//     /* Check the gyroscope revision */
-//     BNO055.gyro_rev = ReadByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_GYR_ID);
-//     DEBUG_PRINTF("BNO055.gyro_rev: ");
-//     DEBUG_PRINTF(BNO055.gyro_rev);
+    /* Check the gyroscope revision */
+    BNO055_Read(eBNO055_REGISTER_GYR_ID, &BNO055.gyro_rev, 1);
+    DEBUG_PRINTF("BNO055.gyro_rev: %i\n", BNO055.gyro_rev);
 
-//     /* Check the SW revision */
-//     BNO055.bl_rev = ReadByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_BL_REV_ID);
-//     DEBUG_PRINTF("BNO055.bl_rev: ");
-//     DEBUG_PRINTF(BNO055.bl_rev);
+    /* Check the SW revision */
+    BNO055_Read(eBNO055_REGISTER_BL_REV_ID, &BNO055.bl_rev, 1);
+    DEBUG_PRINTF("BNO055.bl_rev: %i\n", BNO055.bl_rev);
 
-//     a = ReadByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_SW_REV_ID_LSB);
-//     b = ReadByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_SW_REV_ID_MSB);
-//     BNO055.sw_rev = (((uint16_t)b) << 8) | ((uint16_t)a);
-//     DEBUG_PRINTF("BNO055.sw_rev: ");
-//     DEBUG_PRINTF(BNO055.sw_rev);
-//     DEBUG_PRINTF("a: ");
-//     DEBUG_PRINTF(a);
-//     DEBUG_PRINTF(" b: ");
-//     DEBUG_PRINTF(b);
-// }
+    uint8_t a, b;
+    BNO055_Read(eBNO055_REGISTER_SW_REV_ID_LSB, &a, 1);
+    BNO055_Read(eBNO055_REGISTER_SW_REV_ID_MSB, &b, 1);
+    BNO055.sw_rev = (((uint16_t)b) << 8) | ((uint16_t)a);
+    DEBUG_PRINTF("BNO055.sw_rev: %lu\n", BNO055.sw_rev);
+    DEBUG_PRINTF("--- END Init BNO055.\n");
+}
 
 #endif
