@@ -101,6 +101,8 @@ struct SMpu // Структура с данными со всех датчико
   struct SXyz linear;
 };
 
+struct SMpu bno055; // Данные с датчика BNO055
+
 // Структура в которой все главные переменные передаюся на высокий уровень от Modul к Data
 struct Struct_Modul2Data
 {

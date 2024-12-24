@@ -163,9 +163,9 @@ volatile uint8_t i2cTransferComplete = 0; // Флаг завершения оп�
 uint8_t chip_id = 0;
 
 #define OFFSET_SIZE 22
-uint8_t BNO055_Offset_Array[OFFSET_SIZE];                                                                                                          // Массив для хранения офсетов
+uint8_t BNO055_Offset_Array[OFFSET_SIZE];                                                                                                           // Массив для хранения офсетов
 uint8_t BNO055_Offset_Array_dafault1[OFFSET_SIZE] = {234, 255, 18, 0, 228, 255, 248, 255, 40, 254, 248, 255, 253, 255, 1, 0, 1, 0, 232, 3, 176, 4}; // Массив для хранения офсетов по умолчанию
-uint8_t BNO055_Offset_Array_dafault2[OFFSET_SIZE] = {240, 255, 7, 0, 249, 255, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 232, 3, 224, 1};    // Красный датчик
+uint8_t BNO055_Offset_Array_dafault2[OFFSET_SIZE] = {240, 255, 7, 0, 249, 255, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 232, 3, 224, 1};     // Красный датчик
 
 struct BNO055_Info_s
 {
@@ -186,9 +186,9 @@ struct BNO055_Info_s
 struct BNO055_Info_s BNO055;
 //****************************************** ОПРЕДЕЛЕНИЕ ФУНКЦИЙ ***********************************
 
-HAL_StatusTypeDef BNO055_Read(uint8_t reg, uint8_t *buffer, uint16_t size); // Функция для чтения из регистра BNO055
-HAL_StatusTypeDef BNO055_Write(uint8_t reg, uint8_t value);                 // Функция для записи в регистр BNO055
-HAL_StatusTypeDef BNO055_Mem_Write(uint8_t reg, uint8_t *data_, uint16_t size_);            // Функция для записи массива в регистры последовательно BNO055
+HAL_StatusTypeDef BNO055_Read(uint8_t reg, uint8_t *buffer, uint16_t size);      // Функция для чтения из регистра BNO055
+HAL_StatusTypeDef BNO055_Write(uint8_t reg, uint8_t value);                      // Функция для записи в регистр BNO055
+HAL_StatusTypeDef BNO055_Mem_Write(uint8_t reg, uint8_t *data_, uint16_t size_); // Функция для записи массива в регистры последовательно BNO055
 
 void BNO055_Read_IT(uint8_t reg, uint8_t *buffer, uint16_t size); // Функция для чтения данных из BNO055 используя прерывание
 void BNO055_Write_IT(uint8_t reg, uint8_t value);                 // Функция для записи данных в BNO055 используя прерывание
@@ -198,12 +198,13 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c);
 void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c);
 
 void BNO055_Init();
-void BNO055_Reset();                                      // Перезапуск датчика
-void BNO055_SetMode(uint8_t mode_);                       // Установка нужного режима работы
-void BNO055_getStatusInfo();                              // Запрос информации о статусе датчика
-void BNO055_getRevInfo();                                 // Информация о прошивках датчика
-void BNO055_GetOffset_from_BNO055();                      // Считывание оффсет из датчика
-void BNO055_SetOffset_toBNO055(uint8_t *offsetArray_); // Запись оффсет в датчик
+void BNO055_Reset();                                    // Перезапуск датчика
+void BNO055_SetMode(uint8_t mode_);                     // Установка нужного режима работы
+void BNO055_StatusInfo();                               // Запрос информации о статусе датчика
+void BNO055_RevInfo();                                  // Информация о прошивках датчика
+void BNO055_GetOffset_from_BNO055();                    // Считывание оффсет из датчика
+void BNO055_SetOffset_to_BNO055(uint8_t *offsetArray_); // Запись оффсет в датчик
+void BNO055_ReadData();                                 // Разовое считывание данных
 
 //****************************************** РЕАЛИЗАЦИЯ ФУНКЦИЙ ***********************************
 
@@ -242,7 +243,7 @@ void BNO055_Read_IT(uint8_t reg, uint8_t *buffer, uint16_t size)
         ;
 
     i2cTransferComplete = 0;
-    // Читаем данные из регистра
+    // Запускаем чтение данных из регистра
     HAL_I2C_Master_Receive_IT(&hi2c1, BNO055_ADDRESS, buffer, size);
 }
 
@@ -328,11 +329,15 @@ void BNO055_Init()
         HAL_Delay(25);
         BNO055_Write(eBNO055_REGISTER_PWR_MODE, eNORMAL_POWER_MODE); // Нормальный режим работы по питанию
         HAL_Delay(25);
-        BNO055_getStatusInfo();
-        BNO055_getRevInfo();
+        BNO055_StatusInfo();
+        BNO055_RevInfo();
         BNO055_GetOffset_from_BNO055();
-        BNO055_SetOffset_toBNO055(BNO055_Offset_Array_dafault2);
+        BNO055_SetOffset_to_BNO055(BNO055_Offset_Array_dafault2);
         BNO055_GetOffset_from_BNO055();
+        BNO055_StatusInfo();
+        BNO055_SetMode(eIMU); // Режим работы где он все сам считает	  eIMU
+        HAL_Delay(500);
+        BNO055_ReadData();    // Разовое считывание данных
     }
     else
     {
@@ -374,11 +379,11 @@ void BNO055_SetMode(uint8_t mode_)
 {
     BNO055_Write(eBNO055_REGISTER_OPR_MODE, mode_); // | eFASTEST_MODE);  /* Go to config mode if not there */
     DEBUG_PRINTF("BNO055_SetMode => %i \n", mode_);
-    HAL_Delay(25);
+    HAL_Delay(50);
 }
 
 // Запрос информации о статусе датчика
-void BNO055_getStatusInfo()
+void BNO055_StatusInfo()
 {
     DEBUG_PRINTF(" === BNO055_getStatusInfo ===\n");
 
@@ -452,7 +457,7 @@ void BNO055_getStatusInfo()
 }
 
 // Информация о прошивках датчика
-void BNO055_getRevInfo()
+void BNO055_RevInfo()
 {
     DEBUG_PRINTF(" === BNO055_getRevInfo ===\n");
     BNO055_Write(eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
@@ -494,7 +499,7 @@ void BNO055_GetOffset_from_BNO055()
     DEBUG_PRINTF("\n");
 }
 // Запись оффсет в датчик
-void BNO055_SetOffset_toBNO055(uint8_t *offsetArray_)
+void BNO055_SetOffset_to_BNO055(uint8_t *offsetArray_)
 {
     DEBUG_PRINTF("BNO055_SetOffset_toBNO055\n");
     BNO055_SetMode(eCONFIGMODE); /* Go to config mode if not there */
@@ -504,34 +509,45 @@ void BNO055_SetOffset_toBNO055(uint8_t *offsetArray_)
         DEBUG_PRINTF(" - %u", offsetArray_[i]);
     }
     DEBUG_PRINTF("\n");
-    
+
     BNO055_Mem_Write(eBNO055_REGISTER_ACC_OFFSET_X_LSB, offsetArray_, OFFSET_SIZE);
+}
+// Разовое считывание данных
+void BNO055_ReadData()
+{
+    uint8_t buffer[20];
+    if (BNO055_Read(eBNO055_REGISTER_EUL_DATA_X_LSB, buffer, 20) == HAL_OK) // Считываем в буфер
+    {
+        // for (int i = 0; i < 20; i++)
+        // {
+        //     DEBUG_PRINTF("=%i ",buffer[i]);
+        // }
+        // DEBUG_PRINTF ("\n");
 
-    //--------------------------------------------------------
-    // Serial.println("/// TEST READ *** ");
+        struct SXyz eulerAngles;
+        /* Shift values to create properly formed integer (low byte first) */ /* 1 degree = 16 LSB  1 radian = 900 LSB   */
+        eulerAngles.x = (int16_t)((buffer[1] << 8) | buffer[0]) / 16.;
+        eulerAngles.y = (int16_t)((buffer[3] << 8) | buffer[2]) / 16.;
+        eulerAngles.z = (int16_t)((buffer[5] << 8) | buffer[4]) / 16.;
 
-    // Wire.beginTransmission(BNO055_ADDRESS);
-    // Wire.write((uint8_t)eBNO055_REGISTER_ACC_OFFSET_X_LSB);
-    // Wire.endTransmission();
-    // Wire.requestFrom(BNO055_ADDRESS, (int)22); // Считываем последовательно 22 байта начиная с 55 адреса
-    // // Serial.print("Wire.available= ");
-    // Serial.println(Wire.available());
-    // for (uint8_t i = 0; i < 22; i++)
-    // {
-    //     BNO055_Offset_Array[i] = Wire.read();
-    // }
-    // delay(100);
+        eulerAngles.y = 180 - eulerAngles.y; // Испрвления для ориентации датчика
+        if (eulerAngles.y > 180)
+            eulerAngles.y = eulerAngles.y - 360;
 
-    // for (uint8_t i = 0; i < 22; i++)
-    // {
-    //     // Serial.print(i);
-    //     Serial.print(" - ");
-    //     Serial.print(BNO055_Offset_Array[i]);
-    // }
-    // Serial.println(" = ");
+        DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f  /  ", eulerAngles.x, eulerAngles.y, eulerAngles.z);
 
-    // BNO055_getStatusInfo();
-    // Serial.println("---");
+        struct SXyz linAccData;
+        // Перевод в m/s2 1m/s2 = 100 LSB, mg = 1LSB
+        linAccData.x = (int16_t)((buffer[15] << 8) | buffer[14]) / 100.;
+        linAccData.y = (int16_t)((buffer[17] << 8) | buffer[16]) / 100.;
+        linAccData.z = (int16_t)((buffer[19] << 8) | buffer[18]) / 100.; // Дальше не используем так как не летаем а ездим по плоскости. И заменяем на угловую скорость полученную из угла Эллера
+
+        DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f  /  \n ", linAccData.x, linAccData.y, linAccData.z);
+
+        bno055.status = 0;
+        bno055.angleEuler = eulerAngles;
+        bno055.linear = linAccData;
+    }
 }
 
 #endif
