@@ -20,6 +20,7 @@
 #include "motor.h"
 #include "laser80M.h"
 #include "slaveSPI.h"
+#include "bno055.h"
 
 void SystemClock_Config(void);
 volatile uint32_t millisCounter = 0;
@@ -30,13 +31,13 @@ int main(void)
   SystemClock_Config();
 
   MX_GPIO_Init();
-  
+
   MX_DMA_Init();
-  
+
   MX_I2C1_Init();
-  
+
   MX_SPI1_Init();
-  
+
   MX_UART4_Init();
   MX_UART5_Init();
   MX_USART1_UART_Init();
@@ -51,7 +52,8 @@ int main(void)
 
   DEBUG_PRINTF("\r\n printBIM.ru 2023. Version 2.1. Это ОТЛАДОЧНЫЙ режим вывода \r\n");
 
-  initMotor(); // Начальная инициализация и настройка шаговых моторов
+  BNO055_Init(); // Инициализация датчика на шине I2C
+  initMotor();  // Начальная инициализация и настройка шаговых моторов
   // setZeroMotor(); // Установка в ноль
   testMotorRun();
 
@@ -60,14 +62,14 @@ int main(void)
   setMotor0();
   HAL_Delay(5000);
   setSpeedMotor(0.5); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
- 
-  //initLaser(); // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
-  
+
+  // initLaser(); // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
+
   initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
 
   // HAL_Delay(999);
   timeSpi = millis(); // Запоминаем время начала цикла
-  DEBUG_PRINTF("%lli LOOP !!!!!!!!!!!!!!!!!!!!!!!!!!! \r\n",timeSpi);
+  DEBUG_PRINTF("%lli LOOP !!!!!!!!!!!!!!!!!!!!!!!!!!! \r\n", timeSpi);
 
   while (1)
   {
