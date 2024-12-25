@@ -13,6 +13,23 @@ DMA_HandleTypeDef hdma_uart5_rx;
 DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart6_rx;
 
+  // uint32_t pclk1 = HAL_RCC_GetPCLK1Freq(); // Для UART2, 3, 4, 5
+  // uint32_t pclk2 = HAL_RCC_GetPCLK2Freq(); // Для UART1, 6
+
+  // uint32_t brr1 = USART1->BRR; // Замените USART2 на ваш UART
+  // uint32_t brr2 = USART2->BRR; // Замените USART2 на ваш UART
+  // uint32_t brr4 = UART4->BRR; // Замените USART2 на ваш UART
+  // uint32_t brr5 = UART5->BRR; // Замените USART2 на ваш UART
+  // uint32_t brr6 = USART6->BRR; // Замените USART2 на ваш UART
+
+  // DEBUG_PRINTF("pclk1= %lu\n", pclk1);
+  // DEBUG_PRINTF("pclk2= %lu\n", pclk2);
+  // DEBUG_PRINTF("actual_baudrate USART1= %f brr= %lu\n", pclk2 / (float)(USART1->BRR), brr1);
+  // DEBUG_PRINTF("actual_baudrate USART2= %f brr= %lu\n", pclk1 / (float)(USART2->BRR), brr2);
+  // DEBUG_PRINTF("actual_baudrate USART4= %f brr= %lu\n", pclk1 / (float)(UART4->BRR), brr4);
+  // DEBUG_PRINTF("actual_baudrate USART5= %f brr= %lu\n", pclk1 / (float)(UART5->BRR), brr5);
+  // DEBUG_PRINTF("actual_baudrate USART6= %f brr= %lu\n", pclk2 / (float)(USART6->BRR), brr6);
+
 /* USART1 init function */
 void MX_USART1_UART_Init(void)
 {
@@ -34,7 +51,12 @@ void MX_USART1_UART_Init(void)
 void MX_USART2_UART_Init(void)
 {
   huart2.Instance = USART2;
+#ifdef LASER80
+  huart2.Init.BaudRate = 9600;
+#endif
+#ifdef LASER60
   huart2.Init.BaudRate = 115200;
+#endif
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -51,7 +73,12 @@ void MX_USART2_UART_Init(void)
 void MX_UART4_Init(void)
 {
   huart4.Instance = UART4;
+#ifdef LASER80
+  huart4.Init.BaudRate = 9600;
+#endif
+#ifdef LASER60
   huart4.Init.BaudRate = 115200;
+#endif
   huart4.Init.WordLength = UART_WORDLENGTH_8B;
   huart4.Init.StopBits = UART_STOPBITS_1;
   huart4.Init.Parity = UART_PARITY_NONE;
@@ -68,7 +95,12 @@ void MX_UART4_Init(void)
 void MX_UART5_Init(void)
 {
   huart5.Instance = UART5;
+#ifdef LASER80
+  huart5.Init.BaudRate = 9600;
+#endif
+#ifdef LASER60
   huart5.Init.BaudRate = 115200;
+#endif
   huart5.Init.WordLength = UART_WORDLENGTH_8B;
   huart5.Init.StopBits = UART_STOPBITS_1;
   huart5.Init.Parity = UART_PARITY_NONE;
@@ -84,7 +116,12 @@ void MX_UART5_Init(void)
 void MX_USART6_UART_Init(void)
 {
   huart6.Instance = USART6;
+#ifdef LASER80
+  huart6.Init.BaudRate = 9600;
+#endif
+#ifdef LASER60
   huart6.Init.BaudRate = 115200;
+#endif
   huart6.Init.WordLength = UART_WORDLENGTH_8B;
   huart6.Init.StopBits = UART_STOPBITS_1;
   huart6.Init.Parity = UART_PARITY_NONE;

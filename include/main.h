@@ -20,8 +20,8 @@ extern "C"
 #include "stm32f4xx_hal.h"
 
 // ВЫБОР С КАКИМИ ДАТЧИКАМИ РАБОТАЕМ. НУЖНО ОСТАВИТЬТОЛЬКО ОДНУ СРОЧКУ, ОСТАЛЬНЫЕ ЗАКОММЕНТИРОВАТЬ
-// #define LASER80 yes
-#define LASER60 yes
+#define LASER80 yes
+// #define LASER60 yes
     // #define LASER50 yes
 
     struct dataUART

@@ -217,6 +217,8 @@ void collect_Data_for_Send()
         }
     }
 
+    Modul2Data_send.bno055 = bno055;
+
     Modul2Data_send.spi.all = spi.all;
     Modul2Data_send.spi.bed = spi.bed;
 
