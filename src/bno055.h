@@ -181,6 +181,8 @@ struct BNO055_Info_s
     uint8_t Calibr_accel;
     uint8_t Calibr_gyro;
     uint8_t Calibr_mag;
+    uint8_t MAP_Config;
+    uint8_t MAP_Sign;
 };
 
 struct BNO055_Info_s BNO055;
@@ -205,6 +207,7 @@ void BNO055_RevInfo();                                  // Информация 
 void BNO055_GetOffset_from_BNO055();                    // Считывание оффсет из датчика
 void BNO055_SetOffset_to_BNO055(uint8_t *offsetArray_); // Запись оффсет в датчик
 void BNO055_ReadData();                                 // Разовое считывание данных
+void BNO055_SetOrientation();                           // Установка ориентации датчика.
 
 //****************************************** РЕАЛИЗАЦИЯ ФУНКЦИЙ ***********************************
 
@@ -334,10 +337,11 @@ void BNO055_Init()
         BNO055_GetOffset_from_BNO055();
         BNO055_SetOffset_to_BNO055(BNO055_Offset_Array_dafault2);
         BNO055_GetOffset_from_BNO055();
+        BNO055_SetOrientation(); // Установка ориентации датчика.
         BNO055_StatusInfo();
         BNO055_SetMode(eIMU); // Режим работы где он все сам считает	  eIMU
         HAL_Delay(500);
-        BNO055_ReadData();    // Разовое считывание данных
+        BNO055_ReadData(); // Разовое считывание данных
     }
     else
     {
@@ -380,6 +384,36 @@ void BNO055_SetMode(uint8_t mode_)
     BNO055_Write(eBNO055_REGISTER_OPR_MODE, mode_); // | eFASTEST_MODE);  /* Go to config mode if not there */
     DEBUG_PRINTF("BNO055_SetMode => %i \n", mode_);
     HAL_Delay(50);
+}
+// Установка ориентации как установлен датчик. Для применения требуется перезагрузка по питанию
+void BNO055_SetOrientation()
+{
+    DEBUG_PRINTF("BNO055_SetOrientation... \n");
+    /*     Placement AXIS_REMAP_CONFIG AXIS_REMAP_SIGN
+    P0 0x21 0x04
+    P1 (default) 0x24 0x00
+    P2 0x24 0x06
+    P3 0x21 0x02
+    P4 0x24 0x03
+    P5 0x21 0x01 - применяю этот вариант
+    P6 0x21 0x07
+    P7 0x24 0x05
+    */
+    uint8_t AXIS_MAP_CONFIG = 0x21;
+    uint8_t AXIS_MAP_SIGN = 0x01;
+    BNO055_Write(eBNO055_REGISTER_AXIS_MAP_CONFIG, AXIS_MAP_CONFIG);
+    DEBUG_PRINTF("Set BNO055_AXIS_MAP_CONFIG => %#X \n", AXIS_MAP_CONFIG);
+    BNO055_Write(eBNO055_REGISTER_AXIS_MAP_SIGN, AXIS_MAP_SIGN);
+    DEBUG_PRINTF("Set BNO055_AXIS_MAP_SIGN => %#X \n", AXIS_MAP_SIGN);
+
+    /* Check the REGISTER_AXIS_MAP_CONFIG */
+    BNO055_Read(eBNO055_REGISTER_AXIS_MAP_CONFIG, &BNO055.MAP_Config, 1);
+    DEBUG_PRINTF("Read BNO055.MAP_Config: %#X\n", BNO055.MAP_Config);
+
+    /* Check the REGISTER_AXIS_MAP_SIGN */
+    BNO055_Read(eBNO055_REGISTER_AXIS_MAP_SIGN, &BNO055.MAP_Sign, 1);
+    DEBUG_PRINTF("Read BNO055.MAP_Sign: %#X\n", BNO055.MAP_Sign);
+    DEBUG_PRINTF("---\n");
 }
 
 // Запрос информации о статусе датчика
@@ -483,6 +517,7 @@ void BNO055_RevInfo()
     BNO055_Read(eBNO055_REGISTER_SW_REV_ID_MSB, &b, 1);
     BNO055.sw_rev = (((uint16_t)b) << 8) | ((uint16_t)a);
     DEBUG_PRINTF("BNO055.sw_rev: %lu\n", BNO055.sw_rev);
+
     DEBUG_PRINTF("--- END Init BNO055.\n");
 }
 // Считывание оффсет из датчика
@@ -512,42 +547,90 @@ void BNO055_SetOffset_to_BNO055(uint8_t *offsetArray_)
 
     BNO055_Mem_Write(eBNO055_REGISTER_ACC_OFFSET_X_LSB, offsetArray_, OFFSET_SIZE);
 }
+// Разбор данных из буфера и запись знвеяний в переменные
+void calcBuffer(uint8_t *buffer)
+{
+    // for (int i = 0; i < 20; i++)
+    // {
+    //     DEBUG_PRINTF("=%i ",buffer[i]);
+    // }
+    // DEBUG_PRINTF ("\n");
+
+    struct SXyz eulerAngles;
+
+    // a,b,c это регистры которые мы считываем. В них могут быть значения для любых осей. Оси переопределяются в eBNO055_REGISTER_AXIS_MAP_CONFIG в зависимости от положения датчика.
+    // Я просто подбираю нужную ось и знак. Если нужно переделываю на 360 градусов или +-180
+    uint8_t aHigh = 0, aLow = 0, bLow = 0, bHigh = 0, cLow = 0, cHigh = 0;
+
+    aLow = buffer[0];
+    aHigh = buffer[1];
+    bLow = buffer[2];
+    bHigh = buffer[3];
+    cLow = buffer[4];
+    cHigh = buffer[5];
+
+    /* Shift values to create properly formed integer (low byte first) */ /* 1 degree = 16 LSB  1 radian = 900 LSB   */
+    eulerAngles.x = -(int16_t)(cLow | (cHigh << 8)) / 16.;
+    eulerAngles.y = -(int16_t)(bLow | (bHigh << 8)) / 16.;
+    eulerAngles.z = (int16_t)(aLow | (aHigh << 8)) / 16.;
+
+    // eulerAngles.y = 180 - eulerAngles.y; // Испрвления для ориентации датчика
+    // if (eulerAngles.y > 180)
+    //     eulerAngles.y = eulerAngles.y - 360;
+
+    DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f  /  ", eulerAngles.x, eulerAngles.y, eulerAngles.z);
+
+    struct SXyz linAccData;
+    aLow = buffer[14];
+    aHigh = buffer[15];
+    bLow = buffer[16];
+    bHigh = buffer[17];
+    cLow = buffer[18];
+    cHigh = buffer[19];
+
+    // Перевод в m/s2 1m/s2 = 100 LSB, mg = 1LSB
+    linAccData.x = (int16_t)(aLow | (aHigh << 8)) / 100.;
+    linAccData.y = (int16_t)(bLow | (bHigh << 8)) / 100.;
+    linAccData.z = (int16_t)(cLow | (cHigh << 8)) / 100.; // Дальше не используем так как не летаем а ездим по плоскости. И заменяем на угловую скорость полученную из угла Эллера
+
+    DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f  /  \n ", linAccData.x, linAccData.y, linAccData.z);
+
+    bno055.status = 0;
+    bno055.angleEuler = eulerAngles;
+    bno055.linear = linAccData;
+}
 // Разовое считывание данных
 void BNO055_ReadData()
 {
     uint8_t buffer[20];
     if (BNO055_Read(eBNO055_REGISTER_EUL_DATA_X_LSB, buffer, 20) == HAL_OK) // Считываем в буфер
     {
-        // for (int i = 0; i < 20; i++)
-        // {
-        //     DEBUG_PRINTF("=%i ",buffer[i]);
-        // }
-        // DEBUG_PRINTF ("\n");
-
-        struct SXyz eulerAngles;
-        /* Shift values to create properly formed integer (low byte first) */ /* 1 degree = 16 LSB  1 radian = 900 LSB   */
-        eulerAngles.x = (int16_t)((buffer[1] << 8) | buffer[0]) / 16.;
-        eulerAngles.y = (int16_t)((buffer[3] << 8) | buffer[2]) / 16.;
-        eulerAngles.z = (int16_t)((buffer[5] << 8) | buffer[4]) / 16.;
-
-        eulerAngles.y = 180 - eulerAngles.y; // Испрвления для ориентации датчика
-        if (eulerAngles.y > 180)
-            eulerAngles.y = eulerAngles.y - 360;
-
-        DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f  /  ", eulerAngles.x, eulerAngles.y, eulerAngles.z);
-
-        struct SXyz linAccData;
-        // Перевод в m/s2 1m/s2 = 100 LSB, mg = 1LSB
-        linAccData.x = (int16_t)((buffer[15] << 8) | buffer[14]) / 100.;
-        linAccData.y = (int16_t)((buffer[17] << 8) | buffer[16]) / 100.;
-        linAccData.z = (int16_t)((buffer[19] << 8) | buffer[18]) / 100.; // Дальше не используем так как не летаем а ездим по плоскости. И заменяем на угловую скорость полученную из угла Эллера
-
-        DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f  /  \n ", linAccData.x, linAccData.y, linAccData.z);
-
-        bno055.status = 0;
-        bno055.angleEuler = eulerAngles;
-        bno055.linear = linAccData;
+        calcBuffer(buffer);
     }
 }
 
+// Опрос датчика в цикле
+void workingBNO055()
+{
+    bool static flagNMO055 = false;
+    u_int32_t static timerBNO055 = 0;
+    uint8_t static bufferBNO055[20];
+
+    if (millis() >= timerBNO055 + 100) // Если текущее время больше чем 10 милисекунд с прошлого запуска 100 Hz
+    {
+        HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 1); // Инвертирование состояния выхода.
+        // DEBUG_PRINTF ("millis = %lu \n",millis());
+        BNO055_Read_IT(eBNO055_REGISTER_EUL_DATA_X_LSB, bufferBNO055, 20);
+        flagNMO055 = true;
+        timerBNO055 = millis();
+        HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 0); // Инвертирование состояния выхода.
+    }
+    if (flagNMO055 && i2cTransferComplete)
+    {
+        // HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 1); // Инвертирование состояния выхода.
+        flagNMO055 = false;
+        calcBuffer(bufferBNO055);
+        // HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 0); // Инвертирование состояния выхода.
+    }
+}
 #endif

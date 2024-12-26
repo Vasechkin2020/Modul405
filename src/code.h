@@ -131,8 +131,8 @@ void workingTimer() // Отработка действий по таймеру �
         // {
         //     // DEBUG_PRINTF("Timer HAL_SPI_STATE_BUSY_TX_RX %u \n", statusGetState);
         // }
-        HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin); // Инвертирование состояния выхода.
-        DEBUG_PRINTF("%li \r\n", millis());
+        // HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin); // Инвертирование состояния выхода.
+        // DEBUG_PRINTF("%li \r\n", millis());
         //  uint8_t UART1_rxBuffer[4] = {0xAA,0xFF,0xAA,0xFF};
         //   uint8_t UART1_rxBuffer[1] = {0x56}; //Запрос версии "V"
         //   uint8_t UART1_rxBuffer[1] = {0x4F}; // Включить лазер "O"
@@ -555,10 +555,6 @@ void workingSPI()
         //     DEBUG_PRINTF(" %x", txBuffer[i]);
         // }
         // DEBUG_PRINTF("\n");
-        // HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 1); // Инвертирование состояния выхода.
-        // BNO055_ReadData();
-        // HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 0); // Инвертирование состояния выхода.
-
         collect_Data_for_Send(); // Собираем данные в структуре для отправки на момент прихода команлы, но БЕЗ учета команды.До исполнения команды.
 
         // DEBUG_PRINTF(" angle0= %.2f angle1= %.2f angle2= %.2f angle3= %.2f", Data2Modul_receive.angle[0], Data2Modul_receive.angle[1], Data2Modul_receive.angle[2], Data2Modul_receive.angle[3] );
