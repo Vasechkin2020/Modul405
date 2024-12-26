@@ -44,6 +44,13 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART6_UART_Init();
 
+  // for (int i = 0; i < 10; i++)
+  // {
+  //   HAL_GPIO_TogglePin(Dir_Motor3_GPIO_Port, Dir_Motor3_Pin);
+  //   HAL_GPIO_TogglePin(Step_Motor3_GPIO_Port, Step_Motor3_Pin);
+  //   HAL_Delay(100);
+  // }
+
   MX_TIM6_Init();
   MX_TIM7_Init();
 
@@ -52,18 +59,20 @@ int main(void)
 
   DEBUG_PRINTF("\r\n printBIM.ru 2023. Version 2.1. Это ОТЛАДОЧНЫЙ режим вывода \r\n");
 
-  BNO055_Init(); // Инициализация датчика на шине I2C
 
-  // initMotor();  // Начальная инициализация и настройка шаговых моторов
+  initMotor(); // Начальная инициализация и настройка шаговых моторов
   // setZeroMotor(); // Установка в ноль
   // testMotorRun();
-  // setMotor10();
-  // HAL_Delay(500);
-  // setMotor0();
-  // HAL_Delay(5000);
-  // setSpeedMotor(0.5); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
 
-  // HAL_Delay(99999);
+  setMotor10();
+  HAL_Delay(500);
+  setMotor0();
+  HAL_Delay(6000);
+  setSpeedMotor(0.5); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
+
+  HAL_Delay(999999);
+
+  BNO055_Init(); // Инициализация датчика на шине I2C
 
   // initLaser(); // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
 
@@ -79,7 +88,7 @@ int main(void)
     workingTimer();       // Отработка действий по таймеру в 1, 50, 60 милисекунд
     workingStopTimeOut(); // Остановка драйверов и моторов при обрыве связи
     workingMotor();       // Отработка действий по таймеру в 1, 50, 60 милисекунд
-    workingBNO055();      // Отработака по датчику BNO055
+    // workingBNO055();      // Отработака по датчику BNO055
 
     // DEBUG_PRINTF("float %.2f Привет \n", 3.1415625);
     // HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin);     // Инвертирование состояния выхода.

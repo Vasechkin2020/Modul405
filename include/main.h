@@ -47,7 +47,7 @@ extern "C"
 #define Led1_Pin GPIO_PIN_15
 #define Led1_GPIO_Port GPIOA
 
-#define Analiz_Pin GPIO_PIN_2
+#define Analiz_Pin GPIO_PIN_1
 #define Analiz_GPIO_Port GPIOB
 
 #define En_Motor_Pin GPIO_PIN_5
@@ -68,7 +68,7 @@ extern "C"
 #define Step_Motor2_Pin GPIO_PIN_3
 #define Step_Motor2_GPIO_Port GPIOC
 
-#define Dir_Motor3_Pin GPIO_PIN_1
+#define Dir_Motor3_Pin GPIO_PIN_2
 #define Dir_Motor3_GPIO_Port GPIOB
 #define Step_Motor3_Pin GPIO_PIN_0
 #define Step_Motor3_GPIO_Port GPIOB

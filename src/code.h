@@ -132,7 +132,7 @@ void workingTimer() // Отработка действий по таймеру �
         //     // DEBUG_PRINTF("Timer HAL_SPI_STATE_BUSY_TX_RX %u \n", statusGetState);
         // }
         // HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin); // Инвертирование состояния выхода.
-        // DEBUG_PRINTF("%li \r\n", millis());
+        DEBUG_PRINTF("%li \r\n", millis());
         //  uint8_t UART1_rxBuffer[4] = {0xAA,0xFF,0xAA,0xFF};
         //   uint8_t UART1_rxBuffer[1] = {0x56}; //Запрос версии "V"
         //   uint8_t UART1_rxBuffer[1] = {0x4F}; // Включить лазер "O"
