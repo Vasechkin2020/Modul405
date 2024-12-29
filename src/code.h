@@ -239,7 +239,11 @@ void collect_Data_for_Send()
     //*******************************************************
     statusGetState = HAL_SPI_GetState(&hspi1);
     if (statusGetState == HAL_SPI_STATE_READY)
-        DEBUG_PRINTF("SPI_GetState ok.");
+        
+        {
+            // DEBUG_PRINTF("SPI_GetState ok.");
+            ;
+        }
     else
         DEBUG_PRINTF("SPI_GetState ERROR %u ", statusGetState);
 
@@ -247,7 +251,10 @@ void collect_Data_for_Send()
     HAL_SPI_Abort(&hspi1);
     status = HAL_SPI_TransmitReceive_DMA(&hspi1, txBuffer, rxBuffer, BUFFER_SIZE); // // Перезапуск функции для следующего обмена// Запуск обмена данными по SPI с использованием DMA                                       // Копируем из структуры данные в пвмять начиная с адреса в котором начинаяется буфер для передачи
     if (status == HAL_OK)
-        DEBUG_PRINTF("DMA OK \n");
+    {
+        // DEBUG_PRINTF("DMA OK \n");
+        ;
+    }
     else
     {
         DEBUG_PRINTF("DMA ERROR \n");

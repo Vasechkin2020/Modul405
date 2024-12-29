@@ -618,12 +618,12 @@ void workingBNO055()
 
     if (millis() >= timerBNO055 + 100) // Если текущее время больше чем 10 милисекунд с прошлого запуска 100 Hz
     {
-        HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 1); // Инвертирование состояния выхода.
+        // HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 1); // Инвертирование состояния выхода.
         // DEBUG_PRINTF ("millis = %lu \n",millis());
         BNO055_Read_IT(eBNO055_REGISTER_EUL_DATA_X_LSB, bufferBNO055, 20);
         flagNMO055 = true;
         timerBNO055 = millis();
-        HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 0); // Инвертирование состояния выхода.
+        // HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 0); // Инвертирование состояния выхода.
     }
     if (flagNMO055 && i2cTransferComplete)
     {
