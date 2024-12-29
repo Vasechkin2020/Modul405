@@ -578,7 +578,7 @@ void calcBuffer(uint8_t *buffer)
     // if (eulerAngles.y > 180)
     //     eulerAngles.y = eulerAngles.y - 360;
 
-    DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f  /  ", eulerAngles.x, eulerAngles.y, eulerAngles.z);
+    // DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f  /  ", eulerAngles.x, eulerAngles.y, eulerAngles.z);
 
     struct SXyz linAccData;
     aLow = buffer[14];
@@ -593,7 +593,7 @@ void calcBuffer(uint8_t *buffer)
     linAccData.y = (int16_t)(bLow | (bHigh << 8)) / 100.;
     linAccData.z = (int16_t)(cLow | (cHigh << 8)) / 100.; // Дальше не используем так как не летаем а ездим по плоскости. И заменяем на угловую скорость полученную из угла Эллера
 
-    DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f  /  \n ", linAccData.x, linAccData.y, linAccData.z);
+    // DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f  /  \n ", linAccData.x, linAccData.y, linAccData.z);
 
     bno055.status = 0;
     bno055.angleEuler = eulerAngles;

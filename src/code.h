@@ -145,39 +145,35 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
     if (huart->Instance == USART2)
     {
-        // HAL_GPIO_WritePin(Step_Motor0_GPIO_Port, Step_Motor0_Pin, GPIO_PIN_SET);
-        dataUART[0].flag = 1;                                                                   // Обработка полученных данных
-        dataUART[0].len = Size;                                                                 // Обработка полученных данных
-        status = HAL_UARTEx_ReceiveToIdle_DMA(&huart2, rx_bufferUART1, sizeof(rx_bufferUART1)); // После обработки вновь запустить прием
-        dataUART[0].statusDMA = status;
-        // HAL_GPIO_WritePin(Step_Motor0_GPIO_Port, Step_Motor0_Pin, GPIO_PIN_RESET);
+        // DEBUG_PRINTF("USART2\n");
+        dataUART[1].flag = 1;                                                                     // Обработка полученных данных
+        dataUART[1].len = Size;                                                                   // Обработка полученных данных
+        status = HAL_UARTEx_ReceiveToIdle_DMA(dataUART[1].huart, dataUART[1].adr, RX_BUFFER_SIZE); // После обработки вновь запустить прием
+        dataUART[1].statusDMA = status;
     }
     else if (huart->Instance == UART4)
     {
-        // HAL_GPIO_WritePin(Step_Motor1_GPIO_Port, Step_Motor1_Pin, GPIO_PIN_SET);
-        dataUART[1].flag = 1;                                                                   // Обработка полученных данных
-        dataUART[1].len = Size;                                                                 // Обработка полученных данных
-        status = HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_bufferUART2, sizeof(rx_bufferUART2)); // После обработки вновь запустить прием
-        dataUART[1].statusDMA = status;
-        // HAL_GPIO_WritePin(Step_Motor1_GPIO_Port, Step_Motor1_Pin, GPIO_PIN_RESET);
+        // DEBUG_PRINTF("USART4\n");
+        dataUART[0].flag = 1;                                                                     // Обработка полученных данных
+        dataUART[0].len = Size;                                                                   // Обработка полученных данных
+        status = HAL_UARTEx_ReceiveToIdle_DMA(dataUART[0].huart, dataUART[0].adr, RX_BUFFER_SIZE); // После обработки вновь запустить прием
+        dataUART[0].statusDMA = status;
     }
     else if (huart->Instance == UART5)
     {
-        // HAL_GPIO_WritePin(Step_Motor2_GPIO_Port, Step_Motor2_Pin, GPIO_PIN_SET);
-        dataUART[2].flag = 1;                                                                   // Обработка полученных данных
-        dataUART[2].len = Size;                                                                 // Обработка полученных данных
-        status = HAL_UARTEx_ReceiveToIdle_DMA(&huart5, rx_bufferUART3, sizeof(rx_bufferUART3)); // После обработки вновь запустить прием
+        // DEBUG_PRINTF("USART5\n");
+        dataUART[2].flag = 1;                                                                     // Обработка полученных данных
+        dataUART[2].len = Size;                                                                   // Обработка полученных данных
+        status = HAL_UARTEx_ReceiveToIdle_DMA(dataUART[2].huart, dataUART[2].adr, RX_BUFFER_SIZE); // После обработки вновь запустить прием
         dataUART[2].statusDMA = status;
-        // HAL_GPIO_WritePin(Step_Motor2_GPIO_Port, Step_Motor2_Pin, GPIO_PIN_RESET);
     }
     else if (huart->Instance == USART6)
     {
-        // HAL_GPIO_WritePin(Step_Motor3_GPIO_Port, Step_Motor3_Pin, GPIO_PIN_SET);
-        dataUART[3].flag = 1;                                                                   // Обработка полученных данных
-        dataUART[3].len = Size;                                                                 // Обработка полученных данных
-        status = HAL_UARTEx_ReceiveToIdle_DMA(&huart6, rx_bufferUART4, sizeof(rx_bufferUART4)); // После обработки вновь запустить прием
+        // DEBUG_PRINTF("USART6\n");
+        dataUART[3].flag = 1;                                                                     // Обработка полученных данных
+        dataUART[3].len = Size;                                                                   // Обработка полученных данных
+        status = HAL_UARTEx_ReceiveToIdle_DMA(dataUART[3].huart, dataUART[3].adr, RX_BUFFER_SIZE); // После обработки вновь запустить прием
         dataUART[3].statusDMA = status;
-        // HAL_GPIO_WritePin(Step_Motor3_GPIO_Port, Step_Motor3_Pin, GPIO_PIN_RESET);
     }
 }
 
@@ -345,35 +341,32 @@ void initLaser() // Инициализация лазеров в зависим�
     DEBUG_PRINTF("laserInit... \r\n");
     // Это общие данные для любых датчиков
     dataUART[0].num = 0;
-    dataUART[0].adr = rx_bufferUART1;
-    dataUART[0].huart = &huart2;
+    dataUART[0].adr = rx_bufferLaser0;
+    dataUART[0].huart = &huart4;
 
     dataUART[1].num = 1;
-    dataUART[1].adr = rx_bufferUART2;
-    dataUART[1].huart = &huart4;
+    dataUART[1].adr = rx_bufferLaser1;
+    dataUART[1].huart = &huart2;
 
     dataUART[2].num = 2;
-    dataUART[2].adr = rx_bufferUART3;
+    dataUART[2].adr = rx_bufferLaser2;
     dataUART[2].huart = &huart5;
 
     dataUART[3].num = 3;
-    dataUART[3].adr = rx_bufferUART4;
+    dataUART[3].adr = rx_bufferLaser3;
     dataUART[3].huart = &huart6;
 
-    HAL_UART_DMAStop(&huart2);                                             // Остановка DMA
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart2, rx_bufferUART1, RX_BUFFER_SIZE); // Двнные оказываются в буфере rx_bufferUART1
-    HAL_UART_DMAStop(&huart4);                                             // Остановка DMA
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_bufferUART2, RX_BUFFER_SIZE); // Двнные оказываются в буфере rx_bufferUART1
-    HAL_UART_DMAStop(&huart5);                                             // Остановка DMA
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart5, rx_bufferUART3, RX_BUFFER_SIZE); // Двнные оказываются в буфере rx_bufferUART1
-    HAL_UART_DMAStop(&huart6);                                             // Остановка DMA
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart6, rx_bufferUART4, RX_BUFFER_SIZE); // Двнные оказываются в буфере rx_bufferUART1
+    for (int i = 0; i < 4; i++)
+    {
+        HAL_UART_DMAStop(dataUART[i].huart);                                              // Остановка DMA
+        HAL_UARTEx_ReceiveToIdle_DMA(dataUART[i].huart, dataUART[i].adr, RX_BUFFER_SIZE); // Двнные оказываются в буфере rx_bufferLaser
+    }
 
 #ifdef LASER80
     lenDataLaser = 11;
 
     DEBUG_PRINTF("\r\n");
-    HAL_Delay(250);
+    HAL_Delay(100);
     laser80_stopMeasurement(0);
     laser80_stopMeasurement(1);
     laser80_stopMeasurement(2);
@@ -382,19 +375,19 @@ void initLaser() // Инициализация лазеров в зависим�
     for (int i = 0; i < 4; i++)
     {
         DEBUG_PRINTF("\r\n");
-        HAL_Delay(250);
+        HAL_Delay(100);
         laser80_controlLaser(i, 1);
-        HAL_Delay(250);
+        HAL_Delay(100);
         laser80_setTimeInterval(i, 0);
-        HAL_Delay(250);
+        HAL_Delay(100);
         laser80_setResolution(i, 1);
-        HAL_Delay(250);
+        HAL_Delay(100);
         laser80_setRange(i, 30);
-        HAL_Delay(250);
+        HAL_Delay(100);
         laser80_setStartingPoint(i, 1);
-        HAL_Delay(250);
+        HAL_Delay(100);
         laser80_setFrequency(i, 10);
-        HAL_Delay(250);
+        HAL_Delay(100);
         laser80_controlLaser(i, 0);
     }
 
@@ -473,7 +466,7 @@ void workingLaser()
                 dataUART[i].quality = 0;
                 dataUART[i].angle = getAngle(motor[i].position);
                 dataUART[i].time = millisCounter;
-                // DEBUG_PRINTF(" UART%i dist = %lu qual = %u \r\n", dataUART[i].num, dataUART[i].distance, dataUART[i].quality);
+                DEBUG_PRINTF(" UART%i dist = %lu qual = %u \r\n", dataUART[i].num, dataUART[i].distance, dataUART[i].quality);
             }
             else
             {

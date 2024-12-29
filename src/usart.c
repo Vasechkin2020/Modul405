@@ -8,9 +8,9 @@ UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart6;
 
+DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_uart4_rx;
 DMA_HandleTypeDef hdma_uart5_rx;
-DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart6_rx;
 
   // uint32_t pclk1 = HAL_RCC_GetPCLK1Freq(); // Для UART2, 3, 4, 5

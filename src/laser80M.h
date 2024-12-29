@@ -7,10 +7,10 @@ enum codeOperation codeOperationUART3;
 enum codeOperation codeOperationUART4;
 
 #define RX_BUFFER_SIZE 64                     // Размер буфера приема БУФЕР БОЛЬШЕГО РАЗМЕРА ЧТОБЫ НЕ СРАБАТЫВАЛИ ПРЕРЫВАНИЯ НА СЕРЕДИНУ БУФЕРА !!!!!!!!!!!!!!!!!!!!!!!!!!!! МИнимум в 2 раза больше данных иначе обрабатывать середину буфера
-uint8_t rx_bufferUART1[RX_BUFFER_SIZE] = {0}; // Буфер для приема данных
-uint8_t rx_bufferUART2[RX_BUFFER_SIZE] = {0}; // Буфер для приема данных
-uint8_t rx_bufferUART3[RX_BUFFER_SIZE] = {0}; // Буфер для приема данных
-uint8_t rx_bufferUART4[RX_BUFFER_SIZE] = {0}; // Буфер для приема данных
+uint8_t rx_bufferLaser0[RX_BUFFER_SIZE] = {0}; // Буфер для приема данных
+uint8_t rx_bufferLaser1[RX_BUFFER_SIZE] = {0}; // Буфер для приема данных
+uint8_t rx_bufferLaser2[RX_BUFFER_SIZE] = {0}; // Буфер для приема данных
+uint8_t rx_bufferLaser3[RX_BUFFER_SIZE] = {0}; // Буфер для приема данных
 
 extern bool flagCallBackUart; // Флаг для указания нужно ли отрабатывать в колбеке  или обраьотка с самой функции
 extern HAL_StatusTypeDef status;
@@ -93,8 +93,8 @@ void laser80_setAddress(UART_HandleTypeDef *huart, uint8_t addr_)
     buf[4] = lazer80_calcCs(buf, 5);
     HAL_UART_Transmit(huart, buf, sizeof(buf), 100);
     HAL_Delay(50); // Задержка на время ожидания ответа и сразу разбираем ответ который будет в буфере который указали для ожмдания прерывания по DMA
-    // DEBUG_PRINTF("setAddress DATA => %X %X %X %X %X\n", rx_bufferUART1[0], rx_bufferUART1[1], rx_bufferUART1[2], rx_bufferUART1[3], rx_bufferUART1[4]);
-    if (rx_bufferUART1[0] == 0xFA && rx_bufferUART1[1] == 0x04 && rx_bufferUART1[2] == 0x81 && rx_bufferUART1[3] == 0x81)
+    // DEBUG_PRINTF("setAddress DATA => %X %X %X %X %X\n", rx_bufferLaser0[0], rx_bufferLaser0[1], rx_bufferLaser0[2], rx_bufferLaser0[3], rx_bufferLaser0[4]);
+    if (rx_bufferLaser0[0] == 0xFA && rx_bufferLaser0[1] == 0x04 && rx_bufferLaser0[2] == 0x81 && rx_bufferLaser0[3] == 0x81)
     {
         // DEBUG_PRINTF("setAddress ok \n");
         // return true;
