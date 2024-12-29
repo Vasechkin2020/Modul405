@@ -566,7 +566,7 @@ void workingSPI()
         // {
         //     DEBUG_PRINTF(" %x", txBuffer[i]);
         // }
-        DEBUG_PRINTF("-----\n");
+        // DEBUG_PRINTF("-----\n");
         // HAL_GPIO_WritePin(Analiz2_GPIO_Port, Analiz2_Pin, GPIO_PIN_RESET); // Инвертирование состояния выхода.
     }
 #endif
