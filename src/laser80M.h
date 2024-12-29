@@ -113,8 +113,8 @@ void laser80_singleMeasurement(uint8_t port_)
     static uint8_t buf[4] = {0x80, 0x06, 0x02, 0x78};
     buf[3] = lazer80_calcCs(buf, 4);
     HAL_UART_Transmit(dataUART[port_].huart, buf, sizeof(buf), 100);
-    HAL_Delay(10); // Задержка
-    // DEBUG_PRINTF(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
+    HAL_Delay(1000); // Задержка
+    DEBUG_PRINTF(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
     for (int i = 0; i < dataUART[port_].len; i++)
     {
         DEBUG_PRINTF("%X-", dataUART[port_].adr[i]);
@@ -132,25 +132,24 @@ void laser80_singleMeasurement(uint8_t port_)
     //************************
 
     // HAL_delay(850);
-    // uint8_t len = 11;
-    // uint8_t bufRead[len];
-    // for (int i = 0; i < len; i++)
-    // {
-    //     bufRead[i] = Serial2.read();
-    //     DEBUG_PRINTF("%X-", bufRead[i]);
-    // }
-    // digitalWrite(PIN_LED, 0);
-    // DEBUG_PRINTF("\n");
-    // uint8_t sot = (bufRead[3] - 0x30) * 100;       // По таблице ASCII отнимаем 48 и получаем сколько сотен метров
-    // uint8_t des = (bufRead[4] - 0x30) * 10;        // По таблице ASCII отнимаем 48 и получаем сколько десятков метров
-    // uint8_t met = (bufRead[5] - 0x30) * 1;         // По таблице ASCII отнимаем 48 и получаем сколько единиц метров
-    // float desMet = (bufRead[7] - 0x30) * 0.1;   // По таблице ASCII отнимаем 48 и получаем сколько десятых долей метра
-    // float sotMet = (bufRead[8] - 0x30) * 0.01;  // По таблице ASCII отнимаем 48 и получаем сколько сотых долей метра
-    // float tysMet = (bufRead[9] - 0x30) * 0.001; // По таблице ASCII отнимаем 48 и получаем сколько тысячных долей метра
-    // float distance = sot + des + met + desMet + sotMet + tysMet;
+    uint8_t len = 11;
+    uint8_t bufRead[len];
+    for (int i = 0; i < len; i++)
+    {
+        bufRead[i] = dataUART[port_].adr[i];
+        DEBUG_PRINTF("%X-", bufRead[i]);
+    }
+    DEBUG_PRINTF("\n");
+    uint8_t sot = (bufRead[3] - 0x30) * 100;       // По таблице ASCII отнимаем 48 и получаем сколько сотен метров
+    uint8_t des = (bufRead[4] - 0x30) * 10;        // По таблице ASCII отнимаем 48 и получаем сколько десятков метров
+    uint8_t met = (bufRead[5] - 0x30) * 1;         // По таблице ASCII отнимаем 48 и получаем сколько единиц метров
+    float desMet = (bufRead[7] - 0x30) * 0.1;   // По таблице ASCII отнимаем 48 и получаем сколько десятых долей метра
+    float sotMet = (bufRead[8] - 0x30) * 0.01;  // По таблице ASCII отнимаем 48 и получаем сколько сотых долей метра
+    float tysMet = (bufRead[9] - 0x30) * 0.001; // По таблице ASCII отнимаем 48 и получаем сколько тысячных долей метра
+    float distance = sot + des + met + desMet + sotMet + tysMet;
 
-    // DEBUG_PRINTF("Meas= %i - %i - %i . %.1f %.2f %.3f | ", sot, des, met, desMet, sotMet, tysMet);
-    // DEBUG_PRINTF("Distance= %f \n", distance);
+    DEBUG_PRINTF("Meas= %i - %i - %i . %.1f %.2f %.3f | ", sot, des, met, desMet, sotMet, tysMet);
+    DEBUG_PRINTF("Distance= %f \n", distance);
     // if (bufRead[0] == addr_ && buf[1] == 0x06 && buf[2] == 0x82 && buf[3] == 0x45 && buf[4] == 0x52 && buf[4] == 0x52) // Проверка на ошибку. Возвращает ADDR 06 82"'E' 'R' 'R' '-' '-' '3X' '3X' ”CS
     // {
     //     DEBUG_PRINTF("readMeasurement ERROR \n");

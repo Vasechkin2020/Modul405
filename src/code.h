@@ -396,6 +396,8 @@ void initLaser() // Инициализация лазеров в зависим�
         laser80_setFrequency(i, 10);
         HAL_Delay(100);
         laser80_controlLaser(i, 0);
+        HAL_Delay(100);
+        laser80_singleMeasurement(i);
     }
 
     // Непрерывное измерение
