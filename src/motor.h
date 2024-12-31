@@ -9,7 +9,7 @@
 #include "config.h"
 
 //---------------------------------------------------------------------------------------
-#define SPEED 0.10    // Скорость на всех моторах одинаковая максимально возможная, что-бы перемещаться как можно быстрее оборотов за секунду rps. Точность - одня десятая
+#define SPEED 0.50    // Скорость на всех моторах одинаковая максимально возможная, что-бы перемещаться как можно быстрее оборотов за секунду rps. Точность - одня десятая
 #define MICROSTEP 16  // Микрошаг на драйверах
 #define REDUKTOR 1    // Параметры Редуктора 1 - Нет редуктора
 #define STEPMOTOR 0.9 // Параметры градусы на шаг
@@ -77,6 +77,7 @@ void setSpeedMotor(float _speed)
 // Функция инциализации моторов
 void initMotor()
 {
+    printf("initMotor... \n");
     //**************************************************************   Мотор на колеса
     // microStep = MICROSTEP; // Так распаяно на плате для драйверов 2208 и 2209
     // printf("Init StepMotor. Set microstep = %i \n", microStep);
@@ -332,10 +333,10 @@ void isrMicMotor3()
 // Функция установки в 10 градусов
 void setMotor10()
 {
+    DEBUG_PRINTF("setMotor10 \n");
     flagMicric = false;                                                  // Микрики не реагируют
     HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_RESET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
     setSpeedMotor(0.5);                                                  // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
-    // Serial.println(String(micros()) + " Start setZeroMotor ...");
     for (int i = 0; i < 4; i++) // Сначала отводим немного на случай если уже в нуле
     {
         setMotorAngle(i, 30);
@@ -345,10 +346,10 @@ void setMotor10()
 // Функция установки в ноль всех моторов
 void setMotor0()
 {
+    DEBUG_PRINTF("setMotor0 \n");
     flagMicric = true;                                                   // Микрики включаем реакцию
     HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_RESET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
     setSpeedMotor(0.25);                                                  // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
-    // Serial.println(String(micros()) + " Start setZeroMotor ...");
     for (int i = 0; i < 4; i++)
     {
         motor[i].position = 200 * REDUKTOR * MICROSTEP; // Устанавливаем всем максимульную позицию 200 шагов пополам (всего 400 так как мотор 0,9) на редуктор и на микрошаг

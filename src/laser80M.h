@@ -147,6 +147,7 @@ void laser80_singleMeasurement(uint8_t port_)
     float sotMet = (bufRead[8] - 0x30) * 0.01;  // По таблице ASCII отнимаем 48 и получаем сколько сотых долей метра
     float tysMet = (bufRead[9] - 0x30) * 0.001; // По таблице ASCII отнимаем 48 и получаем сколько тысячных долей метра
     float distance = sot + des + met + desMet + sotMet + tysMet;
+    (void)distance; // Подавляем предупреждение
 
     DEBUG_PRINTF("Meas= %i - %i - %i . %.1f %.2f %.3f | ", sot, des, met, desMet, sotMet, tysMet);
     DEBUG_PRINTF("Distance= %f \n", distance);

@@ -57,24 +57,24 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim6); // Таймер для общего цикла
   HAL_TIM_Base_Start_IT(&htim7); // Таймер для моторов шаговых для датчиков
 
-  DEBUG_PRINTF("\r\n printBIM.ru 2023. Version 2.1. Это ОТЛАДОЧНЫЙ режим вывода \r\n");
+  initFirmware();
+  printf("\r\n *** printBIM.ru 2025. ***\r\n");
+  printf("Firmware gen %hu ver %hu laser %hu motor %.1f debug %hu\n", Modul2Data_send.firmware.gen, Modul2Data_send.firmware.ver,Modul2Data_send.firmware.laser,Modul2Data_send.firmware.motor,Modul2Data_send.firmware.debug);
 
+  initLaser(); // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
 
   initMotor(); // Начальная инициализация и настройка шаговых моторов
   // setZeroMotor(); // Установка в ноль
   // testMotorRun();
-  initLaser(); // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
   // HAL_Delay(999999);
 
   setMotor10();
   HAL_Delay(500);
   setMotor0();
   HAL_Delay(6000);
-  setSpeedMotor(0.5); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
-
+  setSpeedMotor(SPEED); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
 
   BNO055_Init(); // Инициализация датчика на шине I2C
-
 
   initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
 
