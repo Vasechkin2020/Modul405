@@ -585,6 +585,7 @@ void workingStopTimeOut()
             HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_SET); // Отключаем драйвера моторы// Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
             modeControlMotor = 0;
             modeControlLaser = 0;
+            // flagMicric = false;                                                   // Микрики выключаем реакцию
 #ifdef LASER80
             laser80_stopMeasurement(0);
             laser80_stopMeasurement(1);

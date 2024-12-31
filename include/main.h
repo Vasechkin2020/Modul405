@@ -8,7 +8,7 @@ extern "C"
 #endif
 
     // Установите DEBUG для включения отладочной информации
-#define DEBUG 1 // Поставьте 0 для отключения отладочной информации
+#define DEBUG 0 // Поставьте 0 для отключения отладочной информации
 
 #if DEBUG
 #define DEBUG_PRINTF(...) printf(__VA_ARGS__)
