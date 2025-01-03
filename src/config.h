@@ -124,7 +124,6 @@ struct Struct_Modul2Data
   uint32_t pinMotorEn;        // Стутус пина управления драйвером моторов, включен драйвер или нет
   struct SMotorSend motor[4]; // Структура по состоянию моторов
   struct SLaserSend laser[4]; // Структура по состоянию лазеров
-  uint32_t statusDataLaser;   // Статус обновления данных с лазерных датчиков
   uint32_t micric[4];         // Структура по состоянию концевиков
   struct SMpu bno055;         // Данные с датчика BNO055
   struct SSpi spi;            // Структура по состоянию обмена по шине SPI
