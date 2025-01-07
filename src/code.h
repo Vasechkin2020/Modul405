@@ -475,7 +475,8 @@ void workingLaser()
                 DEBUG_PRINTF("D %i = %lu \n", i, dataUART[i].distance);
                 dataUART[i].quality = 0;
                 dataUART[i].angle = getAngle(motor[i].position);
-                dataUART[i].rate = 1000 / (millis() - dataUART[i].time);
+                dataUART[i].rate = (float)1000.0 / (millis() - dataUART[i].time);
+                DEBUG_PRINTF(" UART%i rate = %f time = %u \r\n", dataUART[i].num, dataUART[i].rate, dataUART[i].time);
                 dataUART[i].time = millis();
                 DEBUG_PRINTF(" UART%i dist = %lu qual = %u \r\n", dataUART[i].num, dataUART[i].distance, dataUART[i].quality);
             }
@@ -590,7 +591,7 @@ void workingStopTimeOut()
             HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_SET); // Отключаем драйвера моторы// Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
             modeControlMotor = 0;
             modeControlLaser = 0;
-            // flagMicric = false;                                                   // Микрики выключаем реакцию
+            
 #ifdef LASER80
             laser80_stopMeasurement(0);
             laser80_stopMeasurement(1);

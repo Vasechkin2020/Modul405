@@ -7,16 +7,6 @@ extern "C"
 {
 #endif
 
-    // Установите DEBUG для включения отладочной информации
-#define DEBUG 0 // Поставьте 0 для отключения отладочной информации
-
-#if DEBUG
-#define DEBUG_PRINTF(...) printf(__VA_ARGS__)
-    // #define DEBUG_PRINTF(fmt,...) printf("GREEN" fmt , ##__VA_ARGS__)
-#else
-#define DEBUG_PRINTF(...) (void)0 // Приведение 0 к типу void, ничего не делает
-#endif
-
 #include "stm32f4xx_hal.h"
 
 // ВЫБОР С КАКИМИ ДАТЧИКАМИ РАБОТАЕМ. НУЖНО ОСТАВИТЬТОЛЬКО ОДНУ СРОЧКУ, ОСТАЛЬНЫЕ ЗАКОММЕНТИРОВАТЬ
@@ -92,6 +82,19 @@ extern "C"
 #define micMotor3_Pin GPIO_PIN_5
 #define micMotor3_GPIO_Port GPIOB
 #define micMotor3_EXTI_IRQn EXTI9_5_IRQn
+
+
+
+    // Установите DEBUG для включения отладочной информации
+#define DEBUG 0 // Поставьте 0 для отключения отладочной информации
+
+#if DEBUG
+#define DEBUG_PRINTF(...) printf(__VA_ARGS__)
+    // #define DEBUG_PRINTF(fmt,...) printf("GREEN" fmt , ##__VA_ARGS__)
+#else
+#define DEBUG_PRINTF(...) (void)0 // Приведение 0 к типу void, ничего не делает
+#endif
+
 
 #ifdef __cplusplus
 }

@@ -24,6 +24,7 @@
 
 void SystemClock_Config(void);
 volatile uint32_t millisCounter = 0;
+volatile uint64_t microsCounter = 0;
 
 int main(void)
 {

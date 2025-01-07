@@ -599,7 +599,7 @@ void calcBuffer(uint8_t *buffer)
     bno055.status = 0;
     bno055.angleEuler = eulerAngles;
     bno055.linear = linAccData;
-    bno055.rate = 1000.0 / (millis() - timeBNO); // Считаем частоту
+    bno055.rate = (float)1000.0 / (millis() - timeBNO); // Считаем частоту
     timeBNO = millis();
 }
 // Разовое считывание данных
@@ -619,7 +619,7 @@ void workingBNO055()
     u_int32_t static timerBNO055 = 0;
     uint8_t static bufferBNO055[20];
 
-    if (millis() >= timerBNO055 + 100) // Если текущее время больше чем 10 милисекунд с прошлого запуска 100 Hz
+    if (millis() >= timerBNO055 + 20) // Если текущее время больше чем 10 милисекунд с прошлого запуска 100 Hz
     {
         // HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 1); // Инвертирование состояния выхода.
         // DEBUG_PRINTF ("millis = %lu \n",millis());
