@@ -62,20 +62,20 @@ int main(void)
   printf("\r\n *** printBIM.ru 2025. ***\r\n");
   printf("Firmware gen %hu ver %hu laser %hu motor %.1f debug %hu\n", Modul2Data_send.firmware.gen, Modul2Data_send.firmware.ver,Modul2Data_send.firmware.laser,Modul2Data_send.firmware.motor,Modul2Data_send.firmware.debug);
 
-  initLaser(); // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
+  // initLaser(); // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
 
-  initMotor(); // Начальная инициализация и настройка шаговых моторов
+  // initMotor(); // Начальная инициализация и настройка шаговых моторов
   // setZeroMotor(); // Установка в ноль
   // testMotorRun();
   // HAL_Delay(999999);
 
-  setMotor10();
-  HAL_Delay(500);
-  setMotor0();
-  HAL_Delay(6000);
-  setSpeedMotor(SPEED); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
+  // setMotor10();
+  // HAL_Delay(500);
+  // setMotor0();
+  // HAL_Delay(6000);
+  // setSpeedMotor(SPEED); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
 
-  BNO055_Init(); // Инициализация датчика на шине I2C
+  // BNO055_Init(); // Инициализация датчика на шине I2C
 
   initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
 
@@ -85,11 +85,11 @@ int main(void)
   while (1)
   {
     workingSPI();         // Отработка действий по обмену по шине SPI
-    workingLaser();       // Отработка действий по лазерным датчикам
+    // workingLaser();       // Отработка действий по лазерным датчикам
     workingTimer();       // Отработка действий по таймеру в 1, 50, 60 милисекунд
-    workingStopTimeOut(); // Остановка драйверов и моторов при обрыве связи
-    workingMotor();       // Отработка действий по таймеру в 1, 50, 60 милисекунд
-    workingBNO055();      // Отработака по датчику BNO055
+    // workingStopTimeOut(); // Остановка драйверов и моторов при обрыве связи
+    // workingMotor();       // Отработка действий по таймеру в 1, 50, 60 милисекунд
+    // workingBNO055();      // Отработака по датчику BNO055
 
     // DEBUG_PRINTF("float %.2f Привет \n", 3.1415625);
     // HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin);     // Инвертирование состояния выхода.
