@@ -226,46 +226,7 @@ void collect_Data_for_Send()
         cheksum_send += adr_structura[i]; // Побайтно складываем все байты структуры кроме последних 4 в которых переменная в которую запишем результат
     }
     Modul2Data_send.cheksum = cheksum_send;
-    // Modul2Data_send.cheksum = 0x0101;
-
-    // DEBUG_PRINTF(" id= %0#6lX cheksum_send =  %0#6lX \n", Modul2Data_send.id, Modul2Data_send.cheksum);
-
-    // Modul2Data_send.cheksum = measureCheksum_Modul2Data(Modul2Data_send); // Вычисляем контрольную сумму структуры и пишем ее значение в последний элемент
-
-    // копировнаие данных из моей уже заполненной структуры в буфер для DMA
-    memset(txBuffer, 0, sizeof(txBuffer));                                          // Очистка буфера
-    struct Struct_Modul2Data *copy_txBuffer = (struct Struct_Modul2Data *)txBuffer; // Создаем переменную в которую пишем адрес буфера в нужном формате
-    *copy_txBuffer = Modul2Data_send;                                               // Копируем данные
-
-    //*******************************************************
-    statusGetState = HAL_SPI_GetState(&hspi1);
-    if (statusGetState == HAL_SPI_STATE_READY)
-
-    {
-        // DEBUG_PRINTF("SPI_GetState ok.");
-        ;
-    }
-    else
-        DEBUG_PRINTF("SPI_GetState ERROR %u ", statusGetState);
-
-    // HAL_SPI_DMAStop(&hspi1);
-    HAL_SPI_Abort(&hspi1);
-    status = HAL_SPI_TransmitReceive_DMA(&hspi1, txBuffer, rxBuffer, BUFFER_SIZE); // // Перезапуск функции для следующего обмена// Запуск обмена данными по SPI с использованием DMA                                       // Копируем из структуры данные в пвмять начиная с адреса в котором начинаяется буфер для передачи
-    if (status == HAL_OK)
-    {
-        // DEBUG_PRINTF("DMA OK \n");
-        ;
-    }
-    else
-    {
-        DEBUG_PRINTF("DMA ERROR \n");
-        statusGetState = HAL_SPI_GetState(&hspi1);
-        if (statusGetState == HAL_SPI_STATE_READY)
-            DEBUG_PRINTF("2SPI готов к передаче данных.\n");
-        else
-            DEBUG_PRINTF("2HAL_SPI_GetState ERROR %u \n", statusGetState);
-    }
-    //*******************************************************
+    DataForSPI = Modul2Data_send; // Копируем в специальную переменную.
 }
 
 // Отработка пришедших команд. Изменение скорости, траектории и прочее
@@ -476,7 +437,7 @@ void workingLaser()
                 dataUART[i].quality = 0;
                 dataUART[i].angle = getAngle(motor[i].position);
                 dataUART[i].rate = (float)1000.0 / (millis() - dataUART[i].time);
-                DEBUG_PRINTF(" UART%i rate = %f time = %u \r\n", dataUART[i].num, dataUART[i].rate, dataUART[i].time);
+                DEBUG_PRINTF(" UART%i rate = %f time = %lu \r\n", dataUART[i].num, dataUART[i].rate, dataUART[i].time);
                 dataUART[i].time = millis();
                 DEBUG_PRINTF(" UART%i dist = %lu qual = %u \r\n", dataUART[i].num, dataUART[i].distance, dataUART[i].quality);
             }
@@ -621,5 +582,6 @@ void initFirmware()
     Modul2Data_send.firmware.laser = 80;
 #endif
     Modul2Data_send.firmware.motor = STEPMOTOR;
+    printf("Firmware gen %hu ver %hu laser %hu motor %.1f debug %hu\n", Modul2Data_send.firmware.gen, Modul2Data_send.firmware.ver,Modul2Data_send.firmware.laser,Modul2Data_send.firmware.motor,Modul2Data_send.firmware.debug);
 }
 #endif /*CODE_H*/

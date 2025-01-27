@@ -56,21 +56,55 @@ uint32_t measureCheksum_Modul2Data(const struct Struct_Modul2Data *structura_)
 // Обработчик прерывания при завершении обмена данных по DMA
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
+    HAL_StatusTypeDef status;
+    HAL_SPI_StateTypeDef statusGetState;
+
     if (hspi == &hspi1)
     {
         // HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, GPIO_PIN_SET); // Инвертирование состояния выхода.
-        flag_data = true;                                              // Флаг что обменялись данными. По этому флагу происходит обработка полученных данных и подготовка данных к следующей передаче
+        flag_data = true; // Флаг что обменялись данными. По этому флагу происходит обработка полученных данных и подготовка данных к следующей передаче
         // DEBUG_PRINTF("-up-\n");
-        HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin);                    // Инвертирование состояния выхода.
-        spi.all++;                                                       // Считаем сколько было обменов данными всего
-        // HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, GPIO_PIN_RESET); // Инвертирование состояния выхода.
+        HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin); // Инвертирование состояния выхода.
+        spi.all++;                                    // Считаем сколько было обменов данными всего
 
-        // //копировнаие данных из моей уже заполненной структуры в буфер для DMA
-        // memset(txBuffer, 0, sizeof(txBuffer)); // Очистка буфера
-        // struct Struct_Modul2Data *copy_txBuffer = (struct Struct_Modul2Data *)txBuffer; // Создаем переменную в которую пишем адрес буфера в нужном формате
-        // *copy_txBuffer = Modul2Data_send; // Копируем данные
+        // копировнаие данных из моей уже заполненной структуры в буфер для DMA
+        memset(txBuffer, 0, sizeof(txBuffer));                                          // Очистка буфера
+        struct Struct_Modul2Data *copy_txBuffer = (struct Struct_Modul2Data *)txBuffer; // Создаем переменную в которую пишем адрес буфера в нужном формате
 
-        // HAL_SPI_TransmitReceive_DMA(&hspi1, txBuffer, rxBuffer, BUFFER_SIZE); // // Перезапуск функции для следующего обмена// Запуск обмена данными по SPI с использованием DMA
+        /* Копировать перменную Print2Data_send в которой собрали данные и посчитали контрольную сумму не правильно. Почему-то данные которые закладываем для SPI потом меняются,
+             а в буфере сразу пишется 2 байта и потом контрольная сумма не совпадает. Почему так непонятно, ведь я больше нигде данные не меняю. Я не понял и сделал серез дополнительную перменную.вроде работает. )
+        */
+
+        *copy_txBuffer = DataForSPI; // Копируем специальную переменную в которую записали подготовленные данные.
+
+        //*******************************************************
+        statusGetState = HAL_SPI_GetState(&hspi1);
+        if (statusGetState == HAL_SPI_STATE_READY)
+
+        {
+            // DEBUG_PRINTF("SPI_GetState ok.");
+            ;
+        }
+        else
+            DEBUG_PRINTF("SPI_GetState ERROR %u ", statusGetState);
+
+        // HAL_SPI_DMAStop(&hspi1);
+        // HAL_SPI_Abort(&hspi1);
+        status = HAL_SPI_TransmitReceive_DMA(&hspi1, txBuffer, rxBuffer, BUFFER_SIZE); // // Перезапуск функции для следующего обмена// Запуск обмена данными по SPI с использованием DMA                                       // Копируем из структуры данные в пвмять начиная с адреса в котором начинаяется буфер для передачи
+        if (status == HAL_OK)
+        {
+            // DEBUG_PRINTF("DMA OK \n");
+            ;
+        }
+        else
+        {
+            DEBUG_PRINTF("DMA ERROR \n");
+            statusGetState = HAL_SPI_GetState(&hspi1);
+            if (statusGetState == HAL_SPI_STATE_READY)
+                DEBUG_PRINTF("2SPI готов к передаче данных.\n");
+            else
+                DEBUG_PRINTF("2HAL_SPI_GetState ERROR %u \n", statusGetState);
+        }
     }
 }
 
@@ -134,10 +168,11 @@ extern void collect_Data_for_Send();
 // Начальная инициализция для SPI
 void initSPI_slave()
 {
+    timeSpi = millis(); // Запоминаем время начала цикла
     collect_Data_for_Send(); // Собираем данные для начальной отправки
 
     // HAL_SPI_DMAStop(&hspi1);
-    // HAL_SPI_TransmitReceive_DMA(&hspi1, txBuffer, rxBuffer, BUFFER_SIZE); // Указываем какие данные отправлять и куда записывать полученные
+    HAL_SPI_TransmitReceive_DMA(&hspi1, txBuffer, rxBuffer, BUFFER_SIZE); // Указываем какие данные отправлять и куда записывать полученные
 
     // const uint16_t size_structura_receive = sizeof(Data2Modul_receive); // Размер структуры с данными которые получаем
     // const uint16_t size_structura_send = sizeof(Modul2Data_send);       // Размер структуры с данными которые передаем

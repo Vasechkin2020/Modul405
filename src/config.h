@@ -69,7 +69,6 @@ struct SFirmware
   uint8_t laser; // Вариант использования лазеров
   uint8_t debug; // Вариант использования отладки для вывода в printf
   float motor;   // Вариант использования моторов сколько шагов на оборот 200 или 400 (1,8 градуса или 0,9 градусов на шаг)
-
 };
 
 struct SLaserSend
@@ -119,7 +118,7 @@ struct SMpu bno055; // Данные с датчика BNO055
 // Структура в которой все главные переменные передаюся на высокий уровень от Modul к Data
 struct Struct_Modul2Data
 {
-  uint32_t id; // id команды
+  uint32_t id;                // id команды
   struct SFirmware firmware;  // Версия прошики и использованного оборудования
   uint32_t pinMotorEn;        // Стутус пина управления драйвером моторов, включен драйвер или нет
   struct SMotorSend motor[4]; // Структура по состоянию моторов
@@ -132,7 +131,8 @@ struct Struct_Modul2Data
 };
 
 struct Struct_Modul2Data Modul2Data_send; // Тут все переменные его характеризующие на низком уровне
+struct Struct_Modul2Data DataForSPI;      // Переменная специальная для передачи без ошибки по SPI
 // const uint16_t size_structura_send2 = sizeof(Modul2Data_send);                                                                       // Размер структуры с данными которые передаем
-//const uint16_t max_size_stuct = (size_structura_receive < size_structura_send) ? size_structura_send : size_structura_receive; // Какая из структур больше
+// const uint16_t max_size_stuct = (size_structura_receive < size_structura_send) ? size_structura_send : size_structura_receive; // Какая из структур больше
 
 #endif

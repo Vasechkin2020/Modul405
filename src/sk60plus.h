@@ -378,7 +378,7 @@ void sk60plus_startSingleAuto(u_int16_t port_)
     uint8_t buf[9] = {0xAA, _addr, 0x00, 0x20, 0x00, 0x01, 0x00, 0x00, 0x00};
     buf[8] = calcCs(buf, 9);
     HAL_UART_Transmit(dataUART[port_].huart, buf, sizeof(buf), 100); // Отправляем команду
-    HAL_Delay(500);
+    HAL_Delay(900);
 
     if (dataUART[port_].adr[0] == 0xAA)
     {

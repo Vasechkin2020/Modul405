@@ -105,30 +105,25 @@ void MX_GPIO_Init(void)
   // GPIO_InitStruct.Pull = GPIO_PULLUP;
   // HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = micMotor2_Pin;
+  GPIO_InitStruct.Pin = micMotor0_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  
   GPIO_InitStruct.Pin = micMotor1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = micMotor0_Pin|micMotor3_Pin;
+  GPIO_InitStruct.Pin = micMotor2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = micMotor3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  // GPIO_InitStruct.Pin = micMotor0_Pin;
-  // GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  // GPIO_InitStruct.Pull = GPIO_NOPULL;
-  // HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  // GPIO_InitStruct.Pin = micMotor3_Pin;
-  // GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  // GPIO_InitStruct.Pull = GPIO_NOPULL;
-  // HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
