@@ -24,6 +24,7 @@
 
 void SystemClock_Config(void);
 volatile uint32_t millisCounter = 0;
+volatile uint64_t microsCounter = 0;
 
 int main(void)
 {
@@ -57,44 +58,31 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim6); // Таймер для общего цикла
   HAL_TIM_Base_Start_IT(&htim7); // Таймер для моторов шаговых для датчиков
 
-  DEBUG_PRINTF("\r\n printBIM.ru 2023. Version 2.1. Это ОТЛАДОЧНЫЙ режим вывода \r\n");
-
-
-  initMotor(); // Начальная инициализация и настройка шаговых моторов
-  // setZeroMotor(); // Установка в ноль
-  // testMotorRun();
-
-  setMotor10();
-  HAL_Delay(500);
-  setMotor0();
-  HAL_Delay(6000);
-  setSpeedMotor(0.5); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
-
-
-  BNO055_Init(); // Инициализация датчика на шине I2C
-
-  initLaser(); // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
-  // HAL_Delay(999999);
+  printf("\r\n *** Modul *** printBIM.ru *** 2025 *** \r\n");
+  initFirmware();
 
   initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
 
-  timeSpi = millis(); // Запоминаем время начала цикла
+  initMotor();     // Начальная инициализация и настройка шаговых моторов
+  // testMotorRun();
+  setZeroMotor(); // Установка в ноль
+
+
+  initLaser(); // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
+
+  // BNO055_Init(); // Инициализация датчика на шине I2C
+
   DEBUG_PRINTF("%lli LOOP !!!!!!!!!!!!!!!!!!!!!!!!!!! \r\n", timeSpi);
 
   while (1)
   {
-    workingSPI();         // Отработка действий по обмену по шине SPI
+    workingSPI(); // Отработка действий по обмену по шине SPI
     workingLaser();       // Отработка действий по лазерным датчикам
-    workingTimer();       // Отработка действий по таймеру в 1, 50, 60 милисекунд
     workingStopTimeOut(); // Остановка драйверов и моторов при обрыве связи
     workingMotor();       // Отработка действий по таймеру в 1, 50, 60 милисекунд
-    workingBNO055();      // Отработака по датчику BNO055
+    // workingBNO055();      // Отработака по датчику BNO055
 
-    // DEBUG_PRINTF("float %.2f Привет \n", 3.1415625);
-    // HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin);     // Инвертирование состояния выхода.
-    // HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin);     // Инвертирование состояния выхода.
-    // HAL_GPIO_TogglePin(Analiz_GPIO_Port, Analiz_Pin); // Инвертирование состояния выхода.
-    // HAL_Delay(500);
+    workingTimer(); // Отработка действий по таймеру в 1, 50, 60 милисекунд
   }
 }
 
