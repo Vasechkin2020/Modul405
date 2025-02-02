@@ -320,12 +320,12 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 //*****************************************************************************************************
 void BNO055_Init()
 {
-    printf("BNO055_Init...\n");
+    printf("+++ BNO055_Init\n");
     // Проверяем идентификатор чипа
     if (BNO055_Read(eBNO055_REGISTER_CHIP_ID, &chip_id, 1) == HAL_OK && chip_id == 0xA0)
     {
-        printf("chip_id = %X ", chip_id);
-        printf("BNO055 detected!\n");
+        printf("    chip_id = %X ", chip_id);
+        printf("    BNO055 detected!\n");
         BNO055_Reset();
         BNO055_SetMode(eCONFIGMODE);               /* Go to config mode if not there */
         BNO055_Write(eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
@@ -342,6 +342,7 @@ void BNO055_Init()
         BNO055_SetMode(eIMU); // Режим работы где он все сам считает	  eIMU
         HAL_Delay(500);
         BNO055_ReadData(); // Разовое считывание данных
+        printf("--- BNO055_Init\n");
     }
     else
     {
@@ -353,7 +354,7 @@ void BNO055_Init()
 // Перезапуск датчика
 void BNO055_Reset()
 {
-    printf("BNO055_Reset... \n");
+    printf("+++ BNO055_Reset\n");
     int timeOut = 0;
     chip_id = 0;
     BNO055_Write(eBNO055_REGISTER_SYS_TRIGGER, 0b00100000); /* reset the sensor */
@@ -363,8 +364,8 @@ void BNO055_Reset()
     {
         BNO055_Read(eBNO055_REGISTER_CHIP_ID, &chip_id, 1);
         HAL_Delay(100);
-        printf("WAITING BNO055.... %i ", timeOut);
-        printf("chip_id = %X \n", chip_id);
+        printf("    WAITING BNO055.... %i ", timeOut);
+        printf("    chip_id = %X \n", chip_id);
         if (++timeOut == 10)
         {
             err = 1;
@@ -374,21 +375,22 @@ void BNO055_Reset()
     }
     if (!err)
     {
-        printf("chip_id = %X ", chip_id);
-        printf(" Successfully connected to  BNO055 after RESET.\n");
+        printf("    chip_id = %X ", chip_id);
+        printf("    Successfully connected to  BNO055 after RESET.\n");
     }
+    printf("--- BNO055_Reset\n");
 }
 // Установка нужного режима работы
 void BNO055_SetMode(uint8_t mode_)
 {
     BNO055_Write(eBNO055_REGISTER_OPR_MODE, mode_); // | eFASTEST_MODE);  /* Go to config mode if not there */
-    printf("BNO055_SetMode => %i \n", mode_);
+    printf("    BNO055_SetMode => %i \n", mode_);
     HAL_Delay(50);
 }
 // Установка ориентации как установлен датчик. Для применения требуется перезагрузка по питанию
 void BNO055_SetOrientation()
 {
-    printf("BNO055_SetOrientation... \n");
+    printf("+++ BNO055_SetOrientation... \n");
     /*     Placement AXIS_REMAP_CONFIG AXIS_REMAP_SIGN
     P0 0x21 0x04
     P1 (default) 0x24 0x00
@@ -399,32 +401,33 @@ void BNO055_SetOrientation()
     P6 0x21 0x07
     P7 0x24 0x05
     */
-    uint8_t AXIS_MAP_CONFIG = 0x21;
-    uint8_t AXIS_MAP_SIGN = 0x01;
+    uint8_t AXIS_MAP_CONFIG = 0x24; //P1 по даташиту
+    uint8_t AXIS_MAP_SIGN = 0x00;
     BNO055_Write(eBNO055_REGISTER_AXIS_MAP_CONFIG, AXIS_MAP_CONFIG);
-    printf("Set BNO055_AXIS_MAP_CONFIG => %#X \n", AXIS_MAP_CONFIG);
+    printf("    Set BNO055_AXIS_MAP_CONFIG => %#X \n", AXIS_MAP_CONFIG);
     BNO055_Write(eBNO055_REGISTER_AXIS_MAP_SIGN, AXIS_MAP_SIGN);
-    printf("Set BNO055_AXIS_MAP_SIGN => %#X \n", AXIS_MAP_SIGN);
+    printf("    Set BNO055_AXIS_MAP_SIGN => %#X \n", AXIS_MAP_SIGN);
 
     /* Check the REGISTER_AXIS_MAP_CONFIG */
     BNO055_Read(eBNO055_REGISTER_AXIS_MAP_CONFIG, &BNO055.MAP_Config, 1);
-    printf("Read BNO055.MAP_Config: %#X\n", BNO055.MAP_Config);
+    printf("    Read BNO055.MAP_Config: %#X\n", BNO055.MAP_Config);
 
     /* Check the REGISTER_AXIS_MAP_SIGN */
     BNO055_Read(eBNO055_REGISTER_AXIS_MAP_SIGN, &BNO055.MAP_Sign, 1);
-    printf("Read BNO055.MAP_Sign: %#X\n", BNO055.MAP_Sign);
-    printf("---\n");
+    printf("    Read BNO055.MAP_Sign: %#X\n", BNO055.MAP_Sign);
+
+    printf("--- BNO055_SetOrientation\n");
 }
 
 // Запрос информации о статусе датчика
 void BNO055_StatusInfo()
 {
-    printf(" === BNO055_getStatusInfo ===\n");
+    printf("+++ BNO055_getStatusInfo\n");
 
     BNO055_Write(eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
 
     BNO055_Read(eBNO055_REGISTER_SYS_STATUS, &BNO055.SystemStatusCode, 1);
-    printf("BNO055.SystemStatusCode= ");
+    printf("    BNO055.SystemStatusCode= ");
     if (BNO055.SystemStatusCode != 0)
     {
         printf("%i", BNO055.SystemStatusCode);
@@ -440,11 +443,11 @@ void BNO055_StatusInfo()
     }
     else
     {
-        printf(" Ok.\n");
+        printf("    Ok.\n");
     }
 
     BNO055_Read(eBNO055_REGISTER_ST_RESULT, &BNO055.SelfTestStatus, 1);
-    printf("BNO055.SelfTestStatus= ");
+    printf("    BNO055.SelfTestStatus= ");
     if (BNO055.SelfTestStatus != 0b1111)
     {
         printf("%i", BNO055.SelfTestStatus);
@@ -461,11 +464,11 @@ void BNO055_StatusInfo()
     }
     else
     {
-        printf(" Ok.\n");
+        printf("Ok.\n");
     }
 
     BNO055_Read(eBNO055_REGISTER_SYS_ERR, &BNO055.SystemError, 1);
-    printf("BNO055.SystemError= ");
+    printf("    BNO055.SystemError= ");
     if (BNO055.SystemError != 0)
     {
         printf("%i", BNO055.SystemError);
@@ -493,30 +496,30 @@ void BNO055_StatusInfo()
 // Информация о прошивках датчика
 void BNO055_RevInfo()
 {
-    printf(" === BNO055_getRevInfo ===\n");
+    printf("+++ BNO055_getRevInfo\n");
     BNO055_Write(eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
 
     /* Check the accelerometer revision */
     BNO055_Read(eBNO055_REGISTER_ACC_ID, &BNO055.accel_rev, 1);
-    printf("BNO055.accel_rev: %i\n", BNO055.accel_rev);
+    printf("    BNO055.accel_rev: %i\n", BNO055.accel_rev);
 
     /* Check the magnetometer revision */
     BNO055_Read(eBNO055_REGISTER_MAG_ID, &BNO055.mag_rev, 1);
-    printf("BNO055.mag_rev: %i\n", BNO055.mag_rev);
+    printf("    BNO055.mag_rev: %i\n", BNO055.mag_rev);
 
     /* Check the gyroscope revision */
     BNO055_Read(eBNO055_REGISTER_GYR_ID, &BNO055.gyro_rev, 1);
-    printf("BNO055.gyro_rev: %i\n", BNO055.gyro_rev);
+    printf("    BNO055.gyro_rev: %i\n", BNO055.gyro_rev);
 
     /* Check the SW revision */
     BNO055_Read(eBNO055_REGISTER_BL_REV_ID, &BNO055.bl_rev, 1);
-    printf("BNO055.bl_rev: %i\n", BNO055.bl_rev);
+    printf("    BNO055.bl_rev: %i\n", BNO055.bl_rev);
 
     uint8_t a, b;
     BNO055_Read(eBNO055_REGISTER_SW_REV_ID_LSB, &a, 1);
     BNO055_Read(eBNO055_REGISTER_SW_REV_ID_MSB, &b, 1);
     BNO055.sw_rev = (((uint16_t)b) << 8) | ((uint16_t)a);
-    printf("BNO055.sw_rev: %lu\n", BNO055.sw_rev);
+    printf("    BNO055.sw_rev: %lu\n", BNO055.sw_rev);
 
     printf("--- END Init BNO055.\n");
 }
@@ -563,6 +566,7 @@ void calcBuffer(uint8_t *buffer)
     // Я просто подбираю нужную ось и знак. Если нужно переделываю на 360 градусов или +-180
     uint8_t aHigh = 0, aLow = 0, bLow = 0, bHigh = 0, cLow = 0, cHigh = 0;
 
+    // УГЛЫ---------------------------------------------
     aLow = buffer[0];
     aHigh = buffer[1];
     bLow = buffer[2];
@@ -572,15 +576,17 @@ void calcBuffer(uint8_t *buffer)
 
     /* Shift values to create properly formed integer (low byte first) */ /* 1 degree = 16 LSB  1 radian = 900 LSB   */
     eulerAngles.x = -(int16_t)(cLow | (cHigh << 8)) / 16.;
-    eulerAngles.y = -(int16_t)(bLow | (bHigh << 8)) / 16.;
+    eulerAngles.y = (int16_t)(bLow | (bHigh << 8)) / 16.;
     eulerAngles.z = (int16_t)(aLow | (aHigh << 8)) / 16.;
 
     // eulerAngles.y = 180 - eulerAngles.y; // Испрвления для ориентации датчика
     // if (eulerAngles.y > 180)
     //     eulerAngles.y = eulerAngles.y - 360;
 
-    // DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f  /  ", eulerAngles.x, eulerAngles.y, eulerAngles.z);
+    //DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f \n", eulerAngles.x, eulerAngles.y, eulerAngles.z);
 
+
+    // УСКОРЕНИЕ---------------------------------------------
     struct SXyz linAccData;
     aLow = buffer[14];
     aHigh = buffer[15];
@@ -619,7 +625,7 @@ void workingBNO055()
     u_int32_t static timerBNO055 = 0;
     uint8_t static bufferBNO055[20];
 
-    if (millis() >= timerBNO055 + 20) // Если текущее время больше чем 10 милисекунд с прошлого запуска 100 Hz
+    if (millis() >= timerBNO055 + 250) // Если текущее время больше чем 10 милисекунд с прошлого запуска 100 Hz
     {
         // HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 1); // Инвертирование состояния выхода.
         // DEBUG_PRINTF ("millis = %lu \n",millis());

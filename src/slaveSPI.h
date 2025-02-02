@@ -173,15 +173,6 @@ void initSPI_slave()
 
     // HAL_SPI_DMAStop(&hspi1);
     HAL_SPI_TransmitReceive_DMA(&hspi1, txBuffer, rxBuffer, BUFFER_SIZE); // Указываем какие данные отправлять и куда записывать полученные
-
-    // const uint16_t size_structura_receive = sizeof(Data2Modul_receive); // Размер структуры с данными которые получаем
-    // const uint16_t size_structura_send = sizeof(Modul2Data_send);       // Размер структуры с данными которые передаем
-    // uint16_t max_size_stuct;
-    // max_size_stuct = 0;
-    // if (size_structura_receive < size_structura_send)
-    //     max_size_stuct = size_structura_send;
-    // else
-    //     max_size_stuct = size_structura_receive; // Какая из структур больше
 }
 
 // Обработка по флагу в main пришедших данных после срабатывания прерывания что обмен состоялся
