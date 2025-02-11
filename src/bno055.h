@@ -574,19 +574,47 @@ void calcBuffer(uint8_t *buffer)
     // DEBUG_PRINTF ("\n");
 
     struct SXyz eulerAngles;
+    struct SXyz linAccData;
+    struct SXyz accelData;
+    struct SXyz gyrolData;
+    
     static uint32_t timeBNO = 0;
-
-    // a,b,c это регистры которые мы считываем. В них могут быть значения для любых осей. Оси переопределяются в eBNO055_REGISTER_AXIS_MAP_CONFIG в зависимости от положения датчика.
-    // Я просто подбираю нужную ось и знак. Если нужно переделываю на 360 градусов или +-180
     uint8_t aHigh = 0, aLow = 0, bLow = 0, bHigh = 0, cLow = 0, cHigh = 0;
 
-    // УГЛЫ---------------------------------------------
+    // ACCELERATION ---------------------------------------------
     aLow = buffer[0];
     aHigh = buffer[1];
     bLow = buffer[2];
     bHigh = buffer[3];
     cLow = buffer[4];
     cHigh = buffer[5];
+
+    accelData.x = (int16_t)(aLow | (aHigh << 8)) / 100.; //  1 m/s2 = 100 LSB 
+    accelData.y = (int16_t)(bLow | (bHigh << 8)) / 100.;
+    accelData.z = (int16_t)(cLow | (cHigh << 8)) / 100.;
+
+    // GYROSCOPE  ---------------------------------------------
+    aLow = buffer[12];
+    aHigh = buffer[13];
+    bLow = buffer[14];
+    bHigh = buffer[15];
+    cLow = buffer[16];
+    cHigh = buffer[17];
+
+    gyrolData.x = (int16_t)(aLow | (aHigh << 8)) / 16.; // Table 3-22: Gyroscope unit settings  1 Dps = 16 LSB (gradus)     1 Rps = 900 LSB (radian)
+    gyrolData.y = (int16_t)(bLow | (bHigh << 8)) / 16.;
+    gyrolData.z = (int16_t)(cLow | (cHigh << 8)) / 16.;
+
+    // a,b,c это регистры которые мы считываем. В них могут быть значения для любых осей. Оси переопределяются в eBNO055_REGISTER_AXIS_MAP_CONFIG в зависимости от положения датчика.
+    // Я просто подбираю нужную ось и знак. Если нужно переделываю на 360 градусов или +-180
+
+    // УГЛЫ---------------------------------------------
+    aLow = buffer[18];
+    aHigh = buffer[19];
+    bLow = buffer[20];
+    bHigh = buffer[21];
+    cLow = buffer[22];
+    cHigh = buffer[23];
 
     /* Shift values to create properly formed integer (low byte first) */ /* 1 degree = 16 LSB  1 radian = 900 LSB   */
     eulerAngles.x = -(int16_t)(cLow | (cHigh << 8)) / 16.;
@@ -600,13 +628,12 @@ void calcBuffer(uint8_t *buffer)
     DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f \n", eulerAngles.x, eulerAngles.y, eulerAngles.z);
 
     // УСКОРЕНИЕ---------------------------------------------
-    struct SXyz linAccData;
-    aLow = buffer[14];
-    aHigh = buffer[15];
-    bLow = buffer[16];
-    bHigh = buffer[17];
-    cLow = buffer[18];
-    cHigh = buffer[19];
+    aLow = buffer[32];
+    aHigh = buffer[33];
+    bLow = buffer[34];
+    bHigh = buffer[35];
+    cLow = buffer[36];
+    cHigh = buffer[37];
 
     // Перевод в m/s2 1m/s2 = 100 LSB, mg = 1LSB
     linAccData.x = (int16_t)(aLow | (aHigh << 8)) / 100.;
@@ -618,6 +645,8 @@ void calcBuffer(uint8_t *buffer)
     bno055.status = 0;
     bno055.angleEuler = eulerAngles;
     bno055.linear = linAccData;
+    bno055.accel = accelData;
+    bno055.gyro = gyrolData;
     bno055.rate = (float)1000.0 / (millis() - timeBNO); // Считаем частоту
     timeBNO = millis();
 }
@@ -625,7 +654,7 @@ void calcBuffer(uint8_t *buffer)
 void BNO055_ReadData()
 {
     uint8_t buffer[20];
-    if (BNO055_Read(eBNO055_REGISTER_EUL_DATA_X_LSB, buffer, 20) == HAL_OK) // Считываем в буфер
+    if (BNO055_Read(eBNO055_REGISTER_ACC_DATA_X_LSB, buffer, 38) == HAL_OK) // Считываем в буфер
     {
         calcBuffer(buffer);
         DEBUG_PRINTF("    Start data BNO055 x= %.4f y= %.4f z= %.4f \n", bno055.angleEuler.x, bno055.angleEuler.y, bno055.angleEuler.z);
@@ -640,16 +669,16 @@ void BNO055_ReadData()
 // Опрос датчика по флагам
 void workingBNO055()
 {
-    uint8_t static bufferBNO055[20];
+    uint8_t static bufferBNO055[38]; //было 20 без гиро и акселя
     if (flag_sendI2C) // Если взведен флаг после обмена по SPI что можно теперь работать по I2C
     {
         flag_sendI2C = false;
-        BNO055_Transmit_IT(eBNO055_REGISTER_EUL_DATA_X_LSB); // Отправка запроса к датчику.Указываем с какого регистра будем читать
+        BNO055_Transmit_IT(eBNO055_REGISTER_ACC_DATA_X_LSB); // Отправка запроса к датчику.Указываем с какого регистра будем читать
     }
     if (i2cTransferComplete) // Запрос на считывание заданного числа байт с датчика в буфер
     {
         i2cTransferComplete = 0;
-        BNO055_Receive_IT(bufferBNO055, 20);
+        BNO055_Receive_IT(bufferBNO055, 38); //было 20 без гиро и акселя
     }
     if (i2cReceiveComplete) // Обработка буфера после считывания данных по шине
     {

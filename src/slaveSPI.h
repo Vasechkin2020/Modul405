@@ -18,7 +18,7 @@ volatile bool flag_sendI2C = false; // Флаг что можно отправл
 // #define BUFFER_SIZE 10 // Размер буфера который передаем. Следить что-бы структуры не превышали этот размер Кратно 32 делать
 // uint8_t txBuffer[BUFFER_SIZE] = {0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xA0}; // = "Hello from STM32 Slave"; // Передающий буфер
 
-#define BUFFER_SIZE 236              // Размер буфера который передаем. Следить что-бы структуры не превышали этот размер Кратно 32 делать
+#define BUFFER_SIZE 260              // Размер буфера который передаем. Следить что-бы структуры не превышали этот размер Кратно 32 делать
 uint8_t txBuffer[BUFFER_SIZE] = {0}; // = "Hello from STM32 Slave"; // Передающий буфер
 uint8_t rxBuffer[BUFFER_SIZE];       // Принимающий буфер
 
