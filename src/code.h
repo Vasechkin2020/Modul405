@@ -26,7 +26,7 @@ void timer6();                                                             // О
 void workingTimer();                                                       // Отработка действий по таймеру в 1, 50, 60 милисекунд
 void workingLaser();                                                       // Отработка действий по лазерным датчикам
 void workingSPI();                                                         // Отработка действий по обмену по шине SPI
-void workingStopTimeOut();                                                 // Остановка дазеоров и моторов при обрыве связи
+void workingFlag();                                                        // Остановка дазеоров и моторов при обрыве связи
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size); // Коллбэк, вызываемый при событии UART Idle по окончания приема
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);                   // Коллбэк, вызываемый при событии UART по окончания приема ОПРЕДЕЛЕННОГО ЗАДАННОГО ЧИСЛА БАЙТ
 void initLaser();                                                          // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
@@ -37,8 +37,9 @@ uint8_t lenDataLaser; // Длинна полученных данных в бу�
 HAL_StatusTypeDef status;
 HAL_SPI_StateTypeDef statusGetState;
 
-bool flagTimeOut = true;       // Флаг таймаута при обрыве связи по SPI
-bool flagCallBackUart = false; // Флаг для указания нужно ли отрабатывать в колбеке  или обраьотка с самой функции
+bool flagTimeOut = true;            // Флаг таймаута при обрыве связи по SPI
+bool flagCollectDataForSPI = false; // Флаг можно собирать данные для отправки
+bool flagCallBackUart = false;      // Флаг для указания нужно ли отрабатывать в колбеке  или обраьотка с самой функции
 
 extern float getAngle(int32_t _pulse); // Пересчет импульсов в градусы
 extern void setMotorAngle(int num, float _angle);
@@ -186,9 +187,11 @@ void collect_Data_for_Send()
 
     for (int i = 0; i < 4; i++) // Информация по моторам всегда
     {
-        Modul2Data_send.motor[i].status = motor[i].status;                                       // Считываем состояние пина драйверов
-        Modul2Data_send.motor[i].position = getAngle(motor[i].position);                         // Записываем текущую позицию преобразуя из импульсов в градусы, надо еще в глобальную систему преобразовывать
-        Modul2Data_send.motor[i].destination = getAngle(motor[i].destination);                   // Считываем цель по позиции, надо еще в глобальную систему преобразовывать
+        Modul2Data_send.motor[i].status = motor[i].status;                               // Считываем состояние пина драйверов
+        Modul2Data_send.motor[i].position = getAngle(motor[i].position);                 // Записываем текущую позицию преобразуя из импульсов в градусы, надо еще в глобальную систему преобразовывать
+        Modul2Data_send.motor[i].destination = Data2Modul_receive.controlMotor.angle[i]; //
+        // Modul2Data_send.motor[i].destination = getAngle(motor[i].destination);        // Считываем цель по позиции, надо еще в глобальную систему преобразовывать
+
         Modul2Data_send.micric[i] = HAL_GPIO_ReadPin(motor[i].micric_port, motor[i].micric_pin); //
     }
 
@@ -196,12 +199,12 @@ void collect_Data_for_Send()
     {
         if (Data2Modul_receive.controlLaser.mode != 0) // Если команда работать с датчиком
         {
-            Modul2Data_send.laser[i].status = dataUART[i].status;                                // Считываем статаус дальномера
-            Modul2Data_send.laser[i].distance = (float)dataUART[i].distance * 0.001;             // Считываем измерение растояния и пересчитываем в метры !!!
-            Modul2Data_send.laser[i].signalQuality = dataUART[i].quality;                        // Считываем качество сигнала измерение
-            Modul2Data_send.laser[i].angle = (float)dataUART[i].angle;                           // Считываем угол в котором произвели измерение
-            Modul2Data_send.laser[i].time = dataUART[i].time;                                    // Считываем время в котором произвели измерение
-            Modul2Data_send.laser[i].numPillar = Data2Modul_receive.controlMotor.numPillar[i];   // Переписываем номер столба на который измеряли расстояние
+            Modul2Data_send.laser[i].status = dataUART[i].status;                              // Считываем статаус дальномера
+            Modul2Data_send.laser[i].distance = (float)dataUART[i].distance * 0.001;           // Считываем измерение растояния и пересчитываем в метры !!!
+            Modul2Data_send.laser[i].signalQuality = dataUART[i].quality;                      // Считываем качество сигнала измерение
+            Modul2Data_send.laser[i].angle = (float)dataUART[i].angle;                         // Считываем угол в котором произвели измерение
+            Modul2Data_send.laser[i].time = dataUART[i].time;                                  // Считываем время в котором произвели измерение
+            Modul2Data_send.laser[i].numPillar = Data2Modul_receive.controlMotor.numPillar[i]; // Переписываем номер столба на который измеряли расстояние
             Modul2Data_send.laser[i].rate = dataUART[i].rate;
         }
         else
@@ -433,13 +436,13 @@ void workingLaser()
             {
                 dataUART[i].status = 0; // Статус все хорошо
                 dataUART[i].distance = laser80_calcDistance(dataUART[i].adr, lenDataLaser);
-                DEBUG_PRINTF("D %i = %lu \n", i, dataUART[i].distance);
+                // DEBUG_PRINTF("D %i = %lu \n", i, dataUART[i].distance);
                 dataUART[i].quality = 0;
                 dataUART[i].angle = getAngle(motor[i].position);
                 dataUART[i].rate = (float)1000.0 / (millis() - dataUART[i].time);
-                DEBUG_PRINTF(" UART%i rate = %f time = %lu \r\n", dataUART[i].num, dataUART[i].rate, dataUART[i].time);
+                // DEBUG_PRINTF(" UART%i rate = %f time = %lu \r\n", dataUART[i].num, dataUART[i].rate, dataUART[i].time);
                 dataUART[i].time = millis();
-                DEBUG_PRINTF(" UART%i dist = %lu qual = %u \r\n", dataUART[i].num, dataUART[i].distance, dataUART[i].quality);
+                // DEBUG_PRINTF(" UART%i dist = %lu qual = %u \r\n", dataUART[i].num, dataUART[i].distance, dataUART[i].quality);
             }
             else
             {
@@ -506,9 +509,13 @@ void workingSPI()
 #ifdef SPI_protocol
     if (flag_data) // Если обменялись данными
     {
+        // DEBUG_PRINTF("    in %lu\n", millis());
         // HAL_GPIO_WritePin(Analiz2_GPIO_Port, Analiz2_Pin, GPIO_PIN_SET); // Инвертирование состояния выхода.
         flag_data = false;
-        flagTimeOut = true; // Флаг для выключения по таймауту
+        flagTimeOut = true;           // Флаг для выключения по таймауту
+        flagCollectDataForSPI = true; // Флаг для сбора данных для следующего обмена
+        flag_sendI2C = true;
+
         timeSpi = millis(); // Запоминаем время обмена
         // DEBUG_PRINTF ("In = %#x %#x %#x %#x \r\n",rxBuffer[0],rxBuffer[1],rxBuffer[2],rxBuffer[3]);
         // DEBUG_PRINTF ("Out = %#x %#x %#x %#x \r\n",txBuffer[0],txBuffer[1],txBuffer[2],txBuffer[3]);
@@ -524,7 +531,7 @@ void workingSPI()
         //     DEBUG_PRINTF(" %x", txBuffer[i]);
         // }
         // DEBUG_PRINTF("\n");
-        collect_Data_for_Send(); // Собираем данные в структуре для отправки на момент прихода команлы, но БЕЗ учета команды.До исполнения команды.
+        // collect_Data_for_Send(); // Собираем данные в структуре для отправки на момент прихода команлы, но БЕЗ учета команды.До исполнения команды.
 
         // DEBUG_PRINTF(" angle0= %.2f angle1= %.2f angle2= %.2f angle3= %.2f", Data2Modul_receive.angle[0], Data2Modul_receive.angle[1], Data2Modul_receive.angle[2], Data2Modul_receive.angle[3] );
 
@@ -541,18 +548,28 @@ void workingSPI()
 #endif
 }
 // Остановка лазеров и моторов при обрыве связи
-void workingStopTimeOut()
+void workingFlag()
 {
-    if (flagTimeOut) // Если бы обмен
+    if (flagCollectDataForSPI) // Сбор данных для обмена по флагу и таймеру
+    {
+        if (millis() - timeSpi > 7) // Если прошло больше 7 м секунд с момента обмена по  SPI
+        {
+            flagCollectDataForSPI = false;
+            // DEBUG_PRINTF("    flagCollectData %lu\n", millis());
+            collect_Data_for_Send(); // Собираем данные в структуре для отправки на момент прихода команлы, но БЕЗ учета команды.До исполнения команды.
+        }
+    }
+
+    if (flagTimeOut) // Остановка при обрыве связи
     {
         if (millis() - timeSpi > 15000) // Если обмена нет больше 5 секунд то отключаем все
         {
             flagTimeOut = false;
-            DEBUG_PRINTF("workingStopTimeOut... \r\n");
+            DEBUG_PRINTF("    workingStopTimeOut\n");
             HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_SET); // Отключаем драйвера моторы// Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
             modeControlMotor = 0;
             modeControlLaser = 0;
-            
+
 #ifdef LASER80
             laser80_stopMeasurement(0);
             laser80_stopMeasurement(1);
@@ -582,6 +599,6 @@ void initFirmware()
     Modul2Data_send.firmware.laser = 80;
 #endif
     Modul2Data_send.firmware.motor = STEPMOTOR;
-    printf("Firmware gen %hu ver %hu laser %hu motor %.1f debug %hu\n", Modul2Data_send.firmware.gen, Modul2Data_send.firmware.ver,Modul2Data_send.firmware.laser,Modul2Data_send.firmware.motor,Modul2Data_send.firmware.debug);
+    printf("Firmware gen %hu ver %hu laser %hu motor %.1f debug %hu\n", Modul2Data_send.firmware.gen, Modul2Data_send.firmware.ver, Modul2Data_send.firmware.laser, Modul2Data_send.firmware.motor, Modul2Data_send.firmware.debug);
 }
 #endif /*CODE_H*/

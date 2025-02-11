@@ -9,10 +9,11 @@
 #include "config.h"
 #include "slaveSPI.h"
 
-u_int64_t timeSpi = 0; // Время когда пришла команда по SPI
+volatile u_int64_t timeSpi = 0; // Время когда пришла команда по SPI
 
 extern SPI_HandleTypeDef hspi1;
-volatile bool flag_data = false; // Флаг что данные передались
+volatile bool flag_data = false;    // Флаг что данные передались
+volatile bool flag_sendI2C = false; // Флаг что можно отправлять запрос по I2C
 
 // #define BUFFER_SIZE 10 // Размер буфера который передаем. Следить что-бы структуры не превышали этот размер Кратно 32 делать
 // uint8_t txBuffer[BUFFER_SIZE] = {0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xA0}; // = "Hello from STM32 Slave"; // Передающий буфер
@@ -168,7 +169,7 @@ extern void collect_Data_for_Send();
 // Начальная инициализция для SPI
 void initSPI_slave()
 {
-    timeSpi = millis(); // Запоминаем время начала цикла
+    timeSpi = millis();      // Запоминаем время начала цикла
     collect_Data_for_Send(); // Собираем данные для начальной отправки
 
     // HAL_SPI_DMAStop(&hspi1);
@@ -210,14 +211,14 @@ void processingDataReceive()
     if (cheksum_receive != Data2Modul_receive_temp.cheksum || Data2Modul_receive_temp.cheksum == 0) // Стравниваю что сам посчитал и что прислали. Не сходится или ноль - значит плохие данные
     {
         spi.bed++; // Плохие данные
-        DEBUG_PRINTF("Data Err. ");
+        DEBUG_PRINTF("Data Err. %lu \n", spi.bed);
     }
     else
     {
         Data2Modul_receive = Data2Modul_receive_temp; // Хорошие данные копируем
-        // DEBUG_PRINTF("Data OK. ");
+        DEBUG_PRINTF("Data OK. ");
     }
-    DEBUG_PRINTF(" All= %lu bed= %lu \r\n", spi.all, spi.bed);
+    // DEBUG_PRINTF(" All= %lu bed= %lu \r\n", spi.all, spi.bed);
     // DEBUG_PRINTF("b1 = %#X b2 = %#X b3 = %#X b4 = %#X %.4f = ", StructTestPSpi_temp.byte0, StructTestPSpi_temp.byte1, StructTestPSpi_temp.byte2, StructTestPSpi_temp.byte3, StructTestPSpi_temp.fff);
     //  for (int i = 0; i < sizeof(Data2Modul_receive); i++)
     //  {

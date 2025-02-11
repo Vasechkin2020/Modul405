@@ -160,6 +160,7 @@ enum eBNO055Mode_t
 uint8_t bno_txBuffer[2];                  // Буфер передачи
 uint8_t bno_rxBuffer[6];                  // Буфер приема
 volatile uint8_t i2cTransferComplete = 0; // Флаг завершения операции
+volatile uint8_t i2cReceiveComplete = 0;  // Флаг завершения операции
 uint8_t chip_id = 0;
 
 #define OFFSET_SIZE 22
@@ -192,8 +193,9 @@ HAL_StatusTypeDef BNO055_Read(uint8_t reg, uint8_t *buffer, uint16_t size);     
 HAL_StatusTypeDef BNO055_Write(uint8_t reg, uint8_t value);                      // Функция для записи в регистр BNO055
 HAL_StatusTypeDef BNO055_Mem_Write(uint8_t reg, uint8_t *data_, uint16_t size_); // Функция для записи массива в регистры последовательно BNO055
 
-void BNO055_Read_IT(uint8_t reg, uint8_t *buffer, uint16_t size); // Функция для чтения данных из BNO055 используя прерывание
-void BNO055_Write_IT(uint8_t reg, uint8_t value);                 // Функция для записи данных в BNO055 используя прерывание
+void BNO055_Transmit_IT(uint8_t reg);                   // Функция для отправки команды используя перрывание
+void BNO055_Receive_IT(uint8_t *buffer, uint16_t size); // Функция для чтения данных из BNO055 используя прерывание
+void BNO055_Write_IT(uint8_t reg, uint8_t value);       // Функция для записи данных в BNO055 используя прерывание
 
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c);
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c);
@@ -236,18 +238,20 @@ HAL_StatusTypeDef BNO055_Mem_Write(uint8_t reg, uint8_t *data_, uint16_t size_)
 }
 //***************************** ЧЕРЕЗ ПРЕРЫВАНИЯ **************************************
 // Функция для чтения данных из BNO055 используя прерывание
-void BNO055_Read_IT(uint8_t reg, uint8_t *buffer, uint16_t size)
+void BNO055_Transmit_IT(uint8_t reg)
 {
     i2cTransferComplete = 0;
-    // Отправляем адрес регистра
-    HAL_I2C_Master_Transmit_IT(&hi2c1, BNO055_ADDRESS, &reg, 1);
-    // Ждем завершения
-    while (!i2cTransferComplete)
-        ;
+    HAL_I2C_Master_Transmit_IT(&hi2c1, BNO055_ADDRESS, &reg, 1); // Отправляем адрес регистра
+    HAL_Delay(2);                                                // Ждем завершения передачи.Обязательно!!! Нельзя выходитьт из функции пока поманда не передастся.
+    // while (!i2cTransferComplete)  // Так жать плохо.может зависнуть если ошибка по шине
+    //     ;
+    // DEBUG_PRINTF("BNO055_Transmit_IT \n");
+}
 
-    i2cTransferComplete = 0;
-    // Запускаем чтение данных из регистра
-    HAL_I2C_Master_Receive_IT(&hi2c1, BNO055_ADDRESS, buffer, size);
+void BNO055_Receive_IT(uint8_t *buffer, uint16_t size)
+{
+    i2cReceiveComplete = 0;
+    HAL_I2C_Master_Receive_IT(&hi2c1, BNO055_ADDRESS, buffer, size); // Запускаем чтение данных из регистра
 }
 
 // Функция для записи данных в BNO055 используя прерывание
@@ -264,6 +268,7 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
     if (hi2c->Instance == I2C1)
     {
         i2cTransferComplete = 1; // Флаг завершения операции
+        // DEBUG_PRINTF("tx in %lu\n",millis());
     }
 }
 
@@ -271,7 +276,8 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
     if (hi2c->Instance == I2C1)
     {
-        i2cTransferComplete = 1; // Флаг завершения операции
+        i2cReceiveComplete = 1; // Флаг завершения операции
+        // DEBUG_PRINTF("rx in %lu\n",millis());
     }
 }
 
@@ -293,6 +299,7 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
         }
         if (hi2c->ErrorCode & HAL_I2C_ERROR_AF)
         {
+            __HAL_I2C_CLEAR_FLAG(&hi2c1, I2C_FLAG_AF); // Очистка ошибки
             DEBUG_PRINTF("Acknowledge Failure\n");
         }
         if (hi2c->ErrorCode & HAL_I2C_ERROR_OVR)
@@ -308,10 +315,17 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
             DEBUG_PRINTF("DMA Transfer Error\n");
         }
 
+        // while (1)
+        // {
+        //     ;
+        // }
+
         // Попытка повторной инициализации или сброс шины I2C
+        DEBUG_PRINTF("I2C HAL_I2C_DeInit\n");
         HAL_I2C_DeInit(hi2c); // Деинициализация I2C
-        HAL_Delay(100);       // Короткая задержка
-        HAL_I2C_Init(hi2c);   // Повторная инициализация
+        // HAL_Delay(3);       // Короткая задержка
+        DEBUG_PRINTF("I2C HAL_I2C_Init\n");
+        HAL_I2C_Init(hi2c); // Повторная инициализация
 
         // Возможно, добавить пользовательскую логику, например, уведомление системы
         DEBUG_PRINTF("I2C reinitialized\n");
@@ -401,7 +415,7 @@ void BNO055_SetOrientation()
     P6 0x21 0x07
     P7 0x24 0x05
     */
-    uint8_t AXIS_MAP_CONFIG = 0x24; //P1 по даташиту
+    uint8_t AXIS_MAP_CONFIG = 0x24; // P1 по даташиту
     uint8_t AXIS_MAP_SIGN = 0x00;
     BNO055_Write(eBNO055_REGISTER_AXIS_MAP_CONFIG, AXIS_MAP_CONFIG);
     printf("    Set BNO055_AXIS_MAP_CONFIG => %#X \n", AXIS_MAP_CONFIG);
@@ -583,8 +597,7 @@ void calcBuffer(uint8_t *buffer)
     // if (eulerAngles.y > 180)
     //     eulerAngles.y = eulerAngles.y - 360;
 
-    //DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f \n", eulerAngles.x, eulerAngles.y, eulerAngles.z);
-
+    DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f \n", eulerAngles.x, eulerAngles.y, eulerAngles.z);
 
     // УСКОРЕНИЕ---------------------------------------------
     struct SXyz linAccData;
@@ -615,31 +628,34 @@ void BNO055_ReadData()
     if (BNO055_Read(eBNO055_REGISTER_EUL_DATA_X_LSB, buffer, 20) == HAL_OK) // Считываем в буфер
     {
         calcBuffer(buffer);
+        DEBUG_PRINTF("    Start data BNO055 x= %.4f y= %.4f z= %.4f \n", bno055.angleEuler.x, bno055.angleEuler.y, bno055.angleEuler.z);
     }
+    else
+    {
+        DEBUG_PRINTF("Start data BNO055 ERROR\n");
+    }
+    
 }
 
-// Опрос датчика в цикле
+// Опрос датчика по флагам
 void workingBNO055()
 {
-    bool static flagNMO055 = false;
-    u_int32_t static timerBNO055 = 0;
     uint8_t static bufferBNO055[20];
-
-    if (millis() >= timerBNO055 + 250) // Если текущее время больше чем 10 милисекунд с прошлого запуска 100 Hz
+    if (flag_sendI2C) // Если взведен флаг после обмена по SPI что можно теперь работать по I2C
     {
-        // HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 1); // Инвертирование состояния выхода.
-        // DEBUG_PRINTF ("millis = %lu \n",millis());
-        BNO055_Read_IT(eBNO055_REGISTER_EUL_DATA_X_LSB, bufferBNO055, 20);
-        flagNMO055 = true;
-        timerBNO055 = millis();
-        // HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 0); // Инвертирование состояния выхода.
+        flag_sendI2C = false;
+        BNO055_Transmit_IT(eBNO055_REGISTER_EUL_DATA_X_LSB); // Отправка запроса к датчику.Указываем с какого регистра будем читать
     }
-    if (flagNMO055 && i2cTransferComplete)
+    if (i2cTransferComplete) // Запрос на считывание заданного числа байт с датчика в буфер
     {
-        // HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 1); // Инвертирование состояния выхода.
-        flagNMO055 = false;
+        i2cTransferComplete = 0;
+        BNO055_Receive_IT(bufferBNO055, 20);
+    }
+    if (i2cReceiveComplete) // Обработка буфера после считывания данных по шине
+    {
+        i2cReceiveComplete = 0;
         calcBuffer(bufferBNO055);
-        // HAL_GPIO_WritePin(Analiz_GPIO_Port, Analiz_Pin, 0); // Инвертирование состояния выхода.
+        // DEBUG_PRINTF("    ready BNO %lu\n", millis());
     }
 }
 #endif
