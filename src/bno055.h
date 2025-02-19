@@ -184,6 +184,7 @@ struct BNO055_Info_s
     uint8_t Calibr_mag;
     uint8_t MAP_Config;
     uint8_t MAP_Sign;
+    uint8_t Calibr_Status;
 };
 
 struct BNO055_Info_s BNO055;
@@ -210,6 +211,7 @@ void BNO055_GetOffset_from_BNO055();                    // Считывание 
 void BNO055_SetOffset_to_BNO055(uint8_t *offsetArray_); // Запись оффсет в датчик
 void BNO055_ReadData();                                 // Разовое считывание данных
 void BNO055_SetOrientation();                           // Установка ориентации датчика.
+void BNO055_StatusCalibr();                             // Запрос статуса колибровки
 
 //****************************************** РЕАЛИЗАЦИЯ ФУНКЦИЙ ***********************************
 
@@ -353,14 +355,18 @@ void BNO055_Init()
         BNO055_GetOffset_from_BNO055();
         BNO055_SetOrientation(); // Установка ориентации датчика.
         BNO055_StatusInfo();
+        // BNO055_StatusCalibr();
+        // BNO055_SetMode(eGYROONLY); // Режим работы где он все сам считает	  eIMU
         BNO055_SetMode(eIMU); // Режим работы где он все сам считает	  eIMU
+        // BNO055_SetMode(eNDOF_FMC_OFF); // Режим работы где он все сам считает	  eIMU
+        // BNO055_SetMode(eNDOF); // Режим работы где он все сам считает	  eIMU
         HAL_Delay(500);
-        BNO055_ReadData(); // Разовое считывание данных
-        printf("--- BNO055_Init\n");
+        // BNO055_ReadData(); // Разовое считывание данных
+        DEBUG_PRINTF("--- BNO055_Init\n");
     }
     else
     {
-        printf("BNO055 not found!\n");
+        DEBUG_PRINTF("BNO055 not found!\n");
         while (1)
             ;
     }
@@ -431,6 +437,38 @@ void BNO055_SetOrientation()
     printf("    Read BNO055.MAP_Sign: %#X\n", BNO055.MAP_Sign);
 
     printf("--- BNO055_SetOrientation\n");
+}
+
+// Запрос статуса колибровки
+void BNO055_StatusCalibr()
+{
+    printf("+++ BNO055_StatusCalibr ");
+
+    BNO055_Write(eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
+    BNO055_Read(eBNO055_REGISTER_CALIB_STAT, &BNO055.Calibr_Status, 1);
+    printf("%i |", BNO055.Calibr_Status);
+
+    uint8_t calData = BNO055.Calibr_Status;
+    BNO055.Calibr_sys = (calData >> 6) & 0x03;
+    printf(" Calibr_sys  : %u", BNO055.Calibr_sys);
+
+    BNO055.Calibr_gyro = (calData >> 4) & 0x03;
+    printf(" Calibr_gyro : %u", BNO055.Calibr_gyro);
+
+    BNO055.Calibr_accel = (calData >> 2) & 0x03;
+    printf(" Calibr_accel: %u", BNO055.Calibr_accel);
+
+    BNO055.Calibr_mag = calData & 0x03;
+    printf(" Calibr_mag  : %u", BNO055.Calibr_mag);
+
+    if (BNO055.Calibr_sys < 3 || BNO055.Calibr_gyro < 3 || BNO055.Calibr_accel < 3 || BNO055.Calibr_mag < 3)
+    {
+        printf(" Calibrovka FALSE.\n");
+    }
+    else
+    {
+        printf(" Calibrovka TRUE.\n");
+    }
 }
 
 // Запрос информации о статусе датчика
@@ -567,6 +605,7 @@ void BNO055_SetOffset_to_BNO055(uint8_t *offsetArray_)
 // Разбор данных из буфера и запись знвеяний в переменные
 void calcBuffer(uint8_t *buffer)
 {
+    DEBUG_PRINTF("+++ calcBuffer\n");
     // for (int i = 0; i < 20; i++)
     // {
     //     DEBUG_PRINTF("=%i ",buffer[i]);
@@ -577,6 +616,7 @@ void calcBuffer(uint8_t *buffer)
     struct SXyz linAccData;
     struct SXyz accelData;
     struct SXyz gyrolData;
+    struct SXyz magData;
     
     static uint32_t timeBNO = 0;
     uint8_t aHigh = 0, aLow = 0, bLow = 0, bHigh = 0, cLow = 0, cHigh = 0;
@@ -592,6 +632,20 @@ void calcBuffer(uint8_t *buffer)
     accelData.x = (int16_t)(aLow | (aHigh << 8)) / 100.; //  1 m/s2 = 100 LSB 
     accelData.y = (int16_t)(bLow | (bHigh << 8)) / 100.;
     accelData.z = (int16_t)(cLow | (cHigh << 8)) / 100.;
+
+    // MAGNETROMETR  ---------------------------------------------
+    aLow = buffer[6];
+    aHigh = buffer[7];
+    bLow = buffer[8];
+    bHigh = buffer[9];
+    cLow = buffer[10];
+    cHigh = buffer[11];
+
+    magData.x = (int16_t)(aLow | (aHigh << 8)) / 16.; //  Representation 1 µT = 16 LSB 
+    magData.y = (int16_t)(bLow | (bHigh << 8)) / 16.;
+    magData.z = (int16_t)(cLow | (cHigh << 8)) / 16.;
+    
+    DEBUG_PRINTF("magData x= %.2f y= %.2f z= %.2f \n", magData.x, magData.y, magData.z);
 
     // GYROSCOPE  ---------------------------------------------
     aLow = buffer[12];
@@ -621,10 +675,6 @@ void calcBuffer(uint8_t *buffer)
     eulerAngles.y = (int16_t)(bLow | (bHigh << 8)) / 16.;
     eulerAngles.z = (int16_t)(aLow | (aHigh << 8)) / 16.;
 
-    // eulerAngles.y = 180 - eulerAngles.y; // Испрвления для ориентации датчика
-    // if (eulerAngles.y > 180)
-    //     eulerAngles.y = eulerAngles.y - 360;
-
     DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f \n", eulerAngles.x, eulerAngles.y, eulerAngles.z);
 
     // УСКОРЕНИЕ---------------------------------------------
@@ -647,23 +697,26 @@ void calcBuffer(uint8_t *buffer)
     bno055.linear = linAccData;
     bno055.accel = accelData;
     bno055.gyro = gyrolData;
+    bno055.mag = magData;
     bno055.rate = (float)1000.0 / (millis() - timeBNO); // Считаем частоту
     timeBNO = millis();
+    DEBUG_PRINTF("--- calcBuffer\n");
 }
 // Разовое считывание данных
 void BNO055_ReadData()
 {
+    DEBUG_PRINTF("+++ BNO055_ReadData\n");
     uint8_t buffer[20];
-    if (BNO055_Read(eBNO055_REGISTER_ACC_DATA_X_LSB, buffer, 38) == HAL_OK) // Считываем в буфер
-    {
-        calcBuffer(buffer);
-        DEBUG_PRINTF("    Start data BNO055 x= %.4f y= %.4f z= %.4f \n", bno055.angleEuler.x, bno055.angleEuler.y, bno055.angleEuler.z);
-    }
-    else
-    {
-        DEBUG_PRINTF("Start data BNO055 ERROR\n");
-    }
-    
+    // if (BNO055_Read(eBNO055_REGISTER_ACC_DATA_X_LSB, buffer, 38) == HAL_OK) // Считываем в буфер
+    // {
+    //     calcBuffer(buffer);
+    //     DEBUG_PRINTF("    Start data BNO055 x= %.4f y= %.4f z= %.4f \n", bno055.angleEuler.x, bno055.angleEuler.y, bno055.angleEuler.z);
+    // }
+    // else
+    // {
+    //     DEBUG_PRINTF("Start data BNO055 ERROR\n");
+    // }
+    DEBUG_PRINTF("--- BNO055_ReadData\n");
 }
 
 // Опрос датчика по флагам
@@ -685,6 +738,7 @@ void workingBNO055()
         i2cReceiveComplete = 0;
         calcBuffer(bufferBNO055);
         // DEBUG_PRINTF("    ready BNO %lu\n", millis());
+        // BNO055_StatusCalibr();
     }
 }
 #endif

@@ -113,6 +113,7 @@ struct SMpu // Структура с данными со всех датчико
   struct SXyz linear;
   struct SXyz accel;
   struct SXyz gyro;
+  struct SXyz mag;
 };
 
 struct SMpu bno055; // Данные с датчика BNO055
