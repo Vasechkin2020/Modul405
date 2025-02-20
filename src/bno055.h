@@ -357,9 +357,9 @@ void BNO055_Init()
         BNO055_StatusInfo();
         // BNO055_StatusCalibr();
         // BNO055_SetMode(eGYROONLY); // Режим работы где он все сам считает	  eIMU
-        BNO055_SetMode(eIMU); // Режим работы где он все сам считает	  eIMU
+        // BNO055_SetMode(eIMU); // Режим работы где он все сам считает	  eIMU
         // BNO055_SetMode(eNDOF_FMC_OFF); // Режим работы где он все сам считает	  eIMU
-        // BNO055_SetMode(eNDOF); // Режим работы где он все сам считает	  eIMU
+        BNO055_SetMode(eNDOF); // Режим работы где он все сам считает	  eIMU
         HAL_Delay(500);
         // BNO055_ReadData(); // Разовое считывание данных
         DEBUG_PRINTF("--- BNO055_Init\n");
