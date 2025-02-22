@@ -348,6 +348,8 @@ void BNO055_Init()
         HAL_Delay(25);
         BNO055_Write(eBNO055_REGISTER_PWR_MODE, eNORMAL_POWER_MODE); // Нормальный режим работы по питанию
         HAL_Delay(25);
+        BNO055_Write(eBNO055_REGISTER_SYS_TRIGGER, 0b10000000); // Установка использовать внешний кристал обычно SYS_TRIGGER, адрес 0x3F). Бит EXT_CLK_SEL (бит 7) устанавливается в 1, переключая датчик на внешний кристалл.
+        HAL_Delay(25);
         BNO055_StatusInfo();
         BNO055_RevInfo();
         BNO055_GetOffset_from_BNO055();
