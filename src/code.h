@@ -246,9 +246,9 @@ void executeDataReceive()
     if (Data2Modul_receive.controlMotor.mode == 1) // Если пришла команда 1 Управления
     {
         modeControlMotor = 1; // Запоминаем в каком режиме Motor
+        DEBUG_PRINTF("executeDataReceive mode= %lu status = %i %i %i %i \r\n",Data2Modul_receive.controlMotor.mode,motor[0].status,motor[1].status,motor[2].status,motor[3].status);
         for (int i = 0; i < 4; i++)
         {
-            // DEBUG_PRINTF("executeDataReceive = %i status = %i \r\n",Data2Modul_receive.controlMotor.mode,motor[i].status);
             setMotorAngle(i, Data2Modul_receive.controlMotor.angle[i]);
             // DEBUG_PRINTF("status = %i \r\n", motor[i].status);
         }

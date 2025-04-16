@@ -227,10 +227,10 @@ void setMotorAngle(int num, float _angle)
 {
     if (_angle < 0)
         _angle = 0; // Защита от отрицательного градуса угла
-    if (_angle > 180)
-        _angle = 180;                                  // Защита от отклонения больше предела
+    if (_angle > 179)
+        _angle = 179;                                  // Защита от отклонения больше предела
     motor[num].destination = getPulse(_angle);         // Получаем в какую позицию должен встать мотор наиболее близкую к требуемому градусу
-    if (motor[num].position == motor[num].destination) // Если текущая позиция и так тавна цели то ничего не делаем и выходим из функции
+    if (motor[num].position == motor[num].destination) // Если текущая позиция и так равна цели то ничего не делаем и выходим из функции
         return;
 
     // digitalWrite(PIN_Motor_En, 0); // Включаем драйвера
