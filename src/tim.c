@@ -49,7 +49,7 @@ void MX_TIM7_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig = {0};
 
   htim7.Instance = TIM7;
-  htim7.Init.Prescaler = 83;
+  htim7.Init.Prescaler = 83; //APB1 : Поддерживает "медленные" периферийные устройства.Частота обычно ниже (например, 42 МГц для STM32F4).К этой шине подключаются таймеры: TIM2–TIM7 , TIM12–TIM14 .
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim7.Init.Period = 1000;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -69,7 +69,7 @@ void MX_TIM7_Init(void)
 void MX_TIM10_Init(void)
 {
   htim10.Instance = TIM10;
-  htim10.Init.Prescaler = 167;
+  htim10.Init.Prescaler = 167; // Подключен к быстрой шине APB2 APB2 :Поддерживает "быстрые" периферийные устройства. Частота обычно выше (например, 84 МГц для STM32F4).К этой шине подключаются таймеры: TIM1 , TIM8–TIM11 .
   htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim10.Init.Period = 1000;
   htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -97,7 +97,7 @@ void MX_TIM11_Init(void)
 void MX_TIM13_Init(void)
 {
   htim13.Instance = TIM13;
-  htim13.Init.Prescaler = 167;
+  htim13.Init.Prescaler = 83;
   htim13.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim13.Init.Period = 1000;
   htim13.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;

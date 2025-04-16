@@ -708,7 +708,7 @@ void calcBuffer(uint8_t *buffer)
 void BNO055_ReadData()
 {
     DEBUG_PRINTF("+++ BNO055_ReadData\n");
-    uint8_t buffer[20];
+    // uint8_t buffer[20];
     // if (BNO055_Read(eBNO055_REGISTER_ACC_DATA_X_LSB, buffer, 38) == HAL_OK) // Считываем в буфер
     // {
     //     calcBuffer(buffer);
