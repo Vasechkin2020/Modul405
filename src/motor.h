@@ -134,6 +134,27 @@ void Set_Timer7_Period(uint32_t new_period)
     __HAL_TIM_SET_AUTORELOAD(&htim7, new_period); // Задаем новый период таймера (в пересчете на такты таймера)
     HAL_TIM_Base_Start_IT(&htim7);                // Запускаем таймер с новым периодом
 }
+// Функция для изменения периода таймера TIM10
+void Set_Timer10_Period(uint32_t new_period)
+{
+    HAL_TIM_Base_Stop_IT(&htim10);                 // Останавливаем таймер перед изменением
+    __HAL_TIM_SET_AUTORELOAD(&htim10, new_period); // Задаем новый период таймера (в пересчете на такты таймера)
+    HAL_TIM_Base_Start_IT(&htim10);                // Запускаем таймер с новым периодом
+}
+// Функция для изменения периода таймера TIM11
+void Set_Timer11_Period(uint32_t new_period)
+{
+    HAL_TIM_Base_Stop_IT(&htim11);                 // Останавливаем таймер перед изменением
+    __HAL_TIM_SET_AUTORELOAD(&htim11, new_period); // Задаем новый период таймера (в пересчете на такты таймера)
+    HAL_TIM_Base_Start_IT(&htim11);                // Запускаем таймер с новым периодом
+}
+// Функция для изменения периода таймера TIM13
+void Set_Timer13_Period(uint32_t new_period)
+{
+    HAL_TIM_Base_Stop_IT(&htim13);                 // Останавливаем таймер перед изменением
+    __HAL_TIM_SET_AUTORELOAD(&htim13, new_period); // Задаем новый период таймера (в пересчете на такты таймера)
+    HAL_TIM_Base_Start_IT(&htim13);                // Запускаем таймер с новым периодом
+}
 
 void timer7() // Обработчик прерывания таймера TIM7
 {
@@ -165,6 +186,18 @@ void timer7() // Обработчик прерывания таймера TIM7
 
     // timerAlarmWrite(timer1, timeingStep, true); // Какой таймер, до скольки считаем , сбрасываем ли счетчик при срабатывании. Значение посчитали когда скороcть вращения расчитывали
     //  digitalWrite(2, 0);
+}
+
+void timer10() // Обработчик прерывания таймера TIM10
+{
+}
+
+void timer11() // Обработчик прерывания таймера TIM11
+{
+}
+
+void timer13() // Обработчик прерывания таймера TIM13
+{
 }
 
 // Запуск моторов на тест

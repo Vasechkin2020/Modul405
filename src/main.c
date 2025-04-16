@@ -54,6 +54,9 @@ int main(void)
 
   MX_TIM6_Init();
   MX_TIM7_Init();
+  MX_TIM10_Init();
+  MX_TIM11_Init();
+  MX_TIM13_Init();
 
   HAL_TIM_Base_Start_IT(&htim6); // Таймер для общего цикла
   HAL_TIM_Base_Start_IT(&htim7); // Таймер для моторов шаговых для датчиков

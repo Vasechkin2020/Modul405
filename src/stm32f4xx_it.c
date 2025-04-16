@@ -23,6 +23,9 @@
 
 extern TIM_HandleTypeDef htim6;
 extern TIM_HandleTypeDef htim7;
+extern TIM_HandleTypeDef htim10;
+extern TIM_HandleTypeDef htim11;
+extern TIM_HandleTypeDef htim13;
 
 extern SPI_HandleTypeDef hspi1;
 
@@ -182,11 +185,26 @@ void TIM6_DAC_IRQHandler(void)
   HAL_TIM_IRQHandler(&htim6); // Обработчик прерывания  для таймера
 }
 
-/**   * @brief This function handles TIM7 global interrupt.  */
 void TIM7_IRQHandler(void)
 {
   HAL_TIM_IRQHandler(&htim7); // Обработчик прерывания  для таймера
 }
+
+void TIM1_UP_TIM10_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim10);
+}
+
+void TIM1_TRG_COM_TIM11_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim11);
+}
+
+void TIM8_UP_TIM13_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim13);
+}
+
 //*************************************** КНОПКИ ***********************************
 /**   * @brief This function handles EXTI line0 interrupt.  */
 void EXTI0_IRQHandler(void)
