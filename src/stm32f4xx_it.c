@@ -21,6 +21,7 @@
 #include "main.h"
 #include "stm32f4xx_it.h"
 
+extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim6;
 extern TIM_HandleTypeDef htim7;
 extern TIM_HandleTypeDef htim10;
@@ -180,6 +181,12 @@ void SysTick_Handler(void)
 
 /**  * @brief This function handles TIM6 global interrupt, DAC1 and DAC2 underrun error interrupts.  */
 //************************************ ТАЙМЕРЫ********************************
+
+void TIM2_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim2);
+}
+
 void TIM6_DAC_IRQHandler(void)
 {
   HAL_TIM_IRQHandler(&htim6); // Обработчик прерывания  для таймера

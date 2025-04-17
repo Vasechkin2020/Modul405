@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <inttypes.h>
 //----
 #include "main.h"
 #include "dma.h"
@@ -25,6 +26,7 @@
 void SystemClock_Config(void);
 volatile uint32_t millisCounter = 0;
 volatile uint64_t microsCounter = 0;
+volatile uint32_t overflow_count = 0; // Счётчик переполнений
 
 int main(void)
 {
@@ -51,15 +53,17 @@ int main(void)
   //   HAL_GPIO_TogglePin(Step_Motor3_GPIO_Port, Step_Motor3_Pin);
   //   HAL_Delay(100);
   // }
-
-  MX_TIM6_Init();
-  MX_TIM7_Init();
+  MX_TIM2_Init(); // Таймер на микросекунды
+  MX_TIM6_Init(); // Таймер на милисекунды
+  MX_TIM7_Init(); // Таймеры на моторы
   MX_TIM10_Init();
   MX_TIM11_Init();
   MX_TIM13_Init();
 
-  HAL_TIM_Base_Start_IT(&htim6); // Таймер для общего цикла
-  HAL_TIM_Base_Start_IT(&htim7); // Таймер для моторов шаговых для датчиков
+
+  HAL_TIM_Base_Start_IT(&htim2);  // Таймер для общего цикла
+  HAL_TIM_Base_Start_IT(&htim6);  // Таймер для общего цикла
+  HAL_TIM_Base_Start_IT(&htim7);  // Таймер для моторов шаговых для датчиков
   HAL_TIM_Base_Start_IT(&htim10); // Таймер для моторов шаговых для датчиков
   HAL_TIM_Base_Start_IT(&htim11); // Таймер для моторов шаговых для датчиков
   HAL_TIM_Base_Start_IT(&htim13); // Таймер для моторов шаговых для датчиков
@@ -81,10 +85,10 @@ int main(void)
 
   while (1)
   {
-    workingSPI();    // Отработка действий по обмену по шине SPI
+    workingSPI(); // Отработка действий по обмену по шине SPI
     // workingLaser();  // Отработка действий по лазерным датчикам
-    workingFlag();   // Остановка драйверов и моторов при обрыве связи
-    workingMotor();  // Отработка действий по таймеру в 1, 50, 60 милисекунд
+    workingFlag();  // Остановка драйверов и моторов при обрыве связи
+    workingMotor(); // Отработка действий по таймеру в 1, 50, 60 милисекунд
     // workingBNO055(); // Отработака по датчику BNO055
 
     workingTimer(); // Отработка действий по таймеру в 1, 50, 60 милисекунд

@@ -31,6 +31,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size); // К
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);                   // Коллбэк, вызываемый при событии UART по окончания приема ОПРЕДЕЛЕННОГО ЗАДАННОГО ЧИСЛА БАЙТ
 void initLaser();                                                          // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
 void initFirmware();                                                       // Заполнение данными Прошивки
+uint64_t micros(void);                                                     // Возвращает микросекунды с момента начала работы
 
 struct dataUART dataUART[4];
 uint8_t lenDataLaser; // Длинна полученных данных в буфере
@@ -46,6 +47,7 @@ extern void setMotorAngle(int num, float _angle);
 extern void setZeroMotor();
 extern void BNO055_ReadData(); // Разовое считывание данных
 extern volatile uint32_t millisCounter;
+extern volatile uint32_t overflow_count; // Счётчик переполнений
 
 // int laser_pred = 0;            // Переменная для запоминания предыдущей команды
 u_int8_t modeControlMotor = 0; // Режим в котором находиттся мотор после последней команды управления
@@ -99,6 +101,30 @@ void timer6() // Обработчик прерывания таймера TIM6	1
     }
 }
 
+// Возвращает микросекунды с момента начала работы
+uint64_t micros(void)
+{
+    uint32_t current_count = __HAL_TIM_GET_COUNTER(&htim2); // Текущее значение счётчика
+    uint32_t overflows = overflow_count;                    // Текущее значение переполнений
+
+    if (__HAL_TIM_IS_TIM_COUNTING_DOWN(&htim2) && current_count > 0x80000000) // Проверяем, не произошло ли переполнение во время чтения
+    {
+        overflows--; // Если таймер переполнился после чтения current_count
+    }
+    uint64_t ret = ((uint64_t)overflows * 4294967296ULL) + current_count; // Вычисляем общее время в микросекундах
+
+    // uint64_t ret2 = 1234567890123ULL;
+    // printf("Elapsed Time: %llu microseconds\n", ret);
+    // printf("Elapsed Time: %" PRIu64 " microseconds\n", ret); // Корректный вывод с использованием PRIu64
+
+    // Разделяем на верхние и нижние 32 бита
+    // uint32_t high = (uint32_t)(ret >> 32); // Верхние 32 бита
+    // uint32_t low = (uint32_t)(ret & 0xFFFFFFFF); // Нижние 32 бита
+
+    // DEBUG_PRINTF("Time from Start: %lu%09lu microseconds | current_count = %lu microseconds | overflows %lu \r\n", high, low, current_count, overflows);
+    return ret;
+}
+
 void workingTimer() // Отработка действий по таймеру в 1, 50, 60 милисекунд
 {
     // HAL_Delay(); // Пауза 500 миллисекунд.
@@ -115,6 +141,15 @@ void workingTimer() // Отработка действий по таймеру �
         flag_timer_50millisec = false;
         // DEBUG_PRINTF("50msec %li \r\n", millis());
         //  flag_data = true; // Есть новые данные по шине // РУчной вариант имитации пришедших данных с частотой 20Гц
+        // static uint64_t current_time = 0;
+        // static uint64_t now_time = 0;
+        // // DEBUG_PRINTF("micros %u microseconds\n", micros());
+        // // uint64_t elapsed_time = micros() - current_time; // Прошедшее время
+        // now_time = micros();
+        // uint32_t aaaa = now_time - current_time;
+        // current_time = now_time; // Текущее время в микросекундах
+        // printf("Elapsed Time: %lu microseconds\n", aaaa);
+        // DEBUG_PRINTF("%lu \r\n", micros());
     }
 
     //----------------------------- 1 секунда --------------------------------------
@@ -246,7 +281,7 @@ void executeDataReceive()
     if (Data2Modul_receive.controlMotor.mode == 1) // Если пришла команда 1 Управления
     {
         modeControlMotor = 1; // Запоминаем в каком режиме Motor
-        DEBUG_PRINTF("executeDataReceive mode= %lu status = %i %i %i %i \r\n",Data2Modul_receive.controlMotor.mode,motor[0].status,motor[1].status,motor[2].status,motor[3].status);
+        DEBUG_PRINTF("executeDataReceive mode= %lu status = %i %i %i %i \r\n", Data2Modul_receive.controlMotor.mode, motor[0].status, motor[1].status, motor[2].status, motor[3].status);
         for (int i = 0; i < 4; i++)
         {
             setMotorAngle(i, Data2Modul_receive.controlMotor.angle[i]);
