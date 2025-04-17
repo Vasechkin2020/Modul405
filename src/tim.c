@@ -11,10 +11,7 @@ TIM_HandleTypeDef htim11;
 TIM_HandleTypeDef htim13;
 
 extern void timer6();
-extern void timer7();
-extern void timer10();
-extern void timer11();
-extern void timer13();
+extern void timerMotor();
 
 extern void isrMicMotor0();
 extern void isrMicMotor1();
@@ -265,19 +262,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
   else if (htim->Instance == TIM7)
   {
-    timer7();
+    timerMotor(0);
   }
   else if (htim->Instance == TIM10)
   {
-    timer10();
+    timerMotor(1);
   }
   else if (htim->Instance == TIM11)
   {
-    timer11();
+    timerMotor(2);
   }
   else if (htim->Instance == TIM13)
   {
-    timer13();
+    timerMotor(3);
   }
 }
 

@@ -285,6 +285,8 @@ void executeDataReceive()
         for (int i = 0; i < 4; i++)
         {
             setMotorAngle(i, Data2Modul_receive.controlMotor.angle[i]);
+            float speed = calcSpeedMotor(i); // Расчет скорости для мотора в rps
+            setMotorSpeed(i, speed);         // Установка скорости
             // DEBUG_PRINTF("status = %i \r\n", motor[i].status);
         }
     }

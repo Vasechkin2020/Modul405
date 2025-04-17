@@ -1,6 +1,10 @@
 #ifndef MOTOR_H
 #define MOTOR_H
 
+const int accel_speed = 25; // Ускорение в микросекундах
+#define MIN_SPEED 1000;     // Интервал скорости в микросекундах. Чем больше интревал тем медленне вращение
+#define MAX_SPEED 100;      // Интервал скорости в микросекундах
+
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -14,7 +18,6 @@
 #define REDUKTOR 1    // Параметры Редуктора 1 - Нет редуктора
 #define STEPMOTOR 0.9 // Параметры градусы на шаг
 
-int timeingStep = 1000;                                // Число тактов для таймера через которое нужно дать новый имульс мотору
 int statusTestMotor = 0;                               // Статус теста мотора для отладки
 const float sector = STEPMOTOR / REDUKTOR / MICROSTEP; // Столько градусов приходится на 1 импульс
 
@@ -26,8 +29,10 @@ extern uint32_t millis(); // Длинна полученных данных в �
 extern uint64_t micros(void);
 
 void setMotorSpeed(int num_, float _speed);   // Функция устанавлявающая скорость вращения на ВСЕХ моторах, задается в оборотах за секунду rps
+float calcSpeedMotor(int i);                  // Расчет скорости для мотора.
+void setPeriod(int num_);                     // Установка периода следующего срабатывания таймера
 void initMotor();                             // Функция инциализации моторов
-void timer7();                                // Обработчик прерывания таймера TIM7
+void timerMotor(int i);                       // Обработчик прерывания таймера TIM7
 void Set_Timer7_Period(uint32_t new_period);  // Функция для изменения периода таймера TIM7
 void Set_Timer10_Period(uint32_t new_period); // Функция для изменения периода таймера TIM7
 void Set_Timer11_Period(uint32_t new_period); // Функция для изменения периода таймера TIM7
@@ -60,6 +65,16 @@ void isrMicMotor3(); // Обработка прерывания по микри�
 // };
 // struct motorStruct motor[4]; // Все локальные данные по моторам
 
+float calcSpeedMotor(int i) // Расчет скорости для мотора. в оборотах в секунду rps
+{
+    float ret = 1;
+
+    // float P;                                                       // Коефициент Р ПИД регилятора
+    // float speed = motor[i].angleSpeed + (motor[i].angleError * P); // Угловая скорость + ошибка по положению угла на коэффициент
+
+    return ret;
+}
+
 // Функция устанавлявающая скорость вращения на ВСЕХ моторах, задается в оборотах за секунду rps
 void setMotorSpeed(int num_, float _speed)
 {
@@ -67,31 +82,36 @@ void setMotorSpeed(int num_, float _speed)
 
     // Скорость в оборотах их умножаем на градусы и делим на градус на 1 шаг получаем нужное число полных шагов для такой скорости за секунду
     // Умножаем на передаточное число редуктора и микрошаг
-    float step_za_sec = abs(_speed * 10) / 10.0 * (360.0 / STEPMOTOR) * REDUKTOR * MICROSTEP;
+    float step_za_sec = abs(_speed * 100) / 100.0 * (360.0 / STEPMOTOR) * REDUKTOR * MICROSTEP; // Умножаем и делим на 100 чтобы учесть знаки после запятой при округлении?
     // printf("step_za_sec= %f \n", (float)step_za_sec);
 
     // Микросекунды в секунде делим на число шагов которые надо успеть сделать за секунду и делим на микрошаги делим на микросекунды за 1 шаг с учетом предделителя таймера
-    timeingStep = (float)1000000 / step_za_sec; // Таймер по 1 микросекунде
+    int timeingStep = (float)1000000 / step_za_sec; // Таймер по 1 микросекунде // Число тактов для таймера через которое нужно дать новый имульс мотору
+    motor[num_].speedNeed = timeingStep;            // Запоминаем скорость какую надо достичь
+    motor[num_].speedNow = MIN_SPEED;               // Устанавливаем Минимальную скорость чтобы тронуться
+    DEBUG_PRINTF("setMotorSpeed num %i  speedNow = %i speedNeed = %i microsecond \n", num_, motor[num_].speedNow, motor[num_].speedNeed);
+    setPeriod(num_);
+}
+// Установка периода следующего срабатывания таймера
+void setPeriod(int num_)
+{
     switch (num_)
     {
     case 0:
-        Set_Timer7_Period(timeingStep); //  Устаналиваем время на таймере
+        Set_Timer7_Period(motor[num_].speedNow); //  Устаналиваем время на таймере
         break;
     case 1:
-        Set_Timer10_Period(timeingStep); //  Устаналиваем время на таймере
+        Set_Timer10_Period(motor[num_].speedNow); //  Устаналиваем время на таймере
         break;
     case 2:
-        Set_Timer11_Period(timeingStep); //  Устаналиваем время на таймере
+        Set_Timer11_Period(motor[num_].speedNow); //  Устаналиваем время на таймере
         break;
     case 3:
-        Set_Timer13_Period(timeingStep); //  Устаналиваем время на таймере
+        Set_Timer13_Period(motor[num_].speedNow); //  Устаналиваем время на таймере
         break;
     }
-    DEBUG_PRINTF("setSpeedMotor num %i = %i microsecond \n", num_, timeingStep);
-    //  delay(100);
-    // HAL_Delay(100); // Пауза 100 миллисекунд.
+    // DEBUG_PRINTF("setPeriod %i  = %i \n", num_, motor[num_].speedNow);
 }
-
 // Функция инциализации моторов
 void initMotor()
 {
@@ -110,6 +130,7 @@ void initMotor()
 
     motor[0].micric_pin = micMotor0_Pin;
     motor[0].micric_port = micMotor0_GPIO_Port;
+    motor[0].htim = &htim7;
     //----
     motor[1].step_port = Step_Motor1_GPIO_Port;
     motor[1].step_pin = Step_Motor1_Pin;
@@ -118,6 +139,7 @@ void initMotor()
 
     motor[1].micric_pin = micMotor1_Pin;
     motor[1].micric_port = micMotor1_GPIO_Port;
+    motor[1].htim = &htim10;
 
     motor[2].step_port = Step_Motor2_GPIO_Port;
     motor[2].step_pin = Step_Motor2_Pin;
@@ -126,6 +148,7 @@ void initMotor()
 
     motor[2].micric_pin = micMotor2_Pin;
     motor[2].micric_port = micMotor2_GPIO_Port;
+    motor[2].htim = &htim11;
 
     motor[3].step_port = Step_Motor3_GPIO_Port;
     motor[3].step_pin = Step_Motor3_Pin;
@@ -134,6 +157,7 @@ void initMotor()
 
     motor[3].micric_pin = micMotor3_Pin;
     motor[3].micric_port = micMotor3_GPIO_Port;
+    motor[3].htim = &htim13;
 
     motor[0].status = 0; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
     motor[1].status = 0; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
@@ -144,8 +168,6 @@ void initMotor()
     setMotorSpeed(1, SPEED); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
     setMotorSpeed(2, SPEED); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
     setMotorSpeed(3, SPEED); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
-
-    // HAL_Delay(100);
 }
 
 // Функция для изменения периода таймера TIM7
@@ -177,9 +199,8 @@ void Set_Timer13_Period(uint32_t new_period)
     HAL_TIM_Base_Start_IT(&htim13);                // Запускаем таймер с новым периодом
 }
 
-void timer7() // Обработчик прерывания таймера TIM7
+void timerMotor(int i) // Обработчик прерывания всех 4 таймеров. В зависимости от таймера приходит номер мотора
 {
-    int i = 0;
     if (motor[i].status)
     {
         if (motor[i].position == motor[i].destination && statusTestMotor == false) // Статус statusTestMotor только для отладки чтобы включить моторы на постоянное вращение
@@ -191,66 +212,17 @@ void timer7() // Обработчик прерывания таймера TIM7
             HAL_GPIO_WritePin(motor[i].step_port, motor[i].step_pin, GPIO_PIN_SET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
             (motor[i].dir == 1) ? motor[i].position++ : motor[i].position--;        // Если считаем шаги
         }
-    }
-    // delayMicroseconds(1); // На stm32 не нужно и так 5 микросекунд выходит импульс
-    HAL_GPIO_WritePin(motor[i].step_port, motor[i].step_pin, GPIO_PIN_RESET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
-}
 
-void timer10() // Обработчик прерывания таймера TIM10
-{
-    int i = 1;
-    if (motor[i].status)
-    {
-        if (motor[i].position == motor[i].destination && statusTestMotor == false) // Статус statusTestMotor только для отладки чтобы включить моторы на постоянное вращение
-        {
-            motor[i].status = 0;
-        }
+        // УСКОРЕНИЕ
+        if (motor[i].speedNeed < motor[i].speedNow - accel_speed) // Если скорость получается быстре чем (текущая + ускорение) то используем минимальную
+            motor[i].speedNow = motor[i].speedNow - accel_speed;
         else
-        {
-            HAL_GPIO_WritePin(motor[i].step_port, motor[i].step_pin, GPIO_PIN_SET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
-            (motor[i].dir == 1) ? motor[i].position++ : motor[i].position--;        // Если считаем шаги
-        }
-    }
-    // delayMicroseconds(1); // На stm32 не нужно и так 5 микросекунд выходит импульс
-    HAL_GPIO_WritePin(motor[i].step_port, motor[i].step_pin, GPIO_PIN_RESET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
-}
+            motor[i].speedNow = motor[i].speedNeed; // Устанавливаем Новую скорость
+        setPeriod(i);                               // Устанавливает период таймера motor[i].speedNow
+        // delayMicroseconds(1); // На stm32 не нужно и так 5 микросекунд выходит импульс
 
-void timer11() // Обработчик прерывания таймера TIM11
-{
-    int i = 2;
-    if (motor[i].status)
-    {
-        if (motor[i].position == motor[i].destination && statusTestMotor == false) // Статус statusTestMotor только для отладки чтобы включить моторы на постоянное вращение
-        {
-            motor[i].status = 0;
-        }
-        else
-        {
-            HAL_GPIO_WritePin(motor[i].step_port, motor[i].step_pin, GPIO_PIN_SET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
-            (motor[i].dir == 1) ? motor[i].position++ : motor[i].position--;        // Если считаем шаги
-        }
+        HAL_GPIO_WritePin(motor[i].step_port, motor[i].step_pin, GPIO_PIN_RESET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
     }
-    // delayMicroseconds(1); // На stm32 не нужно и так 5 микросекунд выходит импульс
-    HAL_GPIO_WritePin(motor[i].step_port, motor[i].step_pin, GPIO_PIN_RESET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
-}
-
-void timer13() // Обработчик прерывания таймера TIM13
-{
-    int i = 3;
-    if (motor[i].status)
-    {
-        if (motor[i].position == motor[i].destination && statusTestMotor == false) // Статус statusTestMotor только для отладки чтобы включить моторы на постоянное вращение
-        {
-            motor[i].status = 0;
-        }
-        else
-        {
-            HAL_GPIO_WritePin(motor[i].step_port, motor[i].step_pin, GPIO_PIN_SET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
-            (motor[i].dir == 1) ? motor[i].position++ : motor[i].position--;        // Если считаем шаги
-        }
-    }
-    // delayMicroseconds(1); // На stm32 не нужно и так 5 микросекунд выходит импульс
-    HAL_GPIO_WritePin(motor[i].step_port, motor[i].step_pin, GPIO_PIN_RESET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
 }
 
 // Запуск моторов на тест
@@ -318,13 +290,18 @@ void setMotorAngle(int num, float angle_)
         angle_ = 0;   // Защита от отрицательного градуса угла
     if (angle_ > 179) // Защита от отклонения больше предела
         angle_ = 179;
+    DEBUG_PRINTF("num = %i ", num);
 
     uint64_t timeNow = micros();
-    uint32_t deltaTime = timeNow - motor[num].predTime;         // Находим разницу по времени от прыдыдущего расчета
-    float deltaAngle = angle_ - motor[num].predAngle;        // Находим разницу углов
-    motor[num].angleSpeed = (deltaAngle / deltaTime) * 1000000.0; //  Угловая скорость вращения
+    uint32_t deltaTime = timeNow - motor[num].predTime; // Находим разницу по времени от прыдыдущего расчета
     motor[num].predTime = timeNow;
+    DEBUG_PRINTF("deltaTime = %lu ", deltaTime);
+
+    float deltaAngle = angle_ - motor[num].predAngle; // Находим разницу углов
     motor[num].predAngle = angle_; // Запоминаем
+    DEBUG_PRINTF("deltaAngle = %.2f ", deltaAngle);
+    motor[num].angleSpeed = (deltaAngle / deltaTime) * 1000000.0; //  Угловая скорость вращения
+    DEBUG_PRINTF("angleSpeed = %.2f gradus in sec| ", motor[num].angleSpeed);
 
     motor[num].destination = getPulse(angle_);                                      // Получаем в какую позицию должен встать мотор наиболее близкую к требуемому градусу
     motor[num].angleError = getAngle(motor[num].destination - motor[num].position); // Считаем ошибку по положению угла в градусах
@@ -334,7 +311,7 @@ void setMotorAngle(int num, float angle_)
 
     HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_RESET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
 
-    DEBUG_PRINTF("set num= %i ", num);
+    // DEBUG_PRINTF("set num= %i ", num);
     DEBUG_PRINTF("pos= %i ", motor[num].position);
     DEBUG_PRINTF("dest= %i \n", motor[num].destination);
 
@@ -407,6 +384,7 @@ void setMotor10()
     HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_RESET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
     for (int i = 0; i < 4; i++)                                          // Сначала отводим немного на случай если уже в нуле
     {
+        setMotorSpeed(i, 0.5);                          // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
         setMotorAngle(i, 30);
     }
 }
@@ -451,8 +429,16 @@ void setZeroMotor()
 
     setMotor10();
     HAL_Delay(500);
+    // DEBUG_PRINTF("speedNow = %i ", motor[0].speedNow);
+    // DEBUG_PRINTF("speedNow = %i ", motor[1].speedNow);
+    // DEBUG_PRINTF("speedNow = %i ", motor[2].speedNow);
+    // DEBUG_PRINTF("speedNow = %i \n", motor[3].speedNow);
     setMotor0();
     HAL_Delay(6000);
+    // DEBUG_PRINTF("speedNow2 = %i ", motor[0].speedNow);
+    // DEBUG_PRINTF("speedNow2 = %i ", motor[1].speedNow);
+    // DEBUG_PRINTF("speedNow2 = %i ", motor[2].speedNow);
+    // DEBUG_PRINTF("speedNow2 = %i \n", motor[3].speedNow);
     flagMicric = false;      // Отключаем микрики от случайных срабатываний
     setMotorSpeed(0, SPEED); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
     setMotorSpeed(1, SPEED); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
