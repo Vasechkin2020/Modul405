@@ -88,9 +88,13 @@ void setMotorSpeed(int num_, float _speed)
     // Микросекунды в секунде делим на число шагов которые надо успеть сделать за секунду и делим на микрошаги делим на микросекунды за 1 шаг с учетом предделителя таймера
     int timeingStep = (float)1000000 / step_za_sec; // Таймер по 1 микросекунде // Число тактов для таймера через которое нужно дать новый имульс мотору
     motor[num_].speedNeed = timeingStep;            // Запоминаем скорость какую надо достичь
-    motor[num_].speedNow = MIN_SPEED;               // Устанавливаем Минимальную скорость чтобы тронуться
+    if (motor[num_].status == 0) // Если мотор стоит без движения
+    {
+        motor[num_].speedNow = MIN_SPEED; // Устанавливаем Минимальную скорость чтобы тронуться
+    }
     DEBUG_PRINTF("setMotorSpeed num %i  speedNow = %i speedNeed = %i microsecond \n", num_, motor[num_].speedNow, motor[num_].speedNeed);
-    setPeriod(num_);
+    motor[num_].status = 1; // Включаем сам мотор
+    setPeriod(num_); //
 }
 // Установка периода следующего срабатывания таймера
 void setPeriod(int num_)
@@ -290,6 +294,13 @@ void setMotorAngle(int num, float angle_)
         angle_ = 0;   // Защита от отрицательного градуса угла
     if (angle_ > 179) // Защита от отклонения больше предела
         angle_ = 179;
+
+    motor[num].destination = getPulse(angle_);                                      // Получаем в какую позицию должен встать мотор наиболее близкую к требуемому градусу
+    motor[num].angleError = getAngle(motor[num].destination - motor[num].position); // Считаем ошибку по положению угла в градусах
+
+    if (motor[num].position == motor[num].destination) // Если текущая позиция и так равна цели то ничего не делаем и выходим из функции
+        return;
+
     DEBUG_PRINTF("num = %i ", num);
 
     uint64_t timeNow = micros();
@@ -298,16 +309,10 @@ void setMotorAngle(int num, float angle_)
     DEBUG_PRINTF("deltaTime = %lu ", deltaTime);
 
     float deltaAngle = angle_ - motor[num].predAngle; // Находим разницу углов
-    motor[num].predAngle = angle_; // Запоминаем
+    motor[num].predAngle = angle_;                    // Запоминаем
     DEBUG_PRINTF("deltaAngle = %.2f ", deltaAngle);
     motor[num].angleSpeed = (deltaAngle / deltaTime) * 1000000.0; //  Угловая скорость вращения
     DEBUG_PRINTF("angleSpeed = %.2f gradus in sec| ", motor[num].angleSpeed);
-
-    motor[num].destination = getPulse(angle_);                                      // Получаем в какую позицию должен встать мотор наиболее близкую к требуемому градусу
-    motor[num].angleError = getAngle(motor[num].destination - motor[num].position); // Считаем ошибку по положению угла в градусах
-
-    if (motor[num].position == motor[num].destination) // Если текущая позиция и так равна цели то ничего не делаем и выходим из функции
-        return;
 
     HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_RESET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
 
@@ -325,7 +330,7 @@ void setMotorAngle(int num, float angle_)
         HAL_GPIO_WritePin(motor[num].dir_port, motor[num].dir_pin, GPIO_PIN_RESET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
         motor[num].dir = 0;
     }
-    motor[num].status = 1; // Включаем сам мотор
+    // motor[num].status = 1; // Включаем сам мотор
 }
 
 // Обработка прерывания по микрику на пине для мотора0
@@ -384,8 +389,8 @@ void setMotor10()
     HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_RESET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
     for (int i = 0; i < 4; i++)                                          // Сначала отводим немного на случай если уже в нуле
     {
-        setMotorSpeed(i, 0.5);                          // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
         setMotorAngle(i, 30);
+        setMotorSpeed(i, 0.5); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
     }
 }
 
@@ -397,9 +402,9 @@ void setMotor0()
     HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_RESET); // Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
     for (int i = 0; i < 4; i++)
     {
-        setMotorSpeed(i, 0.2);                          // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
         motor[i].position = 200 * REDUKTOR * MICROSTEP; // Устанавливаем всем максимульную позицию 200 шагов пополам (всего 400 так как мотор 0,9) на редуктор и на микрошаг
         setMotorAngle(i, 0);
+        setMotorSpeed(i, 0.2); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
     }
 }
 
