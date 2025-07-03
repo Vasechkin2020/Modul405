@@ -281,7 +281,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   // Callback-функция, которая вызывается при срабатывании прерывания STM32F4
   void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   {
-    HAL_GPIO_TogglePin(Led2_GPIO_Port, Led2_Pin); // Инвертирование состояния выхода.
+    HAL_GPIO_TogglePin(ledRed_GPIO_Port, ledRed_Pin); // Инвертирование состояния выхода.
     if (GPIO_Pin == micMotor0_Pin)                // Действия при нажатии кнопки (например, переключение светодиода)
     {
       isrMicMotor0();

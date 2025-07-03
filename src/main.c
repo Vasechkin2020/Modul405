@@ -22,6 +22,7 @@
 #include "laser80M.h"
 #include "slaveSPI.h"
 #include "bno055.h"
+#include "icm20948.h"
 
 void SystemClock_Config(void);
 volatile uint32_t millisCounter = 0;
@@ -34,7 +35,7 @@ int main(void)
   SystemClock_Config();
 
   MX_GPIO_Init();
-  HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_SET); //Сразу включаем светодиод что началась загрузка
+  HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_SET); // Сразу включаем светодиод что началась загрузка
   MX_DMA_Init();
 
   MX_I2C1_Init();
@@ -60,10 +61,9 @@ int main(void)
   MX_TIM11_Init();
   MX_TIM13_Init();
 
+  HAL_TIM_Base_Start_IT(&htim2); // Таймер для общего цикла
+  HAL_TIM_Base_Start_IT(&htim6); // Таймер для общего цикла
 
-  HAL_TIM_Base_Start_IT(&htim2);  // Таймер для общего цикла
-  HAL_TIM_Base_Start_IT(&htim6);  // Таймер для общего цикла
-  
   HAL_TIM_Base_Start_IT(&htim7);  // Таймер для моторов шаговых для датчиков
   HAL_TIM_Base_Start_IT(&htim10); // Таймер для моторов шаговых для датчиков
   HAL_TIM_Base_Start_IT(&htim11); // Таймер для моторов шаговых для датчиков
@@ -74,24 +74,29 @@ int main(void)
 
   initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
 
-  initMotor(); // Начальная инициализация и настройка шаговых моторов
-  // testMotorRun();
-  setZeroMotor(); // Установка в ноль
+  // initMotor(); // Начальная инициализация и настройка шаговых моторов
+  // // testMotorRun();
+  // setZeroMotor(); // Установка в ноль
 
-  initLaser(); // Инициализация лазеров в зависимости от типа датчкика. определяем переменные буфер приема для каждого UART
+  // initLaser(); // Инициализация лазеров в зависимости от типа датчкика. определяем переменные буфер приема для каждого UART
 
-  BNO055_Init(); // Инициализация датчика на шине I2C
+  // Сканирование I2C шины
+  // I2C_ScanDevices(&hi2c1);
+  
+  icm20948_init();
+
+  // BNO055_Init(); // Инициализация датчика на шине I2C
 
   DEBUG_PRINTF("%lli LOOP !!!!!!!!!!!!!!!!!!!!!!!!!!! \r\n", timeSpi);
   HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_RESET); // Выключаем светодиод что прошло выполнение кода до цикла
 
   while (1)
   {
-    workingSPI(); // Отработка действий по обмену по шине SPI
+    // workingSPI(); // Отработка действий по обмену по шине SPI
     // workingLaser();  // Отработка действий по лазерным датчикам
-    workingFlag();  // Остановка драйверов и моторов при обрыве связи
-    workingMotor(); // Отработка действий по таймеру в 1, 50, 60 милисекунд
-    // workingBNO055(); // Отработака по датчику BNO055
+    // workingFlag();  // Остановка драйверов и моторов при обрыве связи
+    // workingMotor(); // Отработка действий по таймеру в 1, 50, 60 милисекунд
+    // workingBNO055(); // Отработка по датчику BNO055
 
     workingTimer(); // Отработка действий по таймеру в 1, 50, 60 милисекунд
   }
