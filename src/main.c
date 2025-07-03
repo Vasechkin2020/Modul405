@@ -34,7 +34,7 @@ int main(void)
   SystemClock_Config();
 
   MX_GPIO_Init();
-
+  HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_SET); //Сразу включаем светодиод что началась загрузка
   MX_DMA_Init();
 
   MX_I2C1_Init();
@@ -83,6 +83,7 @@ int main(void)
   BNO055_Init(); // Инициализация датчика на шине I2C
 
   DEBUG_PRINTF("%lli LOOP !!!!!!!!!!!!!!!!!!!!!!!!!!! \r\n", timeSpi);
+  HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_RESET); // Выключаем светодиод что прошло выполнение кода до цикла
 
   while (1)
   {

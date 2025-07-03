@@ -33,10 +33,12 @@ extern "C"
 
     void Error_Handler(void);
 
-#define Led2_Pin GPIO_PIN_2
-#define Led2_GPIO_Port GPIOC
-#define Led1_Pin GPIO_PIN_15
-#define Led1_GPIO_Port GPIOA
+#define ledBlue_Pin GPIO_PIN_15
+#define ledBlue_GPIO_Port GPIOA
+#define ledRed_Pin GPIO_PIN_8
+#define ledRed_GPIO_Port GPIOC
+#define ledGreen_Pin GPIO_PIN_9
+#define ledGreen_GPIO_Port GPIOC
 
 #define Analiz_Pin GPIO_PIN_1
 #define Analiz_GPIO_Port GPIOB

@@ -132,7 +132,6 @@ void workingTimer() // Отработка действий по таймеру �
     if (flag_timer_10millisec)
     {
         flag_timer_10millisec = false;
-        HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin);             // Инвертирование состояния выхода.
         // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_10); // Инвертирование состояния выхода.
     }
     //----------------------------- 50 миллисекунд --------------------------------------
@@ -168,7 +167,9 @@ void workingTimer() // Отработка действий по таймеру �
         // {
         //     // DEBUG_PRINTF("Timer HAL_SPI_STATE_BUSY_TX_RX %u \n", statusGetState);
         // }
-        // HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin); // Инвертирование состояния выхода.
+        // HAL_GPIO_TogglePin(ledBlue_GPIO_Port, ledBlue_Pin);             // Инвертирование состояния выхода.
+        // HAL_GPIO_TogglePin(ledRed_GPIO_Port, ledRed_Pin);             // Инвертирование состояния выхода.
+        HAL_GPIO_TogglePin(ledGreen_GPIO_Port, ledGreen_Pin);             // Инвертирование состояния выхода.
         DEBUG_PRINTF("%li \r\n", millis());
         //  uint8_t UART1_rxBuffer[4] = {0xAA,0xFF,0xAA,0xFF};
         //   uint8_t UART1_rxBuffer[1] = {0x56}; //Запрос версии "V"
