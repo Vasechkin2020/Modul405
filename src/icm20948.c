@@ -116,72 +116,18 @@ void icm20948_init()
 void ak09916_init()
 {
 	DEBUG_PRINTF("+++ ak09916_init \n");
-
-	icm20948_bypass_en();
-	// icm20948_i2c_master_reset();
-    // HAL_Delay(100); // Задержка 50 мс после сброса
-	// icm20948_i2c_master_enable();
-    // HAL_Delay(100); // Задержка 50 мс после сброса
-	// icm20948_i2c_master_clk_frq(9);
-    // HAL_Delay(100); // Задержка 50 мс после сброса
-
-    // ak09916_soft_reset(); // Сброс магнитометра
   // Включение I2C-мастера и инициализация AK09916
-  // icm20948_i2c_master_reset(); // Сброс I2C-мастера
-  // icm20948_i2c_master_enable(); // Включение I2C-мастера
-  // icm20948_i2c_master_clk_frq(7); // Частота ~400 кГц
+	// icm20948_i2c_master_reset(); // Непонеятно зачем тут он это написал. 
+	icm20948_i2c_master_clk_frq(9);// Частота ~400 кГц
+	icm20948_i2c_master_enable();// Включение I2C-мастера
+	// icm20948_i2c_master_disable();
 
+	// icm20948_bypass_en(); // Эта функция включает напрямую доступ к магнетрометру через мультиплексор и можно микроконтроллером управлять магнетрометром
+	// I2C_ScanDevices(&hi2c1);
 
-    // HAL_Delay(100); // Задержка 50 мс после сброса
-	// uint8_t i2c_mst_status = read_single_icm20948_reg(ub_0, 0x17); // I2C_MST_STATUS
-    // printf("2 I2C_MST_STATUS: 0x%02X\n", i2c_mst_status); // Отладочный вывод
-
-    // select_user_bank(ub_3); // Переключение на банкCorrelation: 0x00
-    // write_single_icm20948_reg(ub_3, 0x31, 0x0C | 0x01); // SLV0_ADDR: адрес AK09916 (write)
-    // write_single_icm20948_reg(ub_3, 0x32, 0x31); // SLV0_REG: регистр CNTL2
-    // write_single_icm20948_reg(ub_3, 0x33, 0x80 | 0x01); // SLV0_CTRL: включение, 1 байт
-    // write_single_icm20948_reg(ub_3, 0x34, 0x08); // SLV0_DO: непрерывный режим, 100 Гц
-    // HAL_Delay(100); // Задержка для завершения
-
-	// i2c_mst_status = read_single_icm20948_reg(ub_0, 0x17); // I2C_MST_STATUS
-    // printf("2 I2C_MST_STATUS: 0x%02X\n", i2c_mst_status); // Отладочный вывод
-
-	// select_user_bank(ub_3); // Переключение на банк 3
-    // write_single_icm20948_reg(ub_3, 0x31, 0x0C); // SLV0_ADDR: адрес AK09916 (write)
-    // write_single_icm20948_reg(ub_3, 0x32, 0x01); // SLV0_REG: регистр WIA2 (0x01)
-    // write_single_icm20948_reg(ub_3, 0x33, 0x80 | 0x01); // SLV0_CTRL: включение, 1 байт
-    // HAL_Delay(10); // Задержка для завершения операции
-    // uint8_t wia2 = read_single_icm20948_reg(ub_3, 0x01); // Чтение EXT_SLV_SENS_DATA_00
-    // printf("AK09916 WIA2: 0x%02X\n", wia2); // Отладочный вывод значения WIA2
-
-	// select_user_bank(ub_3); // Переключение на банк 3
-    // write_single_icm20948_reg(ub_3, 0x31, 0x0C); // SLV0_ADDR: адрес AK09916 (read)
-    // write_single_icm20948_reg(ub_3, 0x32, 0x01); // SLV0_REG: регистр WIA2
-    // write_single_icm20948_reg(ub_3, 0x33, 0x80 | 0x01); // SLV0_CTRL: включение, 1 байт
-    // HAL_Delay(20); // Задержка 20 мс
-    
-	// wia2 = read_single_icm20948_reg(ub_3, 0x01); // Чтение EXT_SLV_SENS_DATA_00
-    // printf("AK09916 WIA2: 0x%02X\n", wia2); // Вывод значения WIA2
-    // uint8_t status = read_single_icm20948_reg(ub_0, 0x17); // Чтение I2C_MST_STATUS
-    // printf("I2C_MST_STATUS: 0x%02X\n", status); // Вывод статуса
-
-
-	// i2c_mst_status = read_single_icm20948_reg(ub_0, 0x17); // I2C_MST_STATUS
-    // printf("3 I2C_MST_STATUS: 0x%02X\n", i2c_mst_status); // Отладочный вывод
-
-	// while (!ak09916_who_am_i())
-	// 	;
-	// ak09916_who_am_i();
-	// ak09916_soft_reset();
-	// ak09916_operation_mode_setting(continuous_measurement_100hz);
-
-	  // // Проверка связи с AK09916
-  // if (ak09916_who_am_i()) {
-  //     printf("AK09916 detected: WHO_AM_I = 0x09\n");
-  // } else {
-  //     printf("AK09916 not detected\n");
-  // }
-  
+	ak09916_who_am_i();
+    ak09916_soft_reset(); // Настройка магнитометра
+	ak09916_operation_mode_setting(continuous_measurement_100hz);
 	DEBUG_PRINTF("    End ak09916_init \n");
 }
 
@@ -261,6 +207,7 @@ bool ak09916_mag_read_uT(axises *data)
 /* Sub Functions */
 bool icm20948_who_am_i()
 {
+	DEBUG_PRINTF("+++ icm20948_who_am_i \n");
 	uint8_t icm20948_id = read_single_icm20948_reg(ub_0, B0_WHO_AM_I);
 	if (icm20948_id == ICM20948_ID)
 	{
@@ -276,6 +223,7 @@ bool icm20948_who_am_i()
 
 bool ak09916_who_am_i()
 {
+	DEBUG_PRINTF("+++ ak09916_who_am_i \n");
 	uint8_t ak09916_id = read_single_ak09916_reg(MAG_WIA2);
 
 	if (ak09916_id == AK09916_ID)
@@ -301,40 +249,37 @@ void icm20948_device_reset()
 // Включаем bypass режим для первоначальной настройки магнитометра
 void icm20948_bypass_en()
 {
-	write_single_icm20948_reg(ub_0, B0_INT_PIN_CFG, 0x02);
 	DEBUG_PRINTF("+++ icm20948_bypass_en \n");
+	write_single_icm20948_reg(ub_0, B0_INT_PIN_CFG, 0x02);
 	HAL_Delay(100);
 }
 // Выключаем bypass режим для первоначальной настройки магнитометра
 void icm20948_bypass_disable()
 {
-	write_single_icm20948_reg(ub_0, B0_INT_PIN_CFG, 0x00);
 	DEBUG_PRINTF("+++ icm20948_bypass_disable \n");
+	write_single_icm20948_reg(ub_0, B0_INT_PIN_CFG, 0x00);
 	HAL_Delay(100);
 }
 
 void ak09916_soft_reset()
 {
+	DEBUG_PRINTF("+++ ak09916_soft_reset \n");
 	write_single_ak09916_reg(MAG_CNTL3, 0x01);
 	HAL_Delay(100);
-
-	select_user_bank(ub_0); // Переключение на банк 0
-    uint8_t status = read_single_icm20948_reg(ub_0, 0x17); // Чтение I2C_MST_STATUS
-    DEBUG_PRINTF("I2C_MST_STATUS after reset: 0x%02X\n", status); // Вывод статуса
 }
 
 void icm20948_wakeup()
 {
+	DEBUG_PRINTF("+++ icm20948_wakeup \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_0, B0_PWR_MGMT_1);
 	new_val &= 0xBF;
-
 	write_single_icm20948_reg(ub_0, B0_PWR_MGMT_1, new_val);
-	DEBUG_PRINTF("+++ icm20948_wakeup \n");
 	HAL_Delay(100);
 }
 
 void icm20948_sleep()
 {
+	DEBUG_PRINTF("+++ icm20948_sleep \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_0, B0_PWR_MGMT_1);
 	new_val |= 0x40;
 
@@ -353,6 +298,7 @@ void icm20948_spi_slave_enable()
 // Сброс внутреннего I2C-мастера ICM-20948
 void icm20948_i2c_master_reset() // Используется для перезапуска внутреннего I2C-мастера, который управляет связью с магнитометром AK09916
 {
+	DEBUG_PRINTF("+++ icm20948_i2c_master_reset \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_0, B0_USER_CTRL);
 	new_val |= 0x02;
 
@@ -361,37 +307,35 @@ void icm20948_i2c_master_reset() // Используется для переза
 
 void icm20948_i2c_master_enable()
 {
-	// uint8_t new_val = read_single_icm20948_reg(ub_0, B0_USER_CTRL);
-	// new_val |= 0x20;
+	DEBUG_PRINTF("+++ icm20948_i2c_master_enable \n");
+	uint8_t new_val = read_single_icm20948_reg(ub_0, B0_USER_CTRL);
+    DEBUG_PRINTF("    1 icm20948_i2c_master_enable B0_USER_CTRL: 0x%02X\n", new_val); //
+	new_val |= 0x20;
 
-	// write_single_icm20948_reg(ub_0, B0_USER_CTRL, new_val);
-	// HAL_Delay(100);
-
-    select_user_bank(ub_0); // Переключение на банк 0
-    uint8_t user_ctrl = read_single_icm20948_reg(ub_0, 0x03); // Чтение текущего USER_CTRL
-	printf("0 USER_CTRL: 0x%02X\n", user_ctrl); // Вывод значения USER_CTRL
-    user_ctrl |= 0x20; // Установка бита I2C_MST_EN (бит 5)
-    write_single_icm20948_reg(ub_0, 0x03, user_ctrl); // Запись в USER_CTRL
-	user_ctrl = read_single_icm20948_reg(ub_0, 0x03); // Чтение USER_CTRL
-	printf("1 USER_CTRL: 0x%02X\n", user_ctrl); // Вывод значения USER_CTRL
-
+	write_single_icm20948_reg(ub_0, B0_USER_CTRL, new_val);
+	HAL_Delay(100);
+	new_val = read_single_icm20948_reg(ub_0, B0_USER_CTRL);
+    DEBUG_PRINTF("    2 icm20948_i2c_master_enable B0_USER_CTRL: 0x%02X\n", new_val); // 
+}
+void icm20948_i2c_master_disable()
+{
+	DEBUG_PRINTF("+++ icm20948_i2c_master_disable \n");
+	write_single_icm20948_reg(ub_0, B0_USER_CTRL, 0x00);
+	HAL_Delay(100);
 }
 
 void icm20948_i2c_master_clk_frq(uint8_t config)
 {
-	// uint8_t new_val = read_single_icm20948_reg(ub_3, B3_I2C_MST_CTRL);
-	// new_val |= config;
+	uint8_t new_val = read_single_icm20948_reg(ub_3, B3_I2C_MST_CTRL);
+    DEBUG_PRINTF("    1 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
+	new_val |= config;
+    DEBUG_PRINTF("    2 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
+	// new_val = config;
 
-	// write_single_icm20948_reg(ub_3, B3_I2C_MST_CTRL, new_val);
+	write_single_icm20948_reg(ub_3, B3_I2C_MST_CTRL, new_val);
 
-	select_user_bank(ub_3); // Переключение на банк 3
-    uint8_t mst_ctrl = read_single_icm20948_reg(ub_3, 0x07); // Чтение I2C_MST_CTRL
-    mst_ctrl &= 0xF0; // Очистка битов I2C_MST_CLK
-    mst_ctrl |= (config & 0x0F); // Установка частоты (0–15)
-    write_single_icm20948_reg(ub_3, 0x07, mst_ctrl); // Запись в I2C_MST_CTRL
-	
-	mst_ctrl = read_single_icm20948_reg(ub_3, 0x07); // Чтение I2C_MST_CTRL
-    printf("I2C_MST_CTRL: 0x%02X\n", mst_ctrl); // Вывод I2C_MST_CTRL
+	new_val = read_single_icm20948_reg(ub_3, B3_I2C_MST_CTRL);
+    DEBUG_PRINTF("    3 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
 }
 
 void icm20948_clock_source(uint8_t source)
@@ -440,6 +384,7 @@ void icm20948_accel_sample_rate_divider(uint16_t divider)
 
 void ak09916_operation_mode_setting(operation_mode mode)
 {
+	DEBUG_PRINTF("+++ ak09916_operation_mode_setting \n");
 	write_single_ak09916_reg(MAG_CNTL2, mode);
 	HAL_Delay(100);
 }
@@ -592,16 +537,12 @@ void icm20948_accel_full_scale_select(accel_full_scale full_scale)
 // Вариант для I2C
 static void select_user_bank(userbank ub)
 {
-    // Формирование значения для регистра REG_BANK_SEL
-    // Значение банка (ub) сдвигается на 4 бита влево, так как биты [5:4] в REG_BANK_SEL задают номер банка
-    // Например, ub_0 = 0x00, ub_1 = 0x10, ub_2 = 0x20, ub_3 = 0x30
-    uint8_t bank = (ub << 4);
-    
+ 
     // Создание буфера для передачи: первый байт — адрес регистра REG_BANK_SEL, второй — значение банка
     // REG_BANK_SEL находится по адресу 0x7F в банке 0
     uint8_t data[2];
     data[0] = REG_BANK_SEL; // Адрес регистра REG_BANK_SEL (0x7F)
-    data[1] = bank;            // Значение для записи (номер банка)
+    data[1] = ub;            // Значение для записи (номер банка)
     
     // Выполнение передачи данных по I2C
     // HAL_I2C_Master_Transmit отправляет данные на устройство с адресом ICM20948_I2C_ADDRESS
@@ -614,6 +555,12 @@ static void select_user_bank(userbank ub)
         // Для отладки можно вывести сообщение об ошибке через UART
         DEBUG_PRINTF("I2C select_user_bank error: %d\n", status);
     }
+	// Параметры: I2C handle, адрес устройства, адрес регистра, размер адреса (8 бит), буфер для данных, длина (1 байт), тайм-аут (100 мс)
+	// HAL_StatusTypeDef status = HAL_I2C_Mem_Read(ICM20948_I2C, ICM20948_I2C_ADDRESS, reg, I2C_MEMADD_SIZE_8BIT, &reg_val, 1, 100);
+	// uint8_t status = read_single_icm20948_reg(ub_0, REG_BANK_SEL); // 
+    // DEBUG_PRINTF("I2C_MST_STATUS after reset: 0x%02X\n", status); // Вывод статуса
+
+
 }
 
 static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val)

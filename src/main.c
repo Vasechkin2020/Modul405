@@ -83,9 +83,9 @@ int main(void)
   // I2C_ScanDevices(&hi2c1);// Сканирование I2C шины
   icm20948_init(); // Инициализация ICM-20948
 
-  I2C_ScanDevices(&hi2c1);
+  // I2C_ScanDevices(&hi2c1);
   ak09916_init(); // Инициализация магнитометра
-  I2C_ScanDevices(&hi2c1);
+
 
   // BNO055_Init(); // Инициализация датчика на шине I2C
 
