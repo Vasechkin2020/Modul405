@@ -29,6 +29,7 @@ volatile uint32_t millisCounter = 0;
 volatile uint64_t microsCounter = 0;
 volatile uint32_t overflow_count = 0; // Счётчик переполнений
 
+
 int main(void)
 {
   HAL_Init();

@@ -115,12 +115,13 @@ void icm20948_init()
 	icm20948_accel_sample_rate_divider(10); // Установка делителя частоты дискретизации для акселрометра  //  - divider: Значение делителя (Output Data Rate = 1.125 кГц / (1 + divider)) // Используется для настройки частоты вывода данных гироскопа (например, 100 Гц при divider = 10)
 	icm20948_accel_full_scale_select(_2g);	// Выбор полной шкалы для акселерометра  // - full_scale: Значение шкалы (например, ±2g, ±4g, см. datasheet, раздел 6.8) // Используется для установки диапазона измерений акселерометра (влияет на чувствительность)
 
-	// icm20948_gyro_calibration();
-	// icm20948_accel_calibration();
-
 	icm20948_wakeup();
+
+	icm20948_gyro_calibration();
+	icm20948_accel_calibration();
+
 	DEBUG_PRINTF("    End icm20948_init \n");
-	HAL_Delay(1000);
+	HAL_Delay(500);
 }
 
 void ak09916_init()
@@ -160,7 +161,8 @@ void icm20948_accel_read(axises *data)
 
 	data->x = (int16_t)(temp[0] << 8 | temp[1]);
 	data->y = (int16_t)(temp[2] << 8 | temp[3]);
-	data->z = (int16_t)(temp[4] << 8 | temp[5]) + accel_scale_factor;
+	data->z = (int16_t)(temp[4] << 8 | temp[5]);
+	// data->z = (int16_t)(temp[4] << 8 | temp[5]) + accel_scale_factor;
 	// Add scale factor because calibraiton function offset gravity acceleration.
 }
 
@@ -202,6 +204,15 @@ void icm20948_accel_read_g(axises *data)
 	data->x /= accel_scale_factor;
 	data->y /= accel_scale_factor;
 	data->z /= accel_scale_factor;
+
+	// Нормализация для Маджвика
+    float norm = sqrt(data->x * data->x + data->y * data->y + data->z * data->z);
+    if (norm > 0) {
+        data->x = data->x / norm;
+        data->y = data->y / norm;
+        data->z = data->z / norm;
+    }
+    // DEBUG_PRINTF("Norm (g): %.3f",norm);
 }
 
 bool ak09916_mag_read_uT(axises *data)
@@ -354,11 +365,11 @@ void icm20948_i2c_master_clk_frq(uint8_t config)
 
 void icm20948_clock_source(uint8_t source)
 {
+	DEBUG_PRINTF("+++ icm20948_clock_source \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_0, B0_PWR_MGMT_1);
 	new_val |= source;
 
 	write_single_icm20948_reg(ub_0, B0_PWR_MGMT_1, new_val);
-	DEBUG_PRINTF("+++ icm20948_clock_source \n");
 }
 
 void icm20948_odr_align_enable()
@@ -368,6 +379,7 @@ void icm20948_odr_align_enable()
 
 void icm20948_gyro_low_pass_filter(uint8_t config)
 {
+	DEBUG_PRINTF("+++ icm20948_gyro_low_pass_filter \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1);
 	new_val |= config << 3;
 
@@ -376,6 +388,7 @@ void icm20948_gyro_low_pass_filter(uint8_t config)
 
 void icm20948_accel_low_pass_filter(uint8_t config)
 {
+	DEBUG_PRINTF("+++ icm20948_accel_low_pass_filter \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_2, B2_ACCEL_CONFIG);
 	new_val |= config << 3;
 
@@ -384,11 +397,13 @@ void icm20948_accel_low_pass_filter(uint8_t config)
 
 void icm20948_gyro_sample_rate_divider(uint8_t divider)
 {
+	DEBUG_PRINTF("+++ icm20948_gyro_sample_rate_divider \n");
 	write_single_icm20948_reg(ub_2, B2_GYRO_SMPLRT_DIV, divider);
 }
 
 void icm20948_accel_sample_rate_divider(uint16_t divider)
 {
+	DEBUG_PRINTF("+++ icm20948_accel_sample_rate_divider \n");
 	uint8_t divider_1 = (uint8_t)(divider >> 8);
 	uint8_t divider_2 = (uint8_t)(0x0F & divider);
 
@@ -405,21 +420,29 @@ void ak09916_operation_mode_setting(operation_mode mode)
 
 void icm20948_gyro_calibration()
 {
+	DEBUG_PRINTF("+++ icm20948_gyro_calibration \n");
 	axises temp;
 	int32_t gyro_bias[3] = {0};
+	// int32_t gyro_biasEnd[3] = {0};
 	uint8_t gyro_offset[6] = {0};
+	int count = 333;
 
-	for (int i = 0; i < 100; i++)
+	for (int i = 0; i < count; i++)
 	{
 		icm20948_gyro_read(&temp);
+		// DEBUG_PRINTF("    tempX = %.3f  tempY = %.3f  tempZ = %.3f \n", temp.x, temp.y, temp.z);
 		gyro_bias[0] += temp.x;
 		gyro_bias[1] += temp.y;
 		gyro_bias[2] += temp.z;
+		HAL_Delay(10);
 	}
+	DEBUG_PRINTF("    SUM gyroBias0 = %li  gyroBias1 = %li  gyroBias2 = %li \n", gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
-	gyro_bias[0] /= 100;
-	gyro_bias[1] /= 100;
-	gyro_bias[2] /= 100;
+	gyro_bias[0] = gyro_bias[0] / count;
+	gyro_bias[1] = gyro_bias[1] / count;
+	gyro_bias[2] = gyro_bias[2] / count;
+
+	DEBUG_PRINTF("    gyroBias0 = %li  gyroBias1 = %li gyroBias2 = %li \n", gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
 	// Construct the gyro biases for push to the hardware gyro bias registers,
 	// which are reset to zero upon device startup.
@@ -433,30 +456,37 @@ void icm20948_gyro_calibration()
 	gyro_offset[5] = (-gyro_bias[2] / 4) & 0xFF;
 
 	write_multiple_icm20948_reg(ub_2, B2_XG_OFFS_USRH, gyro_offset, 6);
+	HAL_Delay(500);
 }
 
 void icm20948_accel_calibration()
 {
+	DEBUG_PRINTF("+++ icm20948_accel_calibration \n");
 	axises temp;
 	uint8_t *temp2;
 	uint8_t *temp3;
 	uint8_t *temp4;
 
+	int count = 333;
+
 	int32_t accel_bias[3] = {0};
 	int32_t accel_bias_reg[3] = {0};
 	uint8_t accel_offset[6] = {0};
 
-	for (int i = 0; i < 100; i++)
+	for (int i = 0; i < count; i++)
 	{
 		icm20948_accel_read(&temp);
+		// DEBUG_PRINTF("    tempX = %.3f  tempY = %.3f  tempZ = %.3f \n", temp.x, temp.y, temp.z);
 		accel_bias[0] += temp.x;
 		accel_bias[1] += temp.y;
-		accel_bias[2] += temp.z;
+		accel_bias[2] += (temp.z - accel_scale_factor); // Отнимаем чтобы получить bias без гравитации
+		HAL_Delay(10);
 	}
-
-	accel_bias[0] /= 100;
-	accel_bias[1] /= 100;
-	accel_bias[2] /= 100;
+	DEBUG_PRINTF("    SUM accel_bias0 = %li  accel_bias1 = %li  accel_bias2 = %li \n", accel_bias[0], accel_bias[1], accel_bias[2]);
+	accel_bias[0] /= count;
+	accel_bias[1] /= count;
+	accel_bias[2] /= count;
+	DEBUG_PRINTF("    accel_bias0 = %li  accel_bias1 = %li accel_bias2 = %li \n", accel_bias[0], accel_bias[1], accel_bias[2]);
 
 	uint8_t mask_bit[3] = {0, 0, 0};
 
@@ -491,6 +521,7 @@ void icm20948_accel_calibration()
 	write_multiple_icm20948_reg(ub_1, B1_XA_OFFS_H, &accel_offset[0], 2);
 	write_multiple_icm20948_reg(ub_1, B1_YA_OFFS_H, &accel_offset[2], 2);
 	write_multiple_icm20948_reg(ub_1, B1_ZA_OFFS_H, &accel_offset[4], 2);
+	HAL_Delay(500);
 }
 
 void icm20948_gyro_full_scale_select(gyro_full_scale full_scale)

@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <limits.h> // для CHAR_BIT
+#include "icm20948.h"
 
 #include "motor.h"
 #include "laser80M.h"
@@ -160,6 +161,11 @@ uint64_t micros(void)
     return ret;
 }
 
+axises my_gyro;
+axises my_accel;
+axises my_mag;
+
+
 void workingTimer() // Отработка действий по таймеру в 1, 50, 60 милисекунд
 {
     // HAL_Delay(); // Пауза 500 миллисекунд.
@@ -167,12 +173,16 @@ void workingTimer() // Отработка действий по таймеру �
     if (flag_timer_10millisec)
     {
         flag_timer_10millisec = false;
+        icm20948_gyro_read_dps(&my_gyro);
+        icm20948_accel_read_g(&my_accel);
         // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_10); // Инвертирование состояния выхода.
     }
     //----------------------------- 50 миллисекунд --------------------------------------
     if (flag_timer_50millisec)
     {
         flag_timer_50millisec = false;
+	    // ak09916_mag_read_uT(&my_mag);
+
         // DEBUG_PRINTF("50msec %li \r\n", millis());
         //  flag_data = true; // Есть новые данные по шине // РУчной вариант имитации пришедших данных с частотой 20Гц
         // static uint64_t current_time = 0;
@@ -190,6 +200,8 @@ void workingTimer() // Отработка действий по таймеру �
     if (flag_timer_1sec) // Вызывается каждую секунду
     {
         flag_timer_1sec = false;
+        // DEBUG_PRINTF("Gyro X= %.3f y= %.3f z= %.3f | ",my_gyro.x,my_gyro.y,my_gyro.z);
+        DEBUG_PRINTF("Accel X= %.3f y= %.3f z= %.3f \n",my_accel.x,my_accel.y,my_accel.z);
         // statusGetState = HAL_SPI_GetState(&hspi1);
         // if (statusGetState == HAL_SPI_STATE_READY)
         // {
