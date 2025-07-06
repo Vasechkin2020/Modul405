@@ -5,11 +5,8 @@
  *      Author: mokhwasomssi
  */
 
-
 #include "icm20948.h"
 #include <string.h>
-
-
 
 static float gyro_scale_factor;
 static float accel_scale_factor;
@@ -33,8 +30,8 @@ static uint8_t *read_multiple_ak09916_reg(uint8_t reg, uint8_t len);
 // Отключение SPI и включение I2C
 void enable_i2c_mode(void)
 {
-    // Запись 0x00 в регистр USER_CTRL (бит I2C_IF_DIS = 0 для включения I2C)
-    write_single_icm20948_reg(ub_0, 0x03, 0x00);
+	// Запись 0x00 в регистр USER_CTRL (бит I2C_IF_DIS = 0 для включения I2C)
+	write_single_icm20948_reg(ub_0, 0x03, 0x00);
 }
 
 // Функция для сканирования устройств на шине I2C
@@ -43,46 +40,44 @@ void enable_i2c_mode(void)
 // Возвращает: Ничего (выводит результаты в UART или другой интерфейс для отладки)
 void I2C_ScanDevices(I2C_HandleTypeDef *hi2c)
 {
-    // Переменная для отслеживания статуса операции I2C
-    HAL_StatusTypeDef status;
-    
-    // Буфер для тестового запроса (пустой, так как нам нужен только ответ на адрес)
-    uint8_t dummy = 0;
-    
-    // Вывод начального сообщения для отладки
-    // Используется UART или другой интерфейс для вывода результатов
-    printf("Scanning I2C bus...\n");
-    
-    // Цикл по всем возможным 7-битным адресам I2C (0x00–0x7F)
-    // Адреса 0x00–0x07 и 0x78–0x7F зарезервированы в I2C, но мы проверяем их для полноты
-    for (uint8_t addr = 0; addr <= 0x7F; addr++)
-    {
-        // Формирование 8-битного адреса устройства (7-битный адрес, сдвинутый влево, с битом R/W=0)
-        // HAL ожидает 8-битный адрес (например, 0x68 << 1 = 0xD0 для записи)
-        uint16_t device_addr = addr << 1;
-        
-        // Попытка отправить тестовый запрос на адрес устройства
-        // HAL_I2C_Master_Transmit используется для проверки, отвечает ли устройство
-        // Параметры: I2C handle, адрес устройства, буфер (пустой), длина (0 или 1), тайм-аут (10 мс)
-        status = HAL_I2C_Master_Transmit(hi2c, device_addr, &dummy, 0, 50);
-        
-        // Проверка статуса: если HAL_OK, устройство ответило (ACK)
-        if (status == HAL_OK)
-        {
-            // Вывод найденного адреса в формате 7-битного адреса
-            printf("I2C device found at address: 0x%02X (7-bit)\n", addr);
-        }
-        // Задержка для предотвращения перегрузки шины I2C
-        // Небольшая задержка (1 мс) даёт шине время на восстановление
-        HAL_Delay(1);
-    }
-    
-    // Вывод завершающего сообщения
-    printf("I2C scan completed.\n");
+	// Переменная для отслеживания статуса операции I2C
+	HAL_StatusTypeDef status;
+
+	// Буфер для тестового запроса (пустой, так как нам нужен только ответ на адрес)
+	uint8_t dummy = 0;
+
+	// Вывод начального сообщения для отладки
+	// Используется UART или другой интерфейс для вывода результатов
+	printf("Scanning I2C bus...\n");
+
+	// Цикл по всем возможным 7-битным адресам I2C (0x00–0x7F)
+	// Адреса 0x00–0x07 и 0x78–0x7F зарезервированы в I2C, но мы проверяем их для полноты
+	for (uint8_t addr = 0; addr <= 0x7F; addr++)
+	{
+		// Формирование 8-битного адреса устройства (7-битный адрес, сдвинутый влево, с битом R/W=0)
+		// HAL ожидает 8-битный адрес (например, 0x68 << 1 = 0xD0 для записи)
+		uint16_t device_addr = addr << 1;
+
+		// Попытка отправить тестовый запрос на адрес устройства
+		// HAL_I2C_Master_Transmit используется для проверки, отвечает ли устройство
+		// Параметры: I2C handle, адрес устройства, буфер (пустой), длина (0 или 1), тайм-аут (10 мс)
+		status = HAL_I2C_Master_Transmit(hi2c, device_addr, &dummy, 0, 50);
+
+		// Проверка статуса: если HAL_OK, устройство ответило (ACK)
+		if (status == HAL_OK)
+		{
+			// Вывод найденного адреса в формате 7-битного адреса
+			printf("I2C device found at address: 0x%02X (7-bit)\n", addr);
+		}
+		// Задержка для предотвращения перегрузки шины I2C
+		// Небольшая задержка (1 мс) даёт шине время на восстановление
+		HAL_Delay(1);
+	}
+
+	// Вывод завершающего сообщения
+	printf("I2C scan completed.\n");
 	HAL_Delay(5000);
 }
-
-
 
 void icm20948_init()
 {
@@ -96,17 +91,32 @@ void icm20948_init()
 
 	// icm20948_spi_slave_enable(); Мне не нужно
 
-	icm20948_gyro_low_pass_filter(0); // Настройка низкочастотного фильтра для гироскопа //  - config: Значение от 0 до 7, задающее частоту среза фильтра (см. datasheet, раздел 6.8) // Используется для уменьшения шума в данных гироскопа
-	icm20948_accel_low_pass_filter(0); // Настройка низкочастотного фильтра для акселрометра //  - config: Значение от 0 до 7, задающее частоту среза фильтра (см. datasheet, раздел 6.8) // Используется для уменьшения шума в данных гироскопа
+	//*********************** ГИРОСКОП **************************
+	/*
+	ICM-20948 настройки:Гироскоп: GYRO_DLPFCFG = 5 (3DB BW = 11,6 Гц, NBW = 17,8 Гц), FSR = ±250 dps, ODR ≈ 102,27 Гц (GYRO_SMPLRT_DIV = 10).
+	Акселерометр: ACCEL_DLPFCFG = 5 (3DB BW = 11,5 Гц, NBW = 13,1 Гц), FSR = ±2g, ODR ≈ 102,27 Гц (ACCEL_SMPLRT_DIV = 10).
+	*/
+	/*Установите GYRO_DLPFCFG = 5:
+	3DB BW = 11,6 Гц идеально подходит для захвата сигналов ваших медленных движений (0–5 Гц, с запасом до 10 Гц).
+	NBW = 17,8 Гц обеспечивает отличное подавление шума, что повышает точность данных, особенно при высокой чувствительности (250 dps).
+	Частота подготовки данных (RATE) при GYRO_SMPLRT_DIV ≤ 10 (например, ~102,27 Гц при GYRO_SMPLRT_DIV = 10) совместима с вашим опросом 100 Гц.*/
+	icm20948_gyro_low_pass_filter(5);	   // Настройка низкочастотного фильтра для гироскопа //  - config: Значение от 0 до 7, задающее частоту среза фильтра (см. datasheet, раздел 6.8) // Используется для уменьшения шума в данных гироскопа
+	icm20948_gyro_sample_rate_divider(10); // Установка делителя частоты дискретизации для гироскопа // - divider: Значение делителя (Output Data Rate = 1.125 кГц / (1 + divider))// Используется для настройки частоты вывода данных гироскопа (например, 100 Гц при divider = 10)
 
-	icm20948_gyro_sample_rate_divider(0); // Установка делителя частоты дискретизации для гироскопа // - divider: Значение делителя (Output Data Rate = 1.125 кГц / (1 + divider))// Используется для настройки частоты вывода данных гироскопа (например, 100 Гц при divider = 10)
-	icm20948_accel_sample_rate_divider(0); // Установка делителя частоты дискретизации для акселрометра  //  - divider: Значение делителя (Output Data Rate = 1.125 кГц / (1 + divider)) // Используется для настройки частоты вывода данных гироскопа (например, 100 Гц при divider = 10)
-
-	// icm20948_gyro_calibration(); 
-	// icm20948_accel_calibration();
-
+	/*Ваша максимальная скорость поворота — 360 градусов за 2 секунды. Давайте определим, как это переводится в частоту (в герцах), чтобы понять, подходит ли выбранная настройка.Угловая скорость:Угловая скорость=360∘2 с=180∘
+	Это соответствует 180 градусов в секунду, что укладывается в выбранную чувствительность гироскопа 250 dps (±250°/с).
+	Частота вращения в герцах:
+	Частота в герцах (Гц) для вращения связана с периодом одного полного оборота (360°). Если полный оборот занимает 2 секунды, то:Частота=1Период=12 с=0,5 Гц\text{Частота} = \frac{1}{\text{Период}} = \frac{1}{2 \, \text{с}} = 0,5 \, \text{Гц}\text{Частота} = \frac{1}{\text{Период}} = \frac{1}{2 \, \text{с}} = 0,5 \, \text{Гц}
+	Это означает, что основная частота вашего вращения — 0,5 Гц (один полный оборот каждые 2 секунды).*/
 	icm20948_gyro_full_scale_select(_250dps); // Выбор полной шкалы для гироскопа //  - full_scale: Значение шкалы (например, ±250 dps, ±500 dps, см. datasheet, раздел 6.8) // Используется для установки диапазона измерений гироскопа (влияет на чувствительность)
-	icm20948_accel_full_scale_select(_2g); // Выбор полной шкалы для акселерометра  // - full_scale: Значение шкалы (например, ±2g, ±4g, см. datasheet, раздел 6.8) // Используется для установки диапазона измерений акселерометра (влияет на чувствительность)
+
+	//*********************** АКСЕЛЬРОМЕТР**************************
+	icm20948_accel_low_pass_filter(5);		// Настройка низкочастотного фильтра для акселрометра //  - config: Значение от 0 до 7, задающее частоту среза фильтра (см. datasheet, раздел 6.8) // Используется для уменьшения шума в данных гироскопа
+	icm20948_accel_sample_rate_divider(10); // Установка делителя частоты дискретизации для акселрометра  //  - divider: Значение делителя (Output Data Rate = 1.125 кГц / (1 + divider)) // Используется для настройки частоты вывода данных гироскопа (например, 100 Гц при divider = 10)
+	icm20948_accel_full_scale_select(_2g);	// Выбор полной шкалы для акселерометра  // - full_scale: Значение шкалы (например, ±2g, ±4g, см. datasheet, раздел 6.8) // Используется для установки диапазона измерений акселерометра (влияет на чувствительность)
+
+	// icm20948_gyro_calibration();
+	// icm20948_accel_calibration();
 
 	icm20948_wakeup();
 	DEBUG_PRINTF("    End icm20948_init \n");
@@ -115,19 +125,23 @@ void icm20948_init()
 
 void ak09916_init()
 {
+	/*
+	 Когда  гироскоп  включен,  все  датчики  (включая  I2C_MASTER)  используют  ODR  гироскопа.  Если  гироскоп   отключен,  то  все  датчики  (включая  I2C_MASTER)  используют  ODR  акселерометра
+	Конфигурация  ODR  для  внешнего  датчика  при  отключенных  гироскопе  и  акселерометре.  ODR  вычисляется  следующим  образом: 1,1  кГц/(2^((odr_config[3:0])) ) I2C_MST_ODR_CONFIG
+	*/
 	DEBUG_PRINTF("+++ ak09916_init \n");
-  // Включение I2C-мастера и инициализация AK09916
-	// icm20948_i2c_master_reset(); // Непонеятно зачем тут он это написал. 
-	icm20948_i2c_master_clk_frq(9);// Частота ~400 кГц
-	icm20948_i2c_master_enable();// Включение I2C-мастера
+	// Включение I2C-мастера и инициализация AK09916
+	// icm20948_i2c_master_reset(); // Непонеятно зачем тут он это написал.
+	icm20948_i2c_master_clk_frq(7); // Частота ~400 кГц
+	icm20948_i2c_master_enable();	// Включение I2C-мастера
 	// icm20948_i2c_master_disable();
 
 	// icm20948_bypass_en(); // Эта функция включает напрямую доступ к магнетрометру через мультиплексор и можно микроконтроллером управлять магнетрометром
 	// I2C_ScanDevices(&hi2c1);
 
 	ak09916_who_am_i();
-    ak09916_soft_reset(); // Настройка магнитометра
-	ak09916_operation_mode_setting(continuous_measurement_100hz);
+	ak09916_soft_reset();										  // Настройка магнитометра
+	ak09916_operation_mode_setting(continuous_measurement_100hz); // Частота с которой магнетометр готовит данные
 	DEBUG_PRINTF("    End ak09916_init \n");
 }
 
@@ -216,7 +230,7 @@ bool icm20948_who_am_i()
 	}
 	else
 	{
-		DEBUG_PRINTF("    ICM-20948 connection failed: 0x%02X real= 0x%02X\n ", ICM20948_ID , icm20948_id);
+		DEBUG_PRINTF("    ICM-20948 connection failed: 0x%02X real= 0x%02X\n ", ICM20948_ID, icm20948_id);
 		return false;
 	}
 }
@@ -233,7 +247,7 @@ bool ak09916_who_am_i()
 	}
 	else
 	{
-		DEBUG_PRINTF("    ak09916_who_am_i connection failed: 0x%02X real= 0x%02X \n ", AK09916_ID , ak09916_id);
+		DEBUG_PRINTF("    ak09916_who_am_i connection failed: 0x%02X real= 0x%02X \n ", AK09916_ID, ak09916_id);
 		return false;
 	}
 }
@@ -309,13 +323,13 @@ void icm20948_i2c_master_enable()
 {
 	DEBUG_PRINTF("+++ icm20948_i2c_master_enable \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_0, B0_USER_CTRL);
-    DEBUG_PRINTF("    1 icm20948_i2c_master_enable B0_USER_CTRL: 0x%02X\n", new_val); //
+	DEBUG_PRINTF("    1 icm20948_i2c_master_enable B0_USER_CTRL: 0x%02X\n", new_val); //
 	new_val |= 0x20;
 
 	write_single_icm20948_reg(ub_0, B0_USER_CTRL, new_val);
 	HAL_Delay(100);
 	new_val = read_single_icm20948_reg(ub_0, B0_USER_CTRL);
-    DEBUG_PRINTF("    2 icm20948_i2c_master_enable B0_USER_CTRL: 0x%02X\n", new_val); // 
+	DEBUG_PRINTF("    2 icm20948_i2c_master_enable B0_USER_CTRL: 0x%02X\n", new_val); //
 }
 void icm20948_i2c_master_disable()
 {
@@ -327,15 +341,15 @@ void icm20948_i2c_master_disable()
 void icm20948_i2c_master_clk_frq(uint8_t config)
 {
 	uint8_t new_val = read_single_icm20948_reg(ub_3, B3_I2C_MST_CTRL);
-    DEBUG_PRINTF("    1 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
+	DEBUG_PRINTF("    1 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
 	new_val |= config;
-    DEBUG_PRINTF("    2 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
+	DEBUG_PRINTF("    2 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
 	// new_val = config;
 
 	write_single_icm20948_reg(ub_3, B3_I2C_MST_CTRL, new_val);
 
 	new_val = read_single_icm20948_reg(ub_3, B3_I2C_MST_CTRL);
-    DEBUG_PRINTF("    3 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
+	DEBUG_PRINTF("    3 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
 }
 
 void icm20948_clock_source(uint8_t source)
@@ -537,30 +551,25 @@ void icm20948_accel_full_scale_select(accel_full_scale full_scale)
 // Вариант для I2C
 static void select_user_bank(userbank ub)
 {
- 
-    // Создание буфера для передачи: первый байт — адрес регистра REG_BANK_SEL, второй — значение банка
-    // REG_BANK_SEL находится по адресу 0x7F в банке 0
-    uint8_t data[2];
-    data[0] = REG_BANK_SEL; // Адрес регистра REG_BANK_SEL (0x7F)
-    data[1] = ub;            // Значение для записи (номер банка)
-    
-    // Выполнение передачи данных по I2C
-    // HAL_I2C_Master_Transmit отправляет данные на устройство с адресом ICM20948_I2C_ADDRESS
-    // Параметры: I2C handle, адрес устройства, буфер данных, длина (2 байта), тайм-аут (100 мс)
-    HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(ICM20948_I2C, ICM20948_I2C_ADDRESS, data, 2, 100);
-    
-    // Проверка статуса передачи для отладки
-    // Если передача не удалась (например, устройство не отвечает), выводим ошибку
-    if (status != HAL_OK) {
-        // Для отладки можно вывести сообщение об ошибке через UART
-        DEBUG_PRINTF("I2C select_user_bank error: %d\n", status);
-    }
-	// Параметры: I2C handle, адрес устройства, адрес регистра, размер адреса (8 бит), буфер для данных, длина (1 байт), тайм-аут (100 мс)
-	// HAL_StatusTypeDef status = HAL_I2C_Mem_Read(ICM20948_I2C, ICM20948_I2C_ADDRESS, reg, I2C_MEMADD_SIZE_8BIT, &reg_val, 1, 100);
-	// uint8_t status = read_single_icm20948_reg(ub_0, REG_BANK_SEL); // 
-    // DEBUG_PRINTF("I2C_MST_STATUS after reset: 0x%02X\n", status); // Вывод статуса
 
+	// Создание буфера для передачи: первый байт — адрес регистра REG_BANK_SEL, второй — значение банка
+	// REG_BANK_SEL находится по адресу 0x7F в банке 0
+	uint8_t data[2];
+	data[0] = REG_BANK_SEL; // Адрес регистра REG_BANK_SEL (0x7F)
+	data[1] = ub;			// Значение для записи (номер банка)
 
+	// Выполнение передачи данных по I2C
+	// HAL_I2C_Master_Transmit отправляет данные на устройство с адресом ICM20948_I2C_ADDRESS
+	// Параметры: I2C handle, адрес устройства, буфер данных, длина (2 байта), тайм-аут (100 мс)
+	HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(ICM20948_I2C, ICM20948_I2C_ADDRESS, data, 2, 100);
+
+	// Проверка статуса передачи для отладки
+	// Если передача не удалась (например, устройство не отвечает), выводим ошибку
+	if (status != HAL_OK)
+	{
+		// Для отладки можно вывести сообщение об ошибке через UART
+		DEBUG_PRINTF("I2C select_user_bank error: %d\n", status);
+	}
 }
 
 static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val)
