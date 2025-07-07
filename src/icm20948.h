@@ -74,6 +74,13 @@ typedef enum
 	continuous_measurement_100hz = 8
 } operation_mode;
 
+/* Структура для bias */
+typedef struct {
+    float b_x;
+    float b_y;
+    float b_z;
+} MagnetometerBias;
+
 /* Main Functions */
 
 void enable_i2c_mode(void);					   // Отключение SPI и включение I2C

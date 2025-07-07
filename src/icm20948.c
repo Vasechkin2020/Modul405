@@ -239,7 +239,7 @@ bool ak09916_mag_read(axises *data)
 	uint8_t drdy_bit = st1 & 0x01;		 // Бит 0 (DRDY)// Выделение битов ST1
 	uint8_t dor_bit = (st1 >> 1) & 0x01; // Бит 1 (DOR)
 	// DEBUG_PRINTF("DRDY= %u DOR= %u | ", drdy_bit, dor_bit);
-	DEBUG_PRINTF("%u %u | ", drdy_bit, dor_bit);
+	// DEBUG_PRINTF("%u %u | ", drdy_bit, dor_bit);
 	st2 = mag_data[8];
 	uint8_t hofl_bit = (st2 >> 3) & 0x01; // Бит 3 (HOFL)// Проверка HOFL в ST2
 	if (hofl_bit == 1)

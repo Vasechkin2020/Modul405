@@ -178,7 +178,7 @@ void workingTimer() // Отработка действий по таймеру �
         // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_10); // Инвертирование состояния выхода.
 	    ak09916_mag_read_uT(&my_mag);
         // DEBUG_PRINTF("Magn X= %.3f y= %.3f z= %.3f \n",my_mag.x,my_mag.y,my_mag.z);
-        DEBUG_PRINTF("%.3f %.3f %.3f \n",my_mag.x,my_mag.y,my_mag.z);
+        DEBUG_PRINTF("%.1f %.1f %.1f \n",my_mag.x,my_mag.y,my_mag.z);
     }
     //----------------------------- 50 миллисекунд --------------------------------------
     if (flag_timer_50millisec)
@@ -220,7 +220,7 @@ void workingTimer() // Отработка действий по таймеру �
         // HAL_GPIO_TogglePin(ledBlue_GPIO_Port, ledBlue_Pin);             // Инвертирование состояния выхода.
         // HAL_GPIO_TogglePin(ledRed_GPIO_Port, ledRed_Pin);             // Инвертирование состояния выхода.
         HAL_GPIO_TogglePin(ledGreen_GPIO_Port, ledGreen_Pin); // Инвертирование состояния выхода.
-        DEBUG_PRINTF("%li \r\n", millis());
+        // DEBUG_PRINTF("%li \r\n", millis());
         //  uint8_t UART1_rxBuffer[4] = {0xAA,0xFF,0xAA,0xFF};
         //   uint8_t UART1_rxBuffer[1] = {0x56}; //Запрос версии "V"
         //   uint8_t UART1_rxBuffer[1] = {0x4F}; // Включить лазер "O"
