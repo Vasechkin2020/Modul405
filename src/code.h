@@ -25,7 +25,6 @@ bool flag_timer_1sec = false;
 GPIO_TypeDef *myPort;
 
 
-void print_binary(int num); //Вот функция на C, которая печатает целое число в бинарном формате с использованием printf:
 
 void timer6();                                                             // Обработчик прерывания таймера TIM6	1 раз в 1 милисекунду
 void workingTimer();                                                       // Отработка действий по таймеру в 1, 50, 60 милисекунд
@@ -37,6 +36,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);                   // К
 void initLaser();                                                          // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
 void initFirmware();                                                       // Заполнение данными Прошивки
 uint64_t micros(void);                                                     // Возвращает микросекунды с момента начала работы
+void print_binary(int num); //Вот функция на C, которая печатает целое число в бинарном формате с использованием printf:
 
 struct dataUART dataUART[4];
 uint8_t lenDataLaser; // Длинна полученных данных в буфере
@@ -173,15 +173,18 @@ void workingTimer() // Отработка действий по таймеру �
     if (flag_timer_10millisec)
     {
         flag_timer_10millisec = false;
-        icm20948_gyro_read_dps(&my_gyro);
-        icm20948_accel_read_g(&my_accel);
+        // icm20948_gyro_read_dps(&my_gyro);
+        // icm20948_accel_read_g(&my_accel);
         // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_10); // Инвертирование состояния выхода.
+	    ak09916_mag_read_uT(&my_mag);
+        // DEBUG_PRINTF("Magn X= %.3f y= %.3f z= %.3f \n",my_mag.x,my_mag.y,my_mag.z);
+        DEBUG_PRINTF("%.3f %.3f %.3f \n",my_mag.x,my_mag.y,my_mag.z);
     }
     //----------------------------- 50 миллисекунд --------------------------------------
     if (flag_timer_50millisec)
     {
         flag_timer_50millisec = false;
-	    // ak09916_mag_read_uT(&my_mag);
+        // ak09916_mag_read_uT(&my_mag);
 
         // DEBUG_PRINTF("50msec %li \r\n", millis());
         //  flag_data = true; // Есть новые данные по шине // РУчной вариант имитации пришедших данных с частотой 20Гц
@@ -201,7 +204,7 @@ void workingTimer() // Отработка действий по таймеру �
     {
         flag_timer_1sec = false;
         // DEBUG_PRINTF("Gyro X= %.3f y= %.3f z= %.3f | ",my_gyro.x,my_gyro.y,my_gyro.z);
-        DEBUG_PRINTF("Accel X= %.3f y= %.3f z= %.3f \n",my_accel.x,my_accel.y,my_accel.z);
+        // DEBUG_PRINTF("Accel X= %.3f y= %.3f z= %.3f \n",my_accel.x,my_accel.y,my_accel.z);
         // statusGetState = HAL_SPI_GetState(&hspi1);
         // if (statusGetState == HAL_SPI_STATE_READY)
         // {

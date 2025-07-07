@@ -7,6 +7,7 @@
 
 #include "icm20948.h"
 #include <string.h>
+#include <math.h>
 
 static float gyro_scale_factor;
 static float accel_scale_factor;
@@ -19,12 +20,15 @@ static void select_user_bank(userbank ub);
 
 static uint8_t read_single_icm20948_reg(userbank ub, uint8_t reg);
 static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val);
+static void write_single_icm20948_reg2(uint8_t reg, uint8_t val);
 static uint8_t *read_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t len);
 static void write_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t *val, uint8_t len);
 
 static uint8_t read_single_ak09916_reg(uint8_t reg);
 static void write_single_ak09916_reg(uint8_t reg, uint8_t val);
 static uint8_t *read_multiple_ak09916_reg(uint8_t reg, uint8_t len);
+
+extern void print_binary(int num);
 
 /* Main Functions */
 // Отключение SPI и включение I2C
@@ -86,8 +90,8 @@ void icm20948_init()
 	icm20948_who_am_i();
 	// enable_i2c_mode();					   // Отключение SPI и включение I2C
 
-	icm20948_clock_source(1); // Используется для выбора лучшего источника тактирования (обычно авто-выбор для минимального дрейфа)
-	// icm20948_odr_align_enable(); // Используется для синхронизации частоты вывода данных (ODR) между акселерометром и гироскопом
+	icm20948_clock_source(1);	 // Используется для выбора лучшего источника тактирования (обычно авто-выбор для минимального дрейфа)
+	icm20948_odr_align_enable(); // Используется для синхронизации частоты вывода данных (ODR) между акселерометром и гироскопом
 
 	// icm20948_spi_slave_enable(); Мне не нужно
 
@@ -126,16 +130,19 @@ void icm20948_init()
 
 void ak09916_init()
 {
-	/*
-	 Когда  гироскоп  включен,  все  датчики  (включая  I2C_MASTER)  используют  ODR  гироскопа.  Если  гироскоп   отключен,  то  все  датчики  (включая  I2C_MASTER)  используют  ODR  акселерометра
-	Конфигурация  ODR  для  внешнего  датчика  при  отключенных  гироскопе  и  акселерометре.  ODR  вычисляется  следующим  образом: 1,1  кГц/(2^((odr_config[3:0])) ) I2C_MST_ODR_CONFIG
-	*/
 	DEBUG_PRINTF("+++ ak09916_init \n");
+	// write_single_icm20948_reg(ub_0, B0_LP_CONFIG, 0x40);		  // I2C_MST_CYCLE = 1
+	// write_single_icm20948_reg(ub_3, B3_I2C_MST_ODR_CONFIG, 0x03); // ~134 Гц
+
 	// Включение I2C-мастера и инициализация AK09916
-	// icm20948_i2c_master_reset(); // Непонеятно зачем тут он это написал.
+	icm20948_i2c_master_reset();	// Непонеятно зачем тут он это написал.
 	icm20948_i2c_master_clk_frq(7); // Частота ~400 кГц
 	icm20948_i2c_master_enable();	// Включение I2C-мастера
 	// icm20948_i2c_master_disable();
+	
+	//Настройки частоты с какой внутренний I2C опрашивает подчиненное утройство. Если не задат ьтоработает на частоте гироскопа в 1125 Герц
+	write_single_icm20948_reg(ub_0, B0_LP_CONFIG, 0x40);		  // I2C_MST_CYCLE = 1
+	write_single_icm20948_reg(ub_3, B3_I2C_MST_ODR_CONFIG, 0x01); //
 
 	// icm20948_bypass_en(); // Эта функция включает напрямую доступ к магнетрометру через мультиплексор и можно микроконтроллером управлять магнетрометром
 	// I2C_ScanDevices(&hi2c1);
@@ -143,6 +150,11 @@ void ak09916_init()
 	ak09916_who_am_i();
 	ak09916_soft_reset();										  // Настройка магнитометра
 	ak09916_operation_mode_setting(continuous_measurement_100hz); // Частота с которой магнетометр готовит данные
+	//Настройки какое устройство и из какого регистра начиная считывать
+	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR); // AK09916, чтение
+	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_REG, MAG_ST1);				  // ST1  Читаем статус готовности данных и считвания вовремя
+	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x00 );			  // Выключаем пока
+
 	DEBUG_PRINTF("    End ak09916_init \n");
 }
 
@@ -168,22 +180,112 @@ void icm20948_accel_read(axises *data)
 
 bool ak09916_mag_read(axises *data)
 {
-	uint8_t *temp;
-	uint8_t drdy, hofl; // data ready, overflow
+	// DEBUG_PRINTF("+\n");
+	// uint8_t *mag_data;
+	// uint8_t drdy, hofl; // data ready, overflow
 
-	drdy = read_single_ak09916_reg(MAG_ST1) & 0x01;
-	if (!drdy)
-		return false;
+	// drdy = read_single_ak09916_reg(MAG_ST1) & 0x01;
+	// if (drdy == 0x10) DEBUG_PRINTF("--- drdy error DOR (Data Overrun Error)! %u \n",drdy); // DOR bit turns to “1” when data has been skipped in Continuous measurement mode 1, 2, 3, 4. It returns to “0” when any one of ST2 register or measurement data register (HXL to TMPS) is read.
 
-	temp = read_multiple_ak09916_reg(MAG_HXL, 6);
+	// if (drdy == 0x00)
+	// {
+	// 	// DEBUG_PRINTF("--- drdy Data not Ready! %u \n",drdy);
+	// 	DEBUG_PRINTF("drdy\n");
+	// 	// print_binary(drdy);
+	// 	return false;
+	// }
 
-	hofl = read_single_ak09916_reg(MAG_ST2) & 0x08;
-	if (hofl)
-		return false;
+	// temp = read_multiple_ak09916_reg(MAG_HXL, 6);
+	// temp = read_multiple_icm20948_reg(ub_0, B0_EXT_SLV_SENS_DATA_01, 6);
 
-	data->x = (int16_t)(temp[1] << 8 | temp[0]);
-	data->y = (int16_t)(temp[3] << 8 | temp[2]);
-	data->z = (int16_t)(temp[5] << 8 | temp[4]);
+	// // hofl = read_single_ak09916_reg(MAG_ST2) & 0x08;
+	// // if (hofl)
+	// // {
+	// // 	DEBUG_PRINTF("--- hofl error Magnetic Sensor Overflow! \n");
+	// // 	return false;
+	// // }
+
+	// data->x = (int16_t)(temp[1] << 8 | temp[0]);
+	// data->y = (int16_t)(temp[3] << 8 | temp[2]);
+	// data->z = (int16_t)(temp[5] << 8 | temp[4]);
+
+	// uint8_t *mag_data = read_multiple_icm20948_reg(ub_0, B0_EXT_SLV_SENS_DATA_00, 9);
+
+	// uint8_t st1 = mag_data[0]; // ST1
+	// if (st1 == 0x02)
+	// {
+	// 	DEBUG_PRINTF("Data Overrun Error!\n");
+	// 	return;
+	// }
+	// if (!(st1 != 0x01))
+	// {
+	// 	DEBUG_PRINTF("Data NOT READY !\n");
+	// 	return; // Данные не готовы
+	// }
+	uint8_t *mag_data;
+	uint8_t st1,st2;
+	
+	select_user_bank(ub_3);
+	// write_single_icm20948_reg2(B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR);
+	// write_single_icm20948_reg2(B3_I2C_SLV0_REG, MAG_ST1);
+	write_single_icm20948_reg2(B3_I2C_SLV0_CTRL, 0x80 | 9);// Считываем 9 байт ST2 считываем
+
+	HAL_Delay(1);
+	mag_data = read_multiple_icm20948_reg(ub_0, B0_EXT_SLV_SENS_DATA_00, 9);
+
+	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x00); // Выключаем опрос Снова перключаемся на 3 банк
+
+	st1 = mag_data[0];
+	uint8_t drdy_bit = st1 & 0x01;		 // Бит 0 (DRDY)// Выделение битов ST1
+	uint8_t dor_bit = (st1 >> 1) & 0x01; // Бит 1 (DOR)
+	// DEBUG_PRINTF("DRDY= %u DOR= %u | ", drdy_bit, dor_bit);
+	DEBUG_PRINTF("%u %u | ", drdy_bit, dor_bit);
+	st2 = mag_data[8];
+	uint8_t hofl_bit = (st2 >> 3) & 0x01; // Бит 3 (HOFL)// Проверка HOFL в ST2
+	if (hofl_bit == 1)
+	{
+		DEBUG_PRINTF("Magnetic Sensor Overflow!\n");
+		return false; // Прерываем, данные недостоверны
+	}
+
+	// uint8_t st1 = read_single_ak09916_reg(MAG_ST1);
+	// st1 = read_single_icm20948_reg(ub_0, B0_EXT_SLV_SENS_DATA_00);
+
+	// HAL_Delay(1);															 // За это время там внутренний опрос успеет еще раз считать данные
+
+	
+
+	// if (drdy_bit == 1 || dor_bit == 1)	 // Проверка битов ST1 // ЕСли данные готовы или уже переполнились
+	// {
+	// 	// mag_data = read_multiple_ak09916_reg(MAG_ST1, 9); // Считываем 9 байт ST2 считываем
+	// 	if (dor_bit == 1)
+	// 		DEBUG_PRINTF(" (DOR = %u)!\n",dor_bit); // Можно учитывать что не успеваем считывать данные
+	// }
+	// else // Если новые данные не готовы по повторяем считывание через 1 милисекунду
+	// {
+	// 	// DEBUG_PRINTF("not Ready! DRDY = %u DOR = %u\n", drdy_bit, dor_bit);
+	// 	// HAL_Delay(1);															 // За это время там внутренний опрос успеет еще раз считать данные
+	// 	// mag_data = read_multiple_icm20948_reg(ub_0, B0_EXT_SLV_SENS_DATA_00, 9); // Вторая попытка
+	// 	// st1 = mag_data[0];
+	// 	// drdy_bit = st1 & 0x01; // Бит 0 (DRDY)
+	// 	// if (drdy_bit == 0)	   // Если новые данные снова не готовы то выдаем информацию об ошибке, больше времени нет повторять и считаем те что есть данные
+	// 	// 	DEBUG_PRINTF("DRDY Error = %u!\n",drdy_bit);
+	// }
+	// st2 = read_single_ak09916_reg(MAG_ST2); // Считываем ST2
+	// write_single_icm20948_reg(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR); // AK09916, чтение
+	// write_single_icm20948_reg(ub_3, B3_I2C_SLV0_REG, MAG_ST2);				  // ST2  Читаем статус считывания данных
+	// write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x80 | 1);			  // Включить, 1 байт
+	// HAL_Delay(1);
+
+	// write_single_icm20948_reg(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR); // AK09916, чтение
+	// write_single_icm20948_reg(ub_3, B3_I2C_SLV0_REG, MAG_ST1);				  // ST1  Читаем статус готовности данных и считвания вовремя
+	// write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x80 | 1);			  // Включить, 1 байт
+	// write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x00); // Выключаем опрос
+
+	data->x = (int16_t)(mag_data[2] << 8 | mag_data[1]); // HXL, HXH
+	data->y = (int16_t)(mag_data[4] << 8 | mag_data[3]); // HYL, HYH
+	data->z = (int16_t)(mag_data[6] << 8 | mag_data[5]); // HZL, HZH
+
 
 	return true;
 }
@@ -206,13 +308,14 @@ void icm20948_accel_read_g(axises *data)
 	data->z /= accel_scale_factor;
 
 	// Нормализация для Маджвика
-    float norm = sqrt(data->x * data->x + data->y * data->y + data->z * data->z);
-    if (norm > 0) {
-        data->x = data->x / norm;
-        data->y = data->y / norm;
-        data->z = data->z / norm;
-    }
-    // DEBUG_PRINTF("Norm (g): %.3f",norm);
+	float norm = sqrt(data->x * data->x + data->y * data->y + data->z * data->z);
+	if (norm > 0)
+	{
+		data->x = data->x / norm;
+		data->y = data->y / norm;
+		data->z = data->z / norm;
+	}
+	// DEBUG_PRINTF("Norm (g): %.3f",norm);
 }
 
 bool ak09916_mag_read_uT(axises *data)
@@ -374,6 +477,7 @@ void icm20948_clock_source(uint8_t source)
 
 void icm20948_odr_align_enable()
 {
+	DEBUG_PRINTF("+++ icm20948_odr_align_enable \n");
 	write_single_icm20948_reg(ub_2, B2_ODR_ALIGN_EN, 0x01);
 }
 
@@ -605,28 +709,36 @@ static void select_user_bank(userbank ub)
 
 static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val)
 {
-	// Выбор банка регистров (0, 1, 2 или 3) для доступа к нужному регистру
-	// ICM-20948 использует банки регистров для организации своих настроек
+	// Выбор банка регистров (0, 1, 2 или 3) для доступа к нужному регистру 	// ICM-20948 использует банки регистров для организации своих настроек
 	select_user_bank(ub);
 
-	// Создание буфера для передачи: первый байт — адрес регистра, второй — значение для записи
-	// В I2C для записи в регистр сначала отправляется адрес регистра, затем данные
+	// Создание буфера для передачи: первый байт — адрес регистра, второй — значение для записи	// В I2C для записи в регистр сначала отправляется адрес регистра, затем данные
 	uint8_t data[2];
 	data[0] = reg; // Адрес регистра, в который будет произведена запись
 	data[1] = val; // Значение, которое нужно записать в регистр
 
-	// Выполнение передачи данных по I2C
-	// HAL_I2C_Master_Transmit отправляет данные на устройство с адресом ICM20948_I2C_ADDRESS
-	// Параметры: I2C handle, адрес устройства, буфер данных, длина (2 байта), тайм-аут (100 мс)
+	// Выполнение передачи данных по I2C	// HAL_I2C_Master_Transmit отправляет данные на устройство с адресом ICM20948_I2C_ADDRESS	// Параметры: I2C handle, адрес устройства, буфер данных, длина (2 байта), тайм-аут (100 мс)
 	HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(ICM20948_I2C, ICM20948_I2C_ADDRESS, data, 2, 100);
 
-	// Проверка статуса передачи для отладки
-	// Если передача не удалась (например, устройство не отвечает), можно добавить обработку ошибки
+	// Проверка статуса передачи для отладки	// Если передача не удалась (например, устройство не отвечает), можно добавить обработку ошибки
 	if (status != HAL_OK)
 	{
 		// Для отладки можно вывести ошибку через UART или зажечь светодиод
 		DEBUG_PRINTF("I2C read_single_icm20948_reg write error: %d\n", status);
 	}
+}
+static void write_single_icm20948_reg2(uint8_t reg, uint8_t val)
+{
+	// Создание буфера для передачи: первый байт — адрес регистра, второй — значение для записи 	// В I2C для записи в регистр сначала отправляется адрес регистра, затем данные
+	uint8_t data[2];
+	data[0] = reg; // Адрес регистра, в который будет произведена запись
+	data[1] = val; // Значение, которое нужно записать в регистр
+
+	// Выполнение передачи данных по I2C  HAL_I2C_Master_Transmit отправляет данные на устройство с адресом ICM20948_I2C_ADDRESS  Параметры: I2C handle, адрес устройства, буфер данных, длина (2 байта), тайм-аут (100 мс)
+	HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(ICM20948_I2C, ICM20948_I2C_ADDRESS, data, 2, 100);
+
+	if (status != HAL_OK)// Проверка статуса передачи для отладки 	// Если передача не удалась (например, устройство не отвечает), можно добавить обработку ошибки
+		DEBUG_PRINTF("I2C read_single_icm20948_reg write error: %d\n", status);
 }
 
 static uint8_t read_single_icm20948_reg(userbank ub, uint8_t reg)
