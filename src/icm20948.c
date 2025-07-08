@@ -390,8 +390,8 @@ void icm20948_accel_read_g(axises *data)
 	// DEBUG_PRINTF("Norm (g): %.3f",norm);
 }
 
-#define ALPHA_X 0.25
-#define ALPHA_Y 0.40
+#define ALPHA_X 0.10
+#define ALPHA_Y 0.30
 #define ALPHA_Z 0.10
 static axises smoothed_data = {0, 0, 50};
 #define WINDOW_SIZE 3 // Размер окна медианы
@@ -427,20 +427,22 @@ float get_median2(float *buffer)
 
 // Буфер для медианного фильтра (по 3 точки на ось)
 static float x_buffer[WINDOW_SIZE] = {0.0f, 0.0f, 0.0f};
-static float y_buffer[WINDOW_SIZE] = {-10.0f, -10.0f, -10.0f};
+static float y_buffer[WINDOW_SIZE] = {0.0f, 0.0f, 0.0f};
 static float z_buffer[WINDOW_SIZE] = {50.0f, 50.0f, 50.0f};
 static uint8_t buffer_index = 0;
+
+#define FILTER_WINDOW_SIZE 8    // Размер окна скользящего среднего
+float fir_buffer[FILTER_WINDOW_SIZE];  // Буфер FIR
+float iir_filtered = 0.0f;
+uint8_t fir_index = 0;                     // Индекс в буфере
+float fir_sum = 0.0f;                      // Сумма значений
 
 bool ak09916_mag_read_uT(axises *data)
 {
 	axises temp;
 	bool new_data = ak09916_mag_read(&temp);
-	if (!new_data)
-		return false;
-
-	// data->x = (((float)(temp.x * 0.15) - mBias.b_x));
-	// data->y = (((float)(temp.y * 0.15) - mBias.b_y));
-	// data->z = (((float)(temp.z * 0.15) - mBias.b_z));
+	// if (!new_data)
+	// 	return false;
 
 	if (isnan(data->x) || isinf(data->x))
 		DEBUG_PRINTF("X isnan isinf \n");
@@ -457,23 +459,37 @@ bool ak09916_mag_read_uT(axises *data)
 	x_buffer[buffer_index] = data->x;
 	y_buffer[buffer_index] = data->y;
 	z_buffer[buffer_index] = data->z;
+	// Обновляем индекс буфера Строка buffer_index = (buffer_index + 1) % WINDOW_SIZE; обеспечивает циклическое переключение индекса в пределах [0, WINDOW_SIZE-1], что необходимо для работы кольцевого буфера в медианном фильтре. 
+	buffer_index = (buffer_index + 1) % 3;
 
-	// Вычисляем медиану
+	// Вычисляем медиану Это для убирания выбросов
 	float x_median, y_median, z_median;
 	x_median = get_median2(x_buffer);
 	y_median = get_median2(y_buffer);
 	z_median = get_median2(z_buffer);
+	
+	DEBUG_PRINTF("raw= %.3f x_median= %.3f | ", data->y, y_median);
 
 	// Экспоненциальное сглаживание
 	smoothed_data.x = ALPHA_X * x_median + (1 - ALPHA_X) * smoothed_data.x;
 	smoothed_data.y = ALPHA_Y * y_median + (1 - ALPHA_Y) * smoothed_data.y;
 	smoothed_data.z = ALPHA_Z * z_median + (1 - ALPHA_Z) * smoothed_data.z;
+	DEBUG_PRINTF("smoothed_data =%.3f | ", smoothed_data.y);
+
+	float iir_filtered = smoothed_data.y;
+	// === Шаг 2: FIR-фильтр (скользящее среднее) ===
+    fir_sum -= fir_buffer[fir_index];           // Убираем старое
+    fir_sum += iir_filtered;                         // Добавляем новое
+    fir_buffer[fir_index] = iir_filtered;            // Обновляем буфер
+    fir_index = (fir_index + 1) % FILTER_WINDOW_SIZE;
+    float final_filtered = fir_sum / FILTER_WINDOW_SIZE;
+	DEBUG_PRINTF(" final_filtered = %.3f \n ", final_filtered);
+
+	DEBUG_PRINTF("");
 
 	// Возвращаем сглаженные и нормализованные данные
 	*data = smoothed_data;
 
-	// Обновляем индекс буфера Строка buffer_index = (buffer_index + 1) % WINDOW_SIZE; обеспечивает циклическое переключение индекса в пределах [0, WINDOW_SIZE-1], что необходимо для работы кольцевого буфера в медианном фильтре. 
-	buffer_index = (buffer_index + 1) % 3;
 
 	return true;
 }
