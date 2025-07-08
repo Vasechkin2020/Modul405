@@ -24,7 +24,9 @@ bool flag_timer_1sec = false;
 
 GPIO_TypeDef *myPort;
 
-
+extern axises my_gyro;
+extern axises my_accel;
+extern axises my_mag;
 
 void timer6();                                                             // Обработчик прерывания таймера TIM6	1 раз в 1 милисекунду
 void workingTimer();                                                       // Отработка действий по таймеру в 1, 50, 60 милисекунд
@@ -161,9 +163,7 @@ uint64_t micros(void)
     return ret;
 }
 
-axises my_gyro;
-axises my_accel;
-axises my_mag;
+
 
 
 void workingTimer() // Отработка действий по таймеру в 1, 50, 60 милисекунд
@@ -178,7 +178,7 @@ void workingTimer() // Отработка действий по таймеру �
         // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_10); // Инвертирование состояния выхода.
 	    ak09916_mag_read_uT(&my_mag);
         // DEBUG_PRINTF("Magn X= %.3f y= %.3f z= %.3f \n",my_mag.x,my_mag.y,my_mag.z);
-        DEBUG_PRINTF("%.1f %.1f %.1f \n",my_mag.x,my_mag.y,my_mag.z);
+        DEBUG_PRINTF("%.3f %.3f %.3f \n",my_mag.x,my_mag.y,my_mag.z);
     }
     //----------------------------- 50 миллисекунд --------------------------------------
     if (flag_timer_50millisec)

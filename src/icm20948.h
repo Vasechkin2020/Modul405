@@ -80,6 +80,12 @@ typedef struct {
     float b_y;
     float b_z;
 } MagnetometerBias;
+/* Структура для scale */
+typedef struct {
+    float s_x;
+    float s_y;
+    float s_z;
+} MagnetometerScale;
 
 /* Main Functions */
 

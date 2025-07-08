@@ -12,6 +12,14 @@
 static float gyro_scale_factor;
 static float accel_scale_factor;
 
+// Калибровочные коэффициенты
+MagnetometerBias mBias;	  // для магнетрометра
+MagnetometerScale mScale; // для магнетрометра масштабные коефициенты
+
+axises my_gyro;
+axises my_accel;
+axises my_mag;
+
 /* Static Functions */
 // static void cs_high();
 // static void cs_low();
@@ -139,8 +147,8 @@ void ak09916_init()
 	icm20948_i2c_master_clk_frq(7); // Частота ~400 кГц
 	icm20948_i2c_master_enable();	// Включение I2C-мастера
 	// icm20948_i2c_master_disable();
-	
-	//Настройки частоты с какой внутренний I2C опрашивает подчиненное утройство. Если не задат ьтоработает на частоте гироскопа в 1125 Герц
+
+	// Настройки частоты с какой внутренний I2C опрашивает подчиненное утройство. Если не задат ьтоработает на частоте гироскопа в 1125 Герц
 	write_single_icm20948_reg(ub_0, B0_LP_CONFIG, 0x40);		  // I2C_MST_CYCLE = 1
 	write_single_icm20948_reg(ub_3, B3_I2C_MST_ODR_CONFIG, 0x01); //
 
@@ -150,10 +158,77 @@ void ak09916_init()
 	ak09916_who_am_i();
 	ak09916_soft_reset();										  // Настройка магнитометра
 	ak09916_operation_mode_setting(continuous_measurement_100hz); // Частота с которой магнетометр готовит данные
-	//Настройки какое устройство и из какого регистра начиная считывать
+	// Настройки какое устройство и из какого регистра начиная считывать
 	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR); // AK09916, чтение
 	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_REG, MAG_ST1);				  // ST1  Читаем статус готовности данных и считвания вовремя
-	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x00 );			  // Выключаем пока
+	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x00);				  // Выключаем пока
+	HAL_Delay(100);
+
+	// float FLT_MAX = 256;   // Максимально возможное значение заведомо большое
+	// float MAX_Vibros = 84; // ВЫше этого значения считаем выбросом и не учитываем
+	// //*******************
+	// float x_max = -FLT_MAX, x_min = FLT_MAX;
+	// float y_max = -FLT_MAX, y_min = FLT_MAX;
+	// float z_max = -FLT_MAX, z_min = FLT_MAX;
+
+	mBias.b_x = 0; // Значения перед калибровкой
+	mBias.b_y = 0;
+	mBias.b_z = 0;
+
+	mScale.s_x = 1;
+	mScale.s_y = 1;
+	mScale.s_z = 1;
+
+	// for (size_t i = 0; i < 10000; i++)
+	// {
+	// 	ak09916_mag_read_uT(&my_mag);
+	// 	DEBUG_PRINTF("Magn X= %.3f y= %.3f z= %.3f \n", my_mag.x, my_mag.y, my_mag.z);
+	// 	// DEBUG_PRINTF("%.1f %.1f %.1f \n", my_mag.x, my_mag.y, my_mag.z);
+
+	// 	// Обновление максимумов и минимумов с ограничением и учетом выбросов
+	// 	if (my_mag.x < MAX_Vibros && my_mag.x > -MAX_Vibros)
+	// 	{
+	// 		if (my_mag.x > x_max)
+	// 			x_max = my_mag.x;
+	// 		if (my_mag.x < x_min)
+	// 			x_min = my_mag.x;
+	// 	}
+	// 	if (my_mag.y < MAX_Vibros && my_mag.y > -MAX_Vibros)
+	// 	{
+	// 		if (my_mag.y > y_max)
+	// 			y_max = my_mag.y;
+	// 		if (my_mag.y < y_min)
+	// 			y_min = my_mag.y;
+	// 	}
+	// 	if (my_mag.z < MAX_Vibros && my_mag.z > -MAX_Vibros)
+	// 	{
+	// 		if (my_mag.z > z_max)
+	// 			z_max = my_mag.z;
+	// 		if (my_mag.z < z_min)
+	// 			z_min = my_mag.z;
+	// 	}
+	// 	HAL_Delay(10);
+	// }
+	// // Расчет bias
+	// mBias.b_x = (x_max + x_min) / 2.0f;
+	// mBias.b_y = (y_max + y_min) / 2.0f;
+	// mBias.b_z = (z_max + z_min) / 2.0f;
+
+	// DEBUG_PRINTF("x_max= %.3f x_min= %.3f mBias.b_x= %.3f \n", x_max, x_min, mBias.b_x);
+	// DEBUG_PRINTF("y_max= %.3f y_min= %.3f mBias.b_y= %.3f \n", y_max, y_min, mBias.b_y);
+	// DEBUG_PRINTF("z_max= %.3f z_min= %.3f mBias.b_z= %.3f \n", z_max, z_min, mBias.b_z);
+	// HAL_Delay(100000);
+
+	mBias.b_x = 0.475; // Это средние или медианные значения на основании 8 калибровок и усреднения.
+	mBias.b_y = 0.300;
+	mBias.b_z = 19.050;
+
+	mScale.s_x = 1.239; // Это средние или медианные значения на основании 8 калибровок и усреднения.
+	mScale.s_y = 0.895;
+	mScale.s_z = 0.931;
+
+	// Bias (предполагается, что уже рассчитан)
+	// MagnetometerBias bias = {100.0f, 150.0f, -50.0f}; // Замените на реальные значения
 
 	DEBUG_PRINTF("    End ak09916_init \n");
 }
@@ -223,12 +298,12 @@ bool ak09916_mag_read(axises *data)
 	// 	return; // Данные не готовы
 	// }
 	uint8_t *mag_data;
-	uint8_t st1,st2;
-	
+	uint8_t st1, st2;
+
 	select_user_bank(ub_3);
 	// write_single_icm20948_reg2(B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR);
 	// write_single_icm20948_reg2(B3_I2C_SLV0_REG, MAG_ST1);
-	write_single_icm20948_reg2(B3_I2C_SLV0_CTRL, 0x80 | 9);// Считываем 9 байт ST2 считываем
+	write_single_icm20948_reg2(B3_I2C_SLV0_CTRL, 0x80 | 9); // Считываем 9 байт ST2 считываем
 
 	HAL_Delay(1);
 	mag_data = read_multiple_icm20948_reg(ub_0, B0_EXT_SLV_SENS_DATA_00, 9);
@@ -252,8 +327,6 @@ bool ak09916_mag_read(axises *data)
 	// st1 = read_single_icm20948_reg(ub_0, B0_EXT_SLV_SENS_DATA_00);
 
 	// HAL_Delay(1);															 // За это время там внутренний опрос успеет еще раз считать данные
-
-	
 
 	// if (drdy_bit == 1 || dor_bit == 1)	 // Проверка битов ST1 // ЕСли данные готовы или уже переполнились
 	// {
@@ -286,7 +359,6 @@ bool ak09916_mag_read(axises *data)
 	data->y = (int16_t)(mag_data[4] << 8 | mag_data[3]); // HYL, HYH
 	data->z = (int16_t)(mag_data[6] << 8 | mag_data[5]); // HZL, HZH
 
-
 	return true;
 }
 
@@ -318,6 +390,47 @@ void icm20948_accel_read_g(axises *data)
 	// DEBUG_PRINTF("Norm (g): %.3f",norm);
 }
 
+#define ALPHA_X 0.25
+#define ALPHA_Y 0.40
+#define ALPHA_Z 0.10
+static axises smoothed_data = {0, 0, 50};
+#define WINDOW_SIZE 3 // Размер окна медианы
+
+// Простая функция сортировки и получения медианы (W=3)
+float get_median2(float *buffer)
+{
+	float a = buffer[0];
+	float b = buffer[1];
+	float c = buffer[2];
+
+	if (a > b)
+	{
+		float t = a;
+		a = b;
+		b = t;
+	}
+	if (b > c)
+	{
+		float t = b;
+		b = c;
+		c = t;
+	}
+	if (a > b)
+	{
+		float t = a;
+		a = b;
+		b = t;
+	}
+
+	return b; // Медиана
+}
+
+// Буфер для медианного фильтра (по 3 точки на ось)
+static float x_buffer[WINDOW_SIZE] = {0.0f, 0.0f, 0.0f};
+static float y_buffer[WINDOW_SIZE] = {-10.0f, -10.0f, -10.0f};
+static float z_buffer[WINDOW_SIZE] = {50.0f, 50.0f, 50.0f};
+static uint8_t buffer_index = 0;
+
 bool ak09916_mag_read_uT(axises *data)
 {
 	axises temp;
@@ -325,9 +438,42 @@ bool ak09916_mag_read_uT(axises *data)
 	if (!new_data)
 		return false;
 
-	data->x = (float)(temp.x * 0.15);
-	data->y = (float)(temp.y * 0.15);
-	data->z = (float)(temp.z * 0.15);
+	// data->x = (((float)(temp.x * 0.15) - mBias.b_x));
+	// data->y = (((float)(temp.y * 0.15) - mBias.b_y));
+	// data->z = (((float)(temp.z * 0.15) - mBias.b_z));
+
+	if (isnan(data->x) || isinf(data->x))
+		DEBUG_PRINTF("X isnan isinf \n");
+	if (isnan(data->y) || isinf(data->y))
+		DEBUG_PRINTF("Y isnan isinf\n");
+	if (isnan(data->z) || isinf(data->z))
+		DEBUG_PRINTF("Z isnan isinf\n");
+
+	data->x = (((float)(temp.x * 0.15) - mBias.b_x) * mScale.s_x);
+	data->y = (((float)(temp.y * 0.15) - mBias.b_y) * mScale.s_y);
+	data->z = (((float)(temp.z * 0.15) - mBias.b_z) * mScale.s_z);
+
+	// Добавляем новые данные в буфер
+	x_buffer[buffer_index] = data->x;
+	y_buffer[buffer_index] = data->y;
+	z_buffer[buffer_index] = data->z;
+
+	// Вычисляем медиану
+	float x_median, y_median, z_median;
+	x_median = get_median2(x_buffer);
+	y_median = get_median2(y_buffer);
+	z_median = get_median2(z_buffer);
+
+	// Экспоненциальное сглаживание
+	smoothed_data.x = ALPHA_X * x_median + (1 - ALPHA_X) * smoothed_data.x;
+	smoothed_data.y = ALPHA_Y * y_median + (1 - ALPHA_Y) * smoothed_data.y;
+	smoothed_data.z = ALPHA_Z * z_median + (1 - ALPHA_Z) * smoothed_data.z;
+
+	// Возвращаем сглаженные и нормализованные данные
+	*data = smoothed_data;
+
+	// Обновляем индекс буфера Строка buffer_index = (buffer_index + 1) % WINDOW_SIZE; обеспечивает циклическое переключение индекса в пределах [0, WINDOW_SIZE-1], что необходимо для работы кольцевого буфера в медианном фильтре. 
+	buffer_index = (buffer_index + 1) % 3;
 
 	return true;
 }
@@ -529,7 +675,7 @@ void icm20948_gyro_calibration()
 	int32_t gyro_bias[3] = {0};
 	// int32_t gyro_biasEnd[3] = {0};
 	uint8_t gyro_offset[6] = {0};
-	int count = 333;
+	int count = 10;
 
 	for (int i = 0; i < count; i++)
 	{
@@ -571,7 +717,7 @@ void icm20948_accel_calibration()
 	uint8_t *temp3;
 	uint8_t *temp4;
 
-	int count = 333;
+	int count = 10;
 
 	int32_t accel_bias[3] = {0};
 	int32_t accel_bias_reg[3] = {0};
@@ -737,7 +883,7 @@ static void write_single_icm20948_reg2(uint8_t reg, uint8_t val)
 	// Выполнение передачи данных по I2C  HAL_I2C_Master_Transmit отправляет данные на устройство с адресом ICM20948_I2C_ADDRESS  Параметры: I2C handle, адрес устройства, буфер данных, длина (2 байта), тайм-аут (100 мс)
 	HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(ICM20948_I2C, ICM20948_I2C_ADDRESS, data, 2, 100);
 
-	if (status != HAL_OK)// Проверка статуса передачи для отладки 	// Если передача не удалась (например, устройство не отвечает), можно добавить обработку ошибки
+	if (status != HAL_OK) // Проверка статуса передачи для отладки 	// Если передача не удалась (например, устройство не отвечает), можно добавить обработку ошибки
 		DEBUG_PRINTF("I2C read_single_icm20948_reg write error: %d\n", status);
 }
 
