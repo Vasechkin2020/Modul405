@@ -164,13 +164,6 @@ void ak09916_init()
 	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x00);				  // Выключаем пока
 	HAL_Delay(100);
 
-	// float FLT_MAX = 256;   // Максимально возможное значение заведомо большое
-	// float MAX_Vibros = 84; // ВЫше этого значения считаем выбросом и не учитываем
-	// //*******************
-	// float x_max = -FLT_MAX, x_min = FLT_MAX;
-	// float y_max = -FLT_MAX, y_min = FLT_MAX;
-	// float z_max = -FLT_MAX, z_min = FLT_MAX;
-
 	mBias.b_x = 0; // Значения перед калибровкой
 	mBias.b_y = 0;
 	mBias.b_z = 0;
@@ -179,10 +172,18 @@ void ak09916_init()
 	mScale.s_y = 1;
 	mScale.s_z = 1;
 
-	// for (size_t i = 0; i < 10000; i++)
+	// float FLT_MAX = 256;   // Максимально возможное значение заведомо большое
+	// float MAX_Vibros = 84; // ВЫше этого значения считаем выбросом и не учитываем
+	// //*******************
+	// float x_max = -FLT_MAX, x_min = FLT_MAX;
+	// float y_max = -FLT_MAX, y_min = FLT_MAX;
+	// float z_max = -FLT_MAX, z_min = FLT_MAX;
+
+
+	// for (size_t i = 0; i < 18000; i++)
 	// {
 	// 	ak09916_mag_read_uT(&my_mag);
-	// 	DEBUG_PRINTF("Magn X= %.3f y= %.3f z= %.3f \n", my_mag.x, my_mag.y, my_mag.z);
+	// 	DEBUG_PRINTF("Magn X= %.3f y= %.3f z= %.3f ", my_mag.x, my_mag.y, my_mag.z);
 	// 	// DEBUG_PRINTF("%.1f %.1f %.1f \n", my_mag.x, my_mag.y, my_mag.z);
 
 	// 	// Обновление максимумов и минимумов с ограничением и учетом выбросов
@@ -208,6 +209,9 @@ void ak09916_init()
 	// 			z_min = my_mag.z;
 	// 	}
 	// 	HAL_Delay(10);
+	// DEBUG_PRINTF(" | %.3f  %.3f / ", x_max, x_min);
+	// DEBUG_PRINTF(" %.3f  %.3f / ", y_max, y_min);
+	// DEBUG_PRINTF(" %.3f  %.3f \n ", z_max, z_min);
 	// }
 	// // Расчет bias
 	// mBias.b_x = (x_max + x_min) / 2.0f;
@@ -219,16 +223,14 @@ void ak09916_init()
 	// DEBUG_PRINTF("z_max= %.3f z_min= %.3f mBias.b_z= %.3f \n", z_max, z_min, mBias.b_z);
 	// HAL_Delay(100000);
 
-	mBias.b_x = 0.475; // Это средние или медианные значения на основании 8 калибровок и усреднения.
-	mBias.b_y = 0.300;
-	mBias.b_z = 19.050;
+	mBias.b_x = 7.506; // Это средние или медианные значения на основании 8 калибровок и усреднения.
+	mBias.b_y = 0.251;
+	mBias.b_z = 35.245;
 
-	mScale.s_x = 1.239; // Это средние или медианные значения на основании 8 калибровок и усреднения.
-	mScale.s_y = 0.895;
-	mScale.s_z = 0.931;
+	mScale.s_x = 1.029; // Это средние или медианные значения на основании 8 калибровок и усреднения.
+	mScale.s_y = 0.986;
+	mScale.s_z = 0.987;
 
-	// Bias (предполагается, что уже рассчитан)
-	// MagnetometerBias bias = {100.0f, 150.0f, -50.0f}; // Замените на реальные значения
 
 	DEBUG_PRINTF("    End ak09916_init \n");
 }
@@ -390,7 +392,7 @@ void icm20948_accel_read_g(axises *data)
 	// DEBUG_PRINTF("Norm (g): %.3f",norm);
 }
 
-#define ALPHA_X 0.10
+#define ALPHA_X 0.30
 #define ALPHA_Y 0.30
 #define ALPHA_Z 0.10
 static axises smoothed_data = {0, 0, 50};
@@ -432,17 +434,19 @@ static float z_buffer[WINDOW_SIZE] = {50.0f, 50.0f, 50.0f};
 static uint8_t buffer_index = 0;
 
 #define FILTER_WINDOW_SIZE 8    // Размер окна скользящего среднего
-float fir_buffer[FILTER_WINDOW_SIZE];  // Буфер FIR
-float iir_filtered = 0.0f;
-uint8_t fir_index = 0;                     // Индекс в буфере
-float fir_sum = 0.0f;                      // Сумма значений
+float fir_bufferX[FILTER_WINDOW_SIZE];  // Буфер FIR
+float fir_bufferY[FILTER_WINDOW_SIZE];  // Буфер FIR
+float iir_filteredX = 0.0f;
+float iir_filteredY = 0.0f;
+uint8_t fir_indexX = 0;                     // Индекс в буфере
+uint8_t fir_indexY = 0;                     // Индекс в буфере
+float fir_sumX = 0.0f;                      // Сумма значений
+float fir_sumY = 0.0f;                      // Сумма значений
 
 bool ak09916_mag_read_uT(axises *data)
 {
 	axises temp;
-	bool new_data = ak09916_mag_read(&temp);
-	// if (!new_data)
-	// 	return false;
+	ak09916_mag_read(&temp);
 
 	if (isnan(data->x) || isinf(data->x))
 		DEBUG_PRINTF("X isnan isinf \n");
@@ -467,25 +471,33 @@ bool ak09916_mag_read_uT(axises *data)
 	x_median = get_median2(x_buffer);
 	y_median = get_median2(y_buffer);
 	z_median = get_median2(z_buffer);
+
+	// data->x = x_median;
+	// data->y = y_median;
+	// data->z = z_median;
 	
-	DEBUG_PRINTF("raw= %.3f x_median= %.3f | ", data->y, y_median);
+	// DEBUG_PRINTF("raw= %.3f x_median= %.3f | ", data->x, x_median);
 
 	// Экспоненциальное сглаживание
 	smoothed_data.x = ALPHA_X * x_median + (1 - ALPHA_X) * smoothed_data.x;
 	smoothed_data.y = ALPHA_Y * y_median + (1 - ALPHA_Y) * smoothed_data.y;
 	smoothed_data.z = ALPHA_Z * z_median + (1 - ALPHA_Z) * smoothed_data.z;
-	DEBUG_PRINTF("smoothed_data =%.3f | ", smoothed_data.y);
+	// DEBUG_PRINTF("smoothed_data =%.3f | ", smoothed_data.x);
 
-	float iir_filtered = smoothed_data.y;
-	// === Шаг 2: FIR-фильтр (скользящее среднее) ===
-    fir_sum -= fir_buffer[fir_index];           // Убираем старое
-    fir_sum += iir_filtered;                         // Добавляем новое
-    fir_buffer[fir_index] = iir_filtered;            // Обновляем буфер
-    fir_index = (fir_index + 1) % FILTER_WINDOW_SIZE;
-    float final_filtered = fir_sum / FILTER_WINDOW_SIZE;
-	DEBUG_PRINTF(" final_filtered = %.3f \n ", final_filtered);
+	// === Шаг 2: FIR-фильтр X (скользящее среднее) ===
+    fir_sumX -= fir_bufferX[fir_indexX];           // Убираем старое
+    fir_sumX += smoothed_data.x;                         // Добавляем новое
+    fir_bufferX[fir_indexX] = smoothed_data.x;;            // Обновляем буфер
+    fir_indexX = (fir_indexX + 1) % FILTER_WINDOW_SIZE;
+    smoothed_data.x = fir_sumX / FILTER_WINDOW_SIZE;
+		// === Шаг 2: FIR-фильтр Y (скользящее среднее) ===
+    fir_sumY -= fir_bufferY[fir_indexY];           // Убираем старое
+    fir_sumY += smoothed_data.y;                         // Добавляем новое
+    fir_bufferY[fir_indexY] = smoothed_data.y;;            // Обновляем буфер
+    fir_indexY = (fir_indexY + 1) % FILTER_WINDOW_SIZE;
+    smoothed_data.y = fir_sumY / FILTER_WINDOW_SIZE;
 
-	DEBUG_PRINTF("");
+	// DEBUG_PRINTF("");
 
 	// Возвращаем сглаженные и нормализованные данные
 	*data = smoothed_data;
