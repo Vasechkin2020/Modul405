@@ -178,7 +178,9 @@ void workingTimer() // Отработка действий по таймеру �
         // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_10); // Инвертирование состояния выхода.
 	    ak09916_mag_read_uT(&my_mag);
         // DEBUG_PRINTF("Magn X= %.3f y= %.3f z= %.3f \n",my_mag.x,my_mag.y,my_mag.z);
-        DEBUG_PRINTF("%.3f %.3f %.3f \n",my_mag.x,my_mag.y,my_mag.z);
+        // DEBUG_PRINTF("%.3f %.3f %.3f \n",my_mag.x,my_mag.y,my_mag.z);
+        float gradus = atan2(my_mag.y,my_mag.x) * 57.2958;
+        DEBUG_PRINTF("gradus %.3f \n",gradus);
     }
     //----------------------------- 50 миллисекунд --------------------------------------
     if (flag_timer_50millisec)

@@ -394,7 +394,7 @@ void icm20948_accel_read_g(axises *data)
 
 #define ALPHA_X 0.30
 #define ALPHA_Y 0.30
-#define ALPHA_Z 0.10
+#define ALPHA_Z 0.08
 static axises smoothed_data = {0, 0, 50};
 #define WINDOW_SIZE 3 // Размер окна медианы
 
