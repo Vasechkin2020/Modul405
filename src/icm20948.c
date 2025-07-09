@@ -410,7 +410,7 @@ void icm20948_accel_read_g(axises *data)
 	smoothed_data.z = ALPHA * data->z + (1 - ALPHA) * smoothed_data.z;
 	// DEBUG_PRINTF("Norm (g): %.3f",norm);
 
-	DEBUG_PRINTF("Accel raw = %.3f smoothed= %.3f \n",data->x,smoothed_data.x);
+	// DEBUG_PRINTF("Accel raw = %.3f smoothed= %.3f \n",data->x,smoothed_data.x);
 
 	*data = smoothed_data;
 }

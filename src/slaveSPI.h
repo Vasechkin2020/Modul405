@@ -9,7 +9,8 @@
 #include "config.h"
 #include "slaveSPI.h"
 
-volatile u_int64_t timeSpi = 0; // Время когда пришла команда по SPI
+volatile uint64_t timeSpi = 0; // Время когда пришла команда по SPI
+
 
 extern SPI_HandleTypeDef hspi1;
 volatile bool flag_data = false;    // Флаг что данные передались

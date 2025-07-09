@@ -114,24 +114,24 @@ uint8_t calcCs(uint8_t *data_, uint8_t len_);
 
 void sk60plus_autoBaund(); // Установка скорости обмена
 
-void sk60plus_readHardwareVersion(u_int16_t port_);                                   // Function: master read out the module’s HW version number;
-void sk60plus_readSoftwareVersion(u_int16_t port_);                                   // Function: master read out the module’s SW version number;
-void sk60plus_readSerialNumber(u_int16_t port_);                                      // Function: master read out the module’s serial number;
-void sk60plus_readInputVoltage(u_int16_t port_);                                      // Function: master read out the module’s input voltage in mV with BCD encode;
+void sk60plus_readHardwareVersion(uint16_t port_);                                   // Function: master read out the module’s HW version number;
+void sk60plus_readSoftwareVersion(uint16_t port_);                                   // Function: master read out the module’s SW version number;
+void sk60plus_readSerialNumber(uint16_t port_);                                      // Function: master read out the module’s serial number;
+void sk60plus_readInputVoltage(uint16_t port_);                                      // Function: master read out the module’s input voltage in mV with BCD encode;
 void sk60plus_setModulAddress(UART_HandleTypeDef *huart, uint8_t addr_, uint8_t YY_); // Function: master set slave’s address, this address will not lost after module power off;
 void sk60plus_setModulMeasureOffset(UART_HandleTypeDef *huart, int16_t ZZYY_);        // Function: master set slave’s measure offset. For example, if the offset 0xZZYY = 0x7B(+123) , it means the final output of measure result will PLUS 123 millimeters , if the offset 0xZZYY = 0xFF85(-123), it means the final output of measure result will MINUS 123 millimeters
 void sk60plus_setLaser(uint16_t port_, uint8_t ZZ_);                                  // Function: turn on or turn off laser beam, if 0xZZ = 0x01 laser on, 0xZZ = 0x00 laser off.
 
-void sk60plus_startSingleAuto(u_int16_t port_); // Function: Reply measure result to master, measure result = 0xAABBCCDD millimeters (frame uint8_t6 = 0xAA, uint8_t7 = 0xBB, uint8_t8 = 0xCC, uint8_t9 = 0xDD) and signal quality = 0x101， lesssignal quality number stands for stronger laser signal and more reliable distance result
-void sk60plus_startSingleSlow(u_int16_t port_); // Function: Initiate slave to do 1-shot measure in slow mode.
-void sk60plus_startSingleFast(u_int16_t port_); // Function: Initiate slave to do 1-shot measure in fast mode.
+void sk60plus_startSingleAuto(uint16_t port_); // Function: Reply measure result to master, measure result = 0xAABBCCDD millimeters (frame uint8_t6 = 0xAA, uint8_t7 = 0xBB, uint8_t8 = 0xCC, uint8_t9 = 0xDD) and signal quality = 0x101， lesssignal quality number stands for stronger laser signal and more reliable distance result
+void sk60plus_startSingleSlow(uint16_t port_); // Function: Initiate slave to do 1-shot measure in slow mode.
+void sk60plus_startSingleFast(uint16_t port_); // Function: Initiate slave to do 1-shot measure in fast mode.
 
-void sk60plus_startContinuousAuto(u_int16_t port_);      // Function: Initiate slave to do continuous measure in auto mode
-void sk60plus_startContinuousSlow(u_int16_t port_);      // Function: Initiate slave to do continuous measure in slow mode.
-void sk60plus_startContinuousFast(u_int16_t port_);      // Function: Initiate slave to do continuous measure in fast mode
-void sk60plus_startContinuousSuperFast(u_int16_t port_); // Function: Initiate slave to do continuous measure in Superfast mode 25Hz
+void sk60plus_startContinuousAuto(uint16_t port_);      // Function: Initiate slave to do continuous measure in auto mode
+void sk60plus_startContinuousSlow(uint16_t port_);      // Function: Initiate slave to do continuous measure in slow mode.
+void sk60plus_startContinuousFast(uint16_t port_);      // Function: Initiate slave to do continuous measure in fast mode
+void sk60plus_startContinuousSuperFast(uint16_t port_); // Function: Initiate slave to do continuous measure in Superfast mode 25Hz
 
-void sk60plus_stopContinuous(u_int16_t port_); // Function: Master transfer one uint8_t 0x58 (upper case character ‘X’) to stop continuous measure mode immediately
+void sk60plus_stopContinuous(uint16_t port_); // Function: Master transfer one uint8_t 0x58 (upper case character ‘X’) to stop continuous measure mode immediately
 
 void sk60plus_getBroadcastSingleMeasure(); // Function: Initiate all slave to do 1-shot measure in auto mode/
 void sk60plus_getMeasureResult();          // Function: master read out the distance measure result;
@@ -261,7 +261,7 @@ void sk60plus_readHardwareVersion(uint16_t port_)
         DEBUG_PRINTF("ERROR !!! \n");
 }
 // Function: master read out the module’s SW version number;
-void sk60plus_readSoftwareVersion(u_int16_t port_)
+void sk60plus_readSoftwareVersion(uint16_t port_)
 {
     DEBUG_PRINTF("readSoftwareVersion -> ");
     uint8_t addr = _addr | 0b10000000; // R/W indicate bit, 0: Master write to Slave, 1: Master read from Slave  Slave address is 0x51, address has only 7-bits, so the address is from 0x00 to 0x7F, 0x00 is the default address before master issue module address change command, 0x7F is the broadcast address reserved for one-master to multi-slave network;
@@ -284,7 +284,7 @@ void sk60plus_readSoftwareVersion(u_int16_t port_)
         DEBUG_PRINTF("ERROR !!! \n");
 }
 // Function: master read out the module’s Serial number;
-void sk60plus_readSerialNumber(u_int16_t port_)
+void sk60plus_readSerialNumber(uint16_t port_)
 {
     DEBUG_PRINTF("readSerialNumber    -> ");
     uint8_t addr = _addr | 0b10000000; // R/W indicate bit, 0: Master write to Slave, 1: Master read from Slave  Slave address is 0x51, address has only 7-bits, so the address is from 0x00 to 0x7F, 0x00 is the default address before master issue module address change command, 0x7F is the broadcast address reserved for one-master to multi-slave network;
@@ -361,7 +361,7 @@ void sk60plus_setLaser(uint16_t port_, uint8_t ZZ_)
 }
 
 // Function: Master transfer one uint8_t 0x58 (upper case character ‘X’) to stop continuous measure mode immediately
-void sk60plus_stopContinuous(u_int16_t port_)
+void sk60plus_stopContinuous(uint16_t port_)
 {
     DEBUG_PRINTF("stopContinuous = %0#6X \n", 0x58);
     uint8_t buf[1] = {0x58};
@@ -370,7 +370,7 @@ void sk60plus_stopContinuous(u_int16_t port_)
 }
 
 // Function: Initiate slave to do 1-shot measure in Auto mode.
-void sk60plus_startSingleAuto(u_int16_t port_)
+void sk60plus_startSingleAuto(uint16_t port_)
 {
     _distance = 0;
     _signalQuality = 0;
@@ -396,7 +396,7 @@ void sk60plus_startSingleAuto(u_int16_t port_)
     }
 }
 // Function: Initiate slave to do 1-shot measure in Auto mode.
-void sk60plus_startContinuousAuto(u_int16_t port_)
+void sk60plus_startContinuousAuto(uint16_t port_)
 {
     DEBUG_PRINTF("startContinuousAuto \n");
     uint8_t buf[9] = {0xAA, _addr, 0x00, 0x20, 0x00, 0x01, 0x00, 0x06, 0x00};
@@ -404,7 +404,7 @@ void sk60plus_startContinuousAuto(u_int16_t port_)
     HAL_UART_Transmit(dataUART[port_].huart, buf, sizeof(buf), 100); // Отправляем команду
 }
 
-void sk60plus_startContinuousSlow(u_int16_t port_) // Function: Initiate slave to do continuous measure in slow mode.
+void sk60plus_startContinuousSlow(uint16_t port_) // Function: Initiate slave to do continuous measure in slow mode.
 {
     DEBUG_PRINTF("startContinuousSlow \n");
     uint8_t buf[9] = {0xAA, _addr, 0x00, 0x20, 0x00, 0x01, 0x00, 0x05, 0x00};

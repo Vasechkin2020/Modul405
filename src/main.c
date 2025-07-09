@@ -29,11 +29,12 @@ volatile uint32_t millisCounter = 0;
 volatile uint64_t microsCounter = 0;
 volatile uint32_t overflow_count = 0; // Счётчик переполнений
 
-
 int main(void)
 {
   HAL_Init();
   SystemClock_Config();
+
+  EnableFPU(); // Включение FPU (CP10 и CP11: полный доступ) Работа с плавающей точкой
 
   MX_GPIO_Init();
   HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_SET); // Сразу включаем светодиод что началась загрузка
@@ -70,11 +71,50 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim11); // Таймер для моторов шаговых для датчиков
   HAL_TIM_Base_Start_IT(&htim13); // Таймер для моторов шаговых для датчиков
 
+  HAL_Delay(4000);
   printf("\r\n *** Modul *** printBIM.ru *** 2025 *** \r\n");
   initFirmware();
 
   initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
-  HAL_Delay(4000);
+
+
+   if ((SCB->CPACR & (0xF << 20)) != (0xF << 20))
+    {
+        printf("FPU отключена!\n");
+    }
+    else
+    {
+        printf("FPU включена!\n");
+    }
+
+    uint32_t cpacr = SCB->CPACR; // Чтение регистра CPACR
+    if ((cpacr & ((3UL << 20) | (3UL << 22))) == ((3UL << 20) | (3UL << 22)))
+    {
+        printf("FPU2 включён\n");
+    }
+    else
+    {
+        printf("FPU2 отключён\n");
+    }
+
+    float result = 0.0f;
+    uint32_t start = HAL_GetTick();
+    for (int i = 0; i < 10000; i++) {
+        result += sinf((float)i / 100.0f);
+    }
+    uint32_t end = HAL_GetTick();
+    uint32_t rez = end - start;
+    printf("Time: %lu ms, Result: %f\n", rez, result);
+    if (rez > 100)
+      printf(" SOFT FPU !!!\n");
+      else
+      printf(" +++ HARD FPU !!!\n");
+
+    // HAL_Delay(4000);
+    
+    // while (1);
+
+
   // initMotor(); // Начальная инициализация и настройка шаговых моторов
   // // testMotorRun();
   // setZeroMotor(); // Установка в ноль
@@ -86,7 +126,6 @@ int main(void)
 
   // I2C_ScanDevices(&hi2c1);
   ak09916_init(); // Инициализация магнитометра
-
 
   // BNO055_Init(); // Инициализация датчика на шине I2C
 

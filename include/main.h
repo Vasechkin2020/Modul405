@@ -10,6 +10,7 @@ extern "C"
 #include "stm32f4xx_hal.h"
 #include <stdio.h>
 
+
 // ВЫБОР С КАКИМИ ДАТЧИКАМИ РАБОТАЕМ. НУЖНО ОСТАВИТЬТОЛЬКО ОДНУ СРОЧКУ, ОСТАЛЬНЫЕ ЗАКОММЕНТИРОВАТЬ
 // #define LASER80 yes
 #define LASER60 yes
