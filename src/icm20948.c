@@ -313,8 +313,8 @@ bool ak09916_mag_read(axises *data)
 	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x00); // Выключаем опрос Снова перключаемся на 3 банк
 
 	st1 = mag_data[0];
-	uint8_t drdy_bit = st1 & 0x01;		 // Бит 0 (DRDY)// Выделение битов ST1
-	uint8_t dor_bit = (st1 >> 1) & 0x01; // Бит 1 (DOR)
+	// uint8_t drdy_bit = st1 & 0x01;		 // Бит 0 (DRDY)// Выделение битов ST1
+	// uint8_t dor_bit = (st1 >> 1) & 0x01; // Бит 1 (DOR)
 	// DEBUG_PRINTF("DRDY= %u DOR= %u | ", drdy_bit, dor_bit);
 	// DEBUG_PRINTF("%u %u | ", drdy_bit, dor_bit);
 	st2 = mag_data[8];
@@ -371,6 +371,18 @@ void icm20948_gyro_read_dps(axises *data)
 	data->x /= gyro_scale_factor;
 	data->y /= gyro_scale_factor;
 	data->z /= gyro_scale_factor;
+
+	static axises smoothed_data = {0, 0, 0}; // Начальные значения
+	float const ALPHA = 0.5;
+	// Экспоненциальное сглаживание везде по всем осям используем один коефициент
+	smoothed_data.x = ALPHA * data->x + (1 - ALPHA) * smoothed_data.x;
+	smoothed_data.y = ALPHA * data->y + (1 - ALPHA) * smoothed_data.y;
+	smoothed_data.z = ALPHA * data->z + (1 - ALPHA) * smoothed_data.z;
+	
+	// DEBUG_PRINTF("Gyro raw = %.3f smoothed= %.3f \n",data->x,smoothed_data.x);
+
+	*data = smoothed_data;
+
 }
 
 void icm20948_accel_read_g(axises *data)
@@ -389,14 +401,20 @@ void icm20948_accel_read_g(axises *data)
 		data->y = data->y / norm;
 		data->z = data->z / norm;
 	}
+
+	static axises smoothed_data = {0, 0, 1};// Начальные значения
+	float const ALPHA = 0.5;
+	// Экспоненциальное сглаживание везде по всем осям используем один коефициент
+	smoothed_data.x = ALPHA * data->x + (1 - ALPHA) * smoothed_data.x;
+	smoothed_data.y = ALPHA * data->y + (1 - ALPHA) * smoothed_data.y;
+	smoothed_data.z = ALPHA * data->z + (1 - ALPHA) * smoothed_data.z;
 	// DEBUG_PRINTF("Norm (g): %.3f",norm);
+
+	DEBUG_PRINTF("Accel raw = %.3f smoothed= %.3f \n",data->x,smoothed_data.x);
+
+	*data = smoothed_data;
 }
 
-#define ALPHA_X 0.30
-#define ALPHA_Y 0.30
-#define ALPHA_Z 0.08
-static axises smoothed_data = {0, 0, 50};
-#define WINDOW_SIZE 3 // Размер окна медианы
 
 // Простая функция сортировки и получения медианы (W=3)
 float get_median2(float *buffer)
@@ -427,7 +445,12 @@ float get_median2(float *buffer)
 	return b; // Медиана
 }
 
+#define ALPHA_X 0.30
+#define ALPHA_Y 0.30
+#define ALPHA_Z 0.08
+
 // Буфер для медианного фильтра (по 3 точки на ось)
+#define WINDOW_SIZE 3 // Размер окна медианы
 static float x_buffer[WINDOW_SIZE] = {0.0f, 0.0f, 0.0f};
 static float y_buffer[WINDOW_SIZE] = {0.0f, 0.0f, 0.0f};
 static float z_buffer[WINDOW_SIZE] = {50.0f, 50.0f, 50.0f};
@@ -446,6 +469,7 @@ float fir_sumY = 0.0f;                      // Сумма значений
 bool ak09916_mag_read_uT(axises *data)
 {
 	axises temp;
+	static axises smoothed_data = {0, 0, 50};
 	ak09916_mag_read(&temp);
 
 	if (isnan(data->x) || isinf(data->x))
@@ -499,7 +523,7 @@ bool ak09916_mag_read_uT(axises *data)
 
 	// DEBUG_PRINTF("");
 
-	// Возвращаем сглаженные и нормализованные данные
+	// Возвращаем сглаженные и отфильтрованные данные
 	*data = smoothed_data;
 
 
