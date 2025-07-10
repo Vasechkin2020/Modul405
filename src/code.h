@@ -20,6 +20,7 @@
 //********************************* ПЕРЕМЕННЫЕ ***************************************************************************
 
 bool flag_timer_10millisec = false;
+bool flag_timer_20millisec = false;
 bool flag_timer_50millisec = false;
 bool flag_timer_1sec = false;
 
@@ -119,10 +120,12 @@ uint32_t millis()
 void timer6() // Обработчик прерывания таймера TIM6	1 раз в 1 милисекунду
 {
     static int count_timer_10millisec = 0; // Счетчик для запуска обработки движения моторов в лупе по флагу
+    static int count_timer_20millisec = 0; // Счетчик для запуска обработки движения моторов в лупе по флагу
     static int count_timer_50millisec = 0; // Счетчик для запуска каждые 50 милисекунд
     static int count_timer_1sec = 0;       // Счетчик для запуска
 
     count_timer_10millisec++;
+    count_timer_20millisec++;
     count_timer_50millisec++;
     count_timer_1sec++;
 
@@ -134,6 +137,12 @@ void timer6() // Обработчик прерывания таймера TIM6	1
         count_timer_10millisec = 0;
         // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_10);
         flag_timer_10millisec = true;
+    }
+    //  каждые 20 милисекунд
+    if (count_timer_20millisec >= 20)
+    {
+        count_timer_20millisec = 0;
+        flag_timer_20millisec = true;
     }
     // каждые 50 милисекунд
     if (count_timer_50millisec >= 50)
@@ -173,9 +182,26 @@ uint64_t micros(void)
     return ret;
 }
 
-extern volatile float roll_M;
-extern volatile float pitch_M;
-extern volatile float yaw_M;
+extern volatile float roll_Mad;
+extern volatile float pitch_Mad;
+extern volatile float yaw_Mad;
+
+float roll_G = 0.0f, pitch_G = 0.0f, yaw_G = 0.0f; // Углы считаем из Акселерометра
+float roll_A = 0.0f, pitch_A = 0.0f;               // Углы считаем из Акселерометра только roll pitch. yaw не может быть посчитан
+float yaw_M = 0.0f, yaw_MM = 0.0f, yaw_MMM = 0.0f;                 // Углы считаем из Магнитометра
+
+axises gyroAngle;         // Углы Эллекра по гироскопу проинтегрированные по времени между измерениями
+u_int64_t timeUpdateGyro; // Переменная для хранения времени последнего обновления
+
+// Функция вычисления углов Эйлера только roll pitch. yaw не может быть посчитан
+void Calculate_Accel_Angles(float ax, float ay, float az)
+{
+    roll_A = atan2f(ay, sqrtf(ax * ax + az * az));   // Вычисление крена (Roll)
+    pitch_A = atan2f(-ax, sqrtf(ay * ay + az * az)); // Вычисление тангажа (Pitch)
+
+    roll_A = roll_A * 180.0f / M_PI; // Перевод в градусы
+    pitch_A = pitch_A * 180.0f / M_PI;
+}
 
 void workingTimer() // Отработка действий по таймеру в 1, 50, 60 милисекунд
 {
@@ -183,35 +209,77 @@ void workingTimer() // Отработка действий по таймеру �
     //----------------------------- 10 миллисекунд --------------------------------------
     if (flag_timer_10millisec)
     {
-        // DEBUG_PRINTF("%lu | ", millis());
-        uint32_t start0 = micros(); // Получаем текущее время в микросекундах
         flag_timer_10millisec = false;
+
         icm20948_gyro_read_dps(&my_gyro);
+
+        static uint64_t last_timeGyro = 0; // Переменная для хранения времени последнего обновления
+        timeUpdateGyro = micros();         // Получаем текущее время в микросекундах для расчета dt
+        if (last_timeGyro == 0)            // Если это первое обновление, инициализируем last_timeGyro
+            last_timeGyro = timeUpdateGyro;
+        float dt = (float)(timeUpdateGyro - last_timeGyro) / 1000000.0f; // Вычисляем время между обновлениями в секундах
+        last_timeGyro = timeUpdateGyro;                                  // Обновляем время последнего обновления
+
+        roll_G += my_gyro.x * dt;  // Получаем угол поворота по оси X
+        pitch_G += my_gyro.y * dt; // Получаем угол поворота по оси X
+        yaw_G += my_gyro.z * dt;   // Получаем угол поворота по оси X
+
+        // DEBUG_PRINTF("dt= %f | Gyro X= %.3f Y= %.3f Z= %.3f | \n", dt, my_gyro.x, gyroAngle.x);
 
         icm20948_accel_read_g(&my_accel);
 
         ak09916_mag_read_uT(&my_mag);
+
+        Calculate_Accel_Angles(my_accel.x, my_accel.y, my_accel.z); // Вычисляем углы Эйлера только roll pitch. yaw не может быть посчитан
+        // DEBUG_PRINTF("%lu | ", millis());
+        // uint32_t start0 = micros(); // Получаем текущее время в микросекундах
 
         // DEBUG_PRINTF("%.3f %.3f %.3f \n",my_mag.x,my_mag.y,my_mag.z);
         // float gradus = atan2(my_mag.y,my_mag.x) * 57.2958;
         // DEBUG_PRINTF("gradus %.3f \n",gradus);
 
         // Обновление фильтра Madgwick
-        uint32_t start = micros(); // Получаем текущее время в микросекундах
-        MadgwickAHRSupdate(my_gyro.x, my_gyro.y, my_gyro.z, my_accel.x, my_accel.y, my_accel.z, my_mag.x, my_mag.y, my_mag.z);
-        uint32_t end = micros(); // Получаем текущее время в микросекундах
+        // uint32_t start = micros(); // Получаем текущее время в микросекундах
+        // MadgwickAHRSupdate(my_gyro.x, my_gyro.y, my_gyro.z, my_accel.x, my_accel.y, my_accel.z, my_mag.x, my_mag.y, my_mag.z);
+        MadgwickAHRSupdateIMU(my_gyro.x, my_gyro.y, my_gyro.z, my_accel.x, my_accel.y, my_accel.z);
+        // uint32_t end = micros(); // Получаем текущее время в микросекундах
         // DEBUG_PRINTF(" | Madgwick   %.2f  %.2f  %.2f || %lu  %lu\n", roll_M, pitch_M, yaw_M,end-start,end-start0);
-        
+
+        //********************** ВЫЧИСЛЕНИЕ КАК БУДТО МЫ ТОЛЬКО ГОРИЗОНТАЛЬНО ПОАОРАЧИВАЕМСЯ БЕЗ УЧЕТА НАКЛОНОВ ***********************************
+        // Вычисление угла рыскания yaw
+        yaw_M = atan2f(-my_mag.y, my_mag.x);
+        yaw_M = yaw_M * 180.0f / M_PI; // Перевод в градусы
+        // if (yaw_MM < 0)
+        //     yaw_MM += 360.0f;// Коррекция для положительного диапазона (0–360°)
+
+        float mx_prime = my_mag.x * cosf(DEG2RAD(pitch_A)) + my_mag.y * sinf(DEG2RAD(roll_A)) * sinf(DEG2RAD(pitch_A)) + my_mag.z * cosf(DEG2RAD(roll_A)) * sinf(DEG2RAD(pitch_A));
+        float my_prime = my_mag.y * cosf(DEG2RAD(roll_A)) - my_mag.z * sinf(DEG2RAD(roll_A));
+        yaw_MM = atan2f(-my_prime, mx_prime);
+        yaw_MM = yaw_MM * 180.0f / M_PI;
+
+        float mx_prime2 = my_mag.x * cosf(DEG2RAD(pitch_Mad)) + my_mag.y * sinf(DEG2RAD(roll_Mad)) * sinf(DEG2RAD(pitch_Mad)) + my_mag.z * cosf(DEG2RAD(roll_Mad)) * sinf(DEG2RAD(pitch_Mad));
+        float my_prime2 = my_mag.y * cosf(DEG2RAD(roll_Mad)) - my_mag.z * sinf(DEG2RAD(roll_Mad));
+        yaw_MMM = atan2f(-my_prime2, mx_prime2);
+        yaw_MMM = yaw_MMM * 180.0f / M_PI;
+
+    }
+    //----------------------------- 20 миллисекунд --------------------------------------
+    if (flag_timer_20millisec)
+    {
+        DEBUG_PRINTF("%lu | ", millis());
+        flag_timer_20millisec = false;
+        // DEBUG_PRINTF("Gyro %+8.3f %+8.3f %+8.3f | ", my_gyro.x, my_gyro.y, my_gyro.z);
+        DEBUG_PRINTF(" roll_G= %+8.3f pitch_G= %+8.3f yaw_G= %+8.3f || ", roll_G, pitch_G, yaw_G);
+        // DEBUG_PRINTF("Accel %+8.3f %+8.3f %+8.3f | ", my_accel.x, my_accel.y, my_accel.z);
+        // DEBUG_PRINTF("roll_A= %+8.3f pitch_A= %+8.3f | ", roll_A, pitch_A);
+        DEBUG_PRINTF("Madgwick %+8.3f %+8.3f %+8.3f || ", roll_Mad, pitch_Mad, yaw_Mad);
+        DEBUG_PRINTF("Magn X= %+8.3f y= %+8.3f z= %+8.3f | ",my_mag.x,my_mag.y,my_mag.z);
+        DEBUG_PRINTF("yaw_M= %+8.3f yaw_MM= %+8.3f yaw_MMM= %+8.3f | \n", yaw_M, yaw_MM, yaw_MMM);
     }
     //----------------------------- 50 миллисекунд --------------------------------------
     if (flag_timer_50millisec)
     {
         flag_timer_50millisec = false;
-        DEBUG_PRINTF("Gyro X= %+8.3f y= %+8.3f z= %+8.3f ",my_gyro.x,my_gyro.y,my_gyro.z);
-        DEBUG_PRINTF("Accel X= %+8.3f y= %+8.3f z= %+8.3f ",my_accel.x,my_accel.y,my_accel.z);
-        DEBUG_PRINTF("Magn X= %+8.3f y= %+8.3f z= %+8.3f ",my_mag.x,my_mag.y,my_mag.z);
-        DEBUG_PRINTF(" | Madgwick   %+7.2f  %+7.2f  %+7.2f || \n", roll_M, pitch_M, yaw_M);
-        // ak09916_mag_read_uT(&my_mag);
 
         // DEBUG_PRINTF("50msec %li \r\n", millis());
         //  flag_data = true; // Есть новые данные по шине // РУчной вариант имитации пришедших данных с частотой 20Гц

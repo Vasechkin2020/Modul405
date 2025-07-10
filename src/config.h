@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#define RAD2DEG(x) ((x) * 180. / M_PI) // Первод из радиан в градусы
+#define DEG2RAD(x) ((x) * M_PI / 180.) // Первод из градусов в радианы
+
 enum codeOperation // коды операций запросов по UART
 {
   No,           // нет операций
