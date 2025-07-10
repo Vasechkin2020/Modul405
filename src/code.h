@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <limits.h> // для CHAR_BIT
 #include "icm20948.h"
+#include "MadgwickAHRS.h"
 
 #include "motor.h"
 #include "laser80M.h"
@@ -71,11 +72,11 @@ uint8_t modeControlLaser = 0; // Режим в котором находиттс
 
 //********************************* ФУНКЦИИ ***************************************************************************
 
+// Функция для включения FPU (Floating Point Unit) на STM32F4xx
 void EnableFPU(void)
 {
     // Включение FPU (CP10 и CP11: полный доступ)
     SCB->CPACR |= ((3UL << 20) | (3UL << 22)); // CP10 = 0b11, CP11 = 0b11
-  
 }
 
 // Вот функция на C, которая печатает целое число в бинарном формате с использованием printf:
@@ -172,27 +173,44 @@ uint64_t micros(void)
     return ret;
 }
 
+extern volatile float roll_M;
+extern volatile float pitch_M;
+extern volatile float yaw_M;
+
 void workingTimer() // Отработка действий по таймеру в 1, 50, 60 милисекунд
 {
     // HAL_Delay(); // Пауза 500 миллисекунд.
     //----------------------------- 10 миллисекунд --------------------------------------
     if (flag_timer_10millisec)
     {
+        // DEBUG_PRINTF("%lu | ", millis());
+        uint32_t start0 = micros(); // Получаем текущее время в микросекундах
         flag_timer_10millisec = false;
-        // icm20948_gyro_read_dps(&my_gyro);
-        // DEBUG_PRINTF("Gyro X= %.3f y= %.3f z= %.3f \n",my_gyro.x,my_gyro.y,my_gyro.z);
+        icm20948_gyro_read_dps(&my_gyro);
+
         icm20948_accel_read_g(&my_accel);
-        // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_10); // Инвертирование состояния выхода.
-        // ak09916_mag_read_uT(&my_mag);
-        // DEBUG_PRINTF("Magn X= %.3f y= %.3f z= %.3f \n",my_mag.x,my_mag.y,my_mag.z);
+
+        ak09916_mag_read_uT(&my_mag);
+
         // DEBUG_PRINTF("%.3f %.3f %.3f \n",my_mag.x,my_mag.y,my_mag.z);
         // float gradus = atan2(my_mag.y,my_mag.x) * 57.2958;
         // DEBUG_PRINTF("gradus %.3f \n",gradus);
+
+        // Обновление фильтра Madgwick
+        uint32_t start = micros(); // Получаем текущее время в микросекундах
+        MadgwickAHRSupdate(my_gyro.x, my_gyro.y, my_gyro.z, my_accel.x, my_accel.y, my_accel.z, my_mag.x, my_mag.y, my_mag.z);
+        uint32_t end = micros(); // Получаем текущее время в микросекундах
+        // DEBUG_PRINTF(" | Madgwick   %.2f  %.2f  %.2f || %lu  %lu\n", roll_M, pitch_M, yaw_M,end-start,end-start0);
+        
     }
     //----------------------------- 50 миллисекунд --------------------------------------
     if (flag_timer_50millisec)
     {
         flag_timer_50millisec = false;
+        DEBUG_PRINTF("Gyro X= %+8.3f y= %+8.3f z= %+8.3f ",my_gyro.x,my_gyro.y,my_gyro.z);
+        DEBUG_PRINTF("Accel X= %+8.3f y= %+8.3f z= %+8.3f ",my_accel.x,my_accel.y,my_accel.z);
+        DEBUG_PRINTF("Magn X= %+8.3f y= %+8.3f z= %+8.3f ",my_mag.x,my_mag.y,my_mag.z);
+        DEBUG_PRINTF(" | Madgwick   %+7.2f  %+7.2f  %+7.2f || \n", roll_M, pitch_M, yaw_M);
         // ak09916_mag_read_uT(&my_mag);
 
         // DEBUG_PRINTF("50msec %li \r\n", millis());

@@ -128,7 +128,7 @@ void icm20948_init()
 	icm20948_accel_full_scale_select(_2g);	// Выбор полной шкалы для акселерометра  // - full_scale: Значение шкалы (например, ±2g, ±4g, см. datasheet, раздел 6.8) // Используется для установки диапазона измерений акселерометра (влияет на чувствительность)
 
 	icm20948_wakeup();
-
+	//
 	icm20948_gyro_calibration();
 	icm20948_accel_calibration();
 
@@ -720,6 +720,7 @@ void ak09916_operation_mode_setting(operation_mode mode)
 	HAL_Delay(100);
 }
 
+// Функция калибровки гироскопа
 void icm20948_gyro_calibration()
 {
 	DEBUG_PRINTF("+++ icm20948_gyro_calibration \n");
@@ -727,7 +728,7 @@ void icm20948_gyro_calibration()
 	int32_t gyro_bias[3] = {0};
 	// int32_t gyro_biasEnd[3] = {0};
 	uint8_t gyro_offset[6] = {0};
-	int count = 10;
+	int count = 333;
 
 	for (int i = 0; i < count; i++)
 	{
@@ -760,7 +761,7 @@ void icm20948_gyro_calibration()
 	write_multiple_icm20948_reg(ub_2, B2_XG_OFFS_USRH, gyro_offset, 6);
 	HAL_Delay(500);
 }
-
+// Функция калибровки акселерометра
 void icm20948_accel_calibration()
 {
 	DEBUG_PRINTF("+++ icm20948_accel_calibration \n");
@@ -769,7 +770,7 @@ void icm20948_accel_calibration()
 	uint8_t *temp3;
 	uint8_t *temp4;
 
-	int count = 10;
+	int count = 333;
 
 	int32_t accel_bias[3] = {0};
 	int32_t accel_bias_reg[3] = {0};

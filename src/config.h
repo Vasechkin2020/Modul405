@@ -1,6 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <stdint.h>
+
 enum codeOperation // коды операций запросов по UART
 {
   No,           // нет операций

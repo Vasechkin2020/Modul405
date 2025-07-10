@@ -23,6 +23,7 @@
 #include "slaveSPI.h"
 #include "bno055.h"
 #include "icm20948.h"
+#include "MadgwickAHRS.h"
 
 void SystemClock_Config(void);
 volatile uint32_t millisCounter = 0;
