@@ -96,6 +96,9 @@ void icm20948_init()
 	DEBUG_PRINTF("+++ icm20948_init \n");
 	icm20948_device_reset();
 	icm20948_who_am_i();
+	ICM20948_DisableLPMMode(); // Отключение режима низкого энергопотребления (LPM) для нормальной работы датчика
+	HAL_Delay(500); // Задержка
+
 	// enable_i2c_mode();					   // Отключение SPI и включение I2C
 
 	icm20948_clock_source(1);	 // Используется для выбора лучшего источника тактирования (обычно авто-выбор для минимального дрейфа)
@@ -108,19 +111,20 @@ void icm20948_init()
 	ICM-20948 настройки:Гироскоп: GYRO_DLPFCFG = 5 (3DB BW = 11,6 Гц, NBW = 17,8 Гц), FSR = ±250 dps, ODR ≈ 102,27 Гц (GYRO_SMPLRT_DIV = 10).
 	Акселерометр: ACCEL_DLPFCFG = 5 (3DB BW = 11,5 Гц, NBW = 13,1 Гц), FSR = ±2g, ODR ≈ 102,27 Гц (ACCEL_SMPLRT_DIV = 10).
 	*/
-	/*Установите GYRO_DLPFCFG = 5:
-	3DB BW = 11,6 Гц идеально подходит для захвата сигналов ваших медленных движений (0–5 Гц, с запасом до 10 Гц).
-	NBW = 17,8 Гц обеспечивает отличное подавление шума, что повышает точность данных, особенно при высокой чувствительности (250 dps).
-	Частота подготовки данных (RATE) при GYRO_SMPLRT_DIV ≤ 10 (например, ~102,27 Гц при GYRO_SMPLRT_DIV = 10) совместима с вашим опросом 100 Гц.*/
-	icm20948_gyro_low_pass_filter(5);	   // Настройка низкочастотного фильтра для гироскопа //  - config: Значение от 0 до 7, задающее частоту среза фильтра (см. datasheet, раздел 6.8) // Используется для уменьшения шума в данных гироскопа
-	icm20948_gyro_sample_rate_divider(10); // Установка делителя частоты дискретизации для гироскопа // - divider: Значение делителя (Output Data Rate = 1.125 кГц / (1 + divider))// Используется для настройки частоты вывода данных гироскопа (например, 100 Гц при divider = 10)
-
 	/*Ваша максимальная скорость поворота — 360 градусов за 2 секунды. Давайте определим, как это переводится в частоту (в герцах), чтобы понять, подходит ли выбранная настройка.Угловая скорость:Угловая скорость=360∘2 с=180∘
 	Это соответствует 180 градусов в секунду, что укладывается в выбранную чувствительность гироскопа 250 dps (±250°/с).
 	Частота вращения в герцах:
 	Частота в герцах (Гц) для вращения связана с периодом одного полного оборота (360°). Если полный оборот занимает 2 секунды, то:Частота=1Период=12 с=0,5 Гц\text{Частота} = \frac{1}{\text{Период}} = \frac{1}{2 \, \text{с}} = 0,5 \, \text{Гц}\text{Частота} = \frac{1}{\text{Период}} = \frac{1}{2 \, \text{с}} = 0,5 \, \text{Гц}
 	Это означает, что основная частота вашего вращения — 0,5 Гц (один полный оборот каждые 2 секунды).*/
 	icm20948_gyro_full_scale_select(_250dps); // Выбор полной шкалы для гироскопа //  - full_scale: Значение шкалы (например, ±250 dps, ±500 dps, см. datasheet, раздел 6.8) // Используется для установки диапазона измерений гироскопа (влияет на чувствительность)
+
+	/*Установите GYRO_DLPFCFG = 5:
+	3DB BW = 11,6 Гц идеально подходит для захвата сигналов ваших медленных движений (0–5 Гц, с запасом до 10 Гц).
+	NBW = 17,8 Гц обеспечивает отличное подавление шума, что повышает точность данных, особенно при высокой чувствительности (250 dps).
+	Частота подготовки данных (RATE) при GYRO_SMPLRT_DIV ≤ 10 (например, ~102,27 Гц при GYRO_SMPLRT_DIV = 10) совместима с вашим опросом 100 Гц.*/
+	icm20948_gyro_low_pass_filter(5); // Настройка низкочастотного фильтра для гироскопа //  - config: Значение от 0 до 7, задающее частоту среза фильтра (см. datasheet, раздел 6.8) // Используется для уменьшения шума в данных гироскопа
+
+	icm20948_gyro_sample_rate_divider(10); // Установка делителя частоты дискретизации для гироскопа // - divider: Значение делителя (Output Data Rate = 1.125 кГц / (1 + divider))// Используется для настройки частоты вывода данных гироскопа (например, 100 Гц при divider = 10)
 
 	//*********************** АКСЕЛЬРОМЕТР**************************
 	icm20948_accel_low_pass_filter(5);		// Настройка низкочастотного фильтра для акселрометра //  - config: Значение от 0 до 7, задающее частоту среза фильтра (см. datasheet, раздел 6.8) // Используется для уменьшения шума в данных гироскопа
@@ -129,6 +133,8 @@ void icm20948_init()
 
 	icm20948_wakeup();
 	//
+	icm20948_gyro_calibration();
+	icm20948_gyro_calibration();
 	icm20948_gyro_calibration();
 	icm20948_accel_calibration();
 
@@ -178,7 +184,6 @@ void ak09916_init()
 	// float x_max = -FLT_MAX, x_min = FLT_MAX;
 	// float y_max = -FLT_MAX, y_min = FLT_MAX;
 	// float z_max = -FLT_MAX, z_min = FLT_MAX;
-
 
 	// for (size_t i = 0; i < 18000; i++)
 	// {
@@ -230,7 +235,6 @@ void ak09916_init()
 	mScale.s_x = 1.029; // Это средние или медианные значения на основании 8 калибровок и усреднения.
 	mScale.s_y = 0.986;
 	mScale.s_z = 0.987;
-
 
 	DEBUG_PRINTF("    End ak09916_init \n");
 }
@@ -372,19 +376,21 @@ void icm20948_gyro_read_dps(axises *data)
 	data->y /= gyro_scale_factor;
 	data->z /= gyro_scale_factor;
 
+	// DEBUG_PRINTF("Gyro gyro_scale_factor = %+8.3f | ", gyro_scale_factor);
+
 	static axises smoothed_data = {0, 0, 0}; // Начальные значения
-	float const ALPHA = 0.5;
+	float const ALPHA = 0.33;
 	// Экспоненциальное сглаживание везде по всем осям используем один коефициент
 	smoothed_data.x = ALPHA * data->x + (1 - ALPHA) * smoothed_data.x;
 	smoothed_data.y = ALPHA * data->y + (1 - ALPHA) * smoothed_data.y;
 	smoothed_data.z = ALPHA * data->z + (1 - ALPHA) * smoothed_data.z;
-	
+
+	DEBUG_PRINTF("Gyro raw = %+8.3f %+8.3f %+8.3f smoothed= %+8.3f %+8.3f %+8.3f | ", data->x, data->y, data->z, smoothed_data.x, smoothed_data.y, smoothed_data.z);
 	// DEBUG_PRINTF("Gyro raw = %.3f smoothed= %.3f \n",data->x,smoothed_data.x);
 
 	*data = smoothed_data;
-
 }
-
+// Считывание акселерометра
 void icm20948_accel_read_g(axises *data)
 {
 	icm20948_accel_read(data);
@@ -402,19 +408,18 @@ void icm20948_accel_read_g(axises *data)
 		data->z = data->z / norm;
 	}
 
-	static axises smoothed_data = {0, 0, 1};// Начальные значения
-	float const ALPHA = 0.5;
+	static axises smoothed_data = {0, 0, 1}; // Начальные значения
+	float const ALPHA = 0.33;
 	// Экспоненциальное сглаживание везде по всем осям используем один коефициент
 	smoothed_data.x = ALPHA * data->x + (1 - ALPHA) * smoothed_data.x;
 	smoothed_data.y = ALPHA * data->y + (1 - ALPHA) * smoothed_data.y;
 	smoothed_data.z = ALPHA * data->z + (1 - ALPHA) * smoothed_data.z;
 	// DEBUG_PRINTF("Norm (g): %.3f",norm);
 
-	// DEBUG_PRINTF("Accel raw = %.3f smoothed= %.3f \n",data->x,smoothed_data.x);
+	DEBUG_PRINTF("Accel raw = %+8.3f %+8.3f %+8.3f smoothed= %+8.3f %+8.3f %+8.3f | \n", data->x, data->y, data->z, smoothed_data.x, smoothed_data.y, smoothed_data.z);
 
 	*data = smoothed_data;
 }
-
 
 // Простая функция сортировки и получения медианы (W=3)
 float get_median2(float *buffer)
@@ -445,9 +450,9 @@ float get_median2(float *buffer)
 	return b; // Медиана
 }
 
-#define ALPHA_X 0.30
-#define ALPHA_Y 0.30
-#define ALPHA_Z 0.08
+#define ALPHA_X 0.20
+#define ALPHA_Y 0.20
+#define ALPHA_Z 0.05
 
 // Буфер для медианного фильтра (по 3 точки на ось)
 #define WINDOW_SIZE 3 // Размер окна медианы
@@ -456,20 +461,20 @@ static float y_buffer[WINDOW_SIZE] = {0.0f, 0.0f, 0.0f};
 static float z_buffer[WINDOW_SIZE] = {50.0f, 50.0f, 50.0f};
 static uint8_t buffer_index = 0;
 
-#define FILTER_WINDOW_SIZE 8    // Размер окна скользящего среднего
-float fir_bufferX[FILTER_WINDOW_SIZE];  // Буфер FIR
-float fir_bufferY[FILTER_WINDOW_SIZE];  // Буфер FIR
+#define FILTER_WINDOW_SIZE 16		   // Размер окна скользящего среднего
+float fir_bufferX[FILTER_WINDOW_SIZE]; // Буфер FIR
+float fir_bufferY[FILTER_WINDOW_SIZE]; // Буфер FIR
 float iir_filteredX = 0.0f;
 float iir_filteredY = 0.0f;
-uint8_t fir_indexX = 0;                     // Индекс в буфере
-uint8_t fir_indexY = 0;                     // Индекс в буфере
-float fir_sumX = 0.0f;                      // Сумма значений
-float fir_sumY = 0.0f;                      // Сумма значений
+uint8_t fir_indexX = 0; // Индекс в буфере
+uint8_t fir_indexY = 0; // Индекс в буфере
+float fir_sumX = 0.0f;	// Сумма значений
+float fir_sumY = 0.0f;	// Сумма значений
 
 bool ak09916_mag_read_uT(axises *data)
 {
 	axises temp;
-	static axises smoothed_data = {0, 0, 50};
+	static axises smoothed_data = {0, 0, 35};
 	ak09916_mag_read(&temp);
 
 	if (isnan(data->x) || isinf(data->x))
@@ -487,7 +492,7 @@ bool ak09916_mag_read_uT(axises *data)
 	x_buffer[buffer_index] = data->x;
 	y_buffer[buffer_index] = data->y;
 	z_buffer[buffer_index] = data->z;
-	// Обновляем индекс буфера Строка buffer_index = (buffer_index + 1) % WINDOW_SIZE; обеспечивает циклическое переключение индекса в пределах [0, WINDOW_SIZE-1], что необходимо для работы кольцевого буфера в медианном фильтре. 
+	// Обновляем индекс буфера Строка buffer_index = (buffer_index + 1) % WINDOW_SIZE; обеспечивает циклическое переключение индекса в пределах [0, WINDOW_SIZE-1], что необходимо для работы кольцевого буфера в медианном фильтре.
 	buffer_index = (buffer_index + 1) % 3;
 
 	// Вычисляем медиану Это для убирания выбросов
@@ -499,7 +504,7 @@ bool ak09916_mag_read_uT(axises *data)
 	// data->x = x_median;
 	// data->y = y_median;
 	// data->z = z_median;
-	
+
 	// DEBUG_PRINTF("raw= %.3f x_median= %.3f | ", data->x, x_median);
 
 	// Экспоненциальное сглаживание
@@ -509,23 +514,24 @@ bool ak09916_mag_read_uT(axises *data)
 	// DEBUG_PRINTF("smoothed_data =%.3f | ", smoothed_data.x);
 
 	// === Шаг 2: FIR-фильтр X (скользящее среднее) ===
-    fir_sumX -= fir_bufferX[fir_indexX];           // Убираем старое
-    fir_sumX += smoothed_data.x;                         // Добавляем новое
-    fir_bufferX[fir_indexX] = smoothed_data.x;;            // Обновляем буфер
-    fir_indexX = (fir_indexX + 1) % FILTER_WINDOW_SIZE;
-    smoothed_data.x = fir_sumX / FILTER_WINDOW_SIZE;
-		// === Шаг 2: FIR-фильтр Y (скользящее среднее) ===
-    fir_sumY -= fir_bufferY[fir_indexY];           // Убираем старое
-    fir_sumY += smoothed_data.y;                         // Добавляем новое
-    fir_bufferY[fir_indexY] = smoothed_data.y;;            // Обновляем буфер
-    fir_indexY = (fir_indexY + 1) % FILTER_WINDOW_SIZE;
-    smoothed_data.y = fir_sumY / FILTER_WINDOW_SIZE;
+	fir_sumX -= fir_bufferX[fir_indexX]; // Убираем старое
+	fir_sumX += smoothed_data.x;		 // Добавляем новое
+	fir_bufferX[fir_indexX] = smoothed_data.x;
+	; // Обновляем буфер
+	fir_indexX = (fir_indexX + 1) % FILTER_WINDOW_SIZE;
+	smoothed_data.x = fir_sumX / FILTER_WINDOW_SIZE;
+	// === Шаг 2: FIR-фильтр Y (скользящее среднее) ===
+	fir_sumY -= fir_bufferY[fir_indexY]; // Убираем старое
+	fir_sumY += smoothed_data.y;		 // Добавляем новое
+	fir_bufferY[fir_indexY] = smoothed_data.y;
+	; // Обновляем буфер
+	fir_indexY = (fir_indexY + 1) % FILTER_WINDOW_SIZE;
+	smoothed_data.y = fir_sumY / FILTER_WINDOW_SIZE;
 
 	// DEBUG_PRINTF("");
 
 	// Возвращаем сглаженные и отфильтрованные данные
 	*data = smoothed_data;
-
 
 	return true;
 }
@@ -601,6 +607,53 @@ void icm20948_wakeup()
 	new_val &= 0xBF;
 	write_single_icm20948_reg(ub_0, B0_PWR_MGMT_1, new_val);
 	HAL_Delay(100);
+}
+
+HAL_StatusTypeDef ICM20948_DisableLPMMode()
+{
+	HAL_StatusTypeDef status;
+	uint8_t data;
+
+	// Выбор банка 0
+	data = 0x00; // Банк 0
+	status = HAL_I2C_Mem_Write(ICM20948_I2C, ICM20948_I2C_ADDRESS, REG_BANK_SEL, 1, &data, 1, 100);
+	if (status != HAL_OK)
+	{
+		return status; // Возврат ошибки, если выбор банка не удался
+	}
+
+	// Проверка, что банк 0 выбран
+	data = 0xFF; // Сбрасываем переменную для чтения
+	status = HAL_I2C_Mem_Read(ICM20948_I2C, ICM20948_I2C_ADDRESS, REG_BANK_SEL, 1, &data, 1, 100);
+	DEBUG_PRINTF("ICM20948_DisableLPMMode bank: 0x%02X ", data); // Вывод выбранного банка
+	print_binary(data); // Вывод выбранного банка в бинарном виде
+
+	if (status != HAL_OK || data != 0x00)
+	{
+		return HAL_ERROR; // Ошибка, если банк не 0
+	}
+
+	// Отключение LP_EN в PWR_MGMT_1 (запись 0x01: LP_EN=0, CLKSEL=001)
+	data = 0x01; // LP_EN=0, CLKSEL=001, остальные биты по умолчанию
+	status = HAL_I2C_Mem_Write(ICM20948_I2C, ICM20948_I2C_ADDRESS, B0_PWR_MGMT_1, 1, &data, 1, 100);
+	if (status != HAL_OK)
+	{
+		return status; // Возврат ошибки, если запись не удалась
+	}
+
+	// Проверка, что PWR_MGMT_1 записался корректно
+	data = 0xFF; // Сбрасываем переменную для чтения
+	status = HAL_I2C_Mem_Read(ICM20948_I2C, ICM20948_I2C_ADDRESS, B0_PWR_MGMT_1, 1, &data, 1, 100);
+	
+	DEBUG_PRINTF("B0_PWR_MGMT_1 bank: 0x%02X ", data); // Вывод выбранного банка
+	print_binary(data); // Вывод выбранного банка в бинарном виде
+	
+	if (status != HAL_OK || data != 0x01)
+	{
+		return HAL_ERROR; // Ошибка, если значение не 0x01
+	}
+
+	return HAL_OK; // Успех
 }
 
 void icm20948_sleep()
@@ -682,10 +735,25 @@ void icm20948_odr_align_enable()
 void icm20948_gyro_low_pass_filter(uint8_t config)
 {
 	DEBUG_PRINTF("+++ icm20948_gyro_low_pass_filter \n");
+
 	uint8_t new_val = read_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1);
+	DEBUG_PRINTF("    In B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	print_binary(new_val);
+	DEBUG_PRINTF("    Config = %d ", config);
+	print_binary(config);
 	new_val |= config << 3;
+	DEBUG_PRINTF("    Out B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	print_binary(new_val);
 
 	write_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1, new_val);
+
+	HAL_Delay(100);
+	new_val = read_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1);
+	DEBUG_PRINTF("    ITOG  B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	print_binary(new_val);
+
+	DEBUG_PRINTF("    End icm20948_gyro_low_pass_filter ****************************************************** \n");
+	HAL_Delay(1000);
 }
 
 void icm20948_accel_low_pass_filter(uint8_t config)
@@ -700,7 +768,21 @@ void icm20948_accel_low_pass_filter(uint8_t config)
 void icm20948_gyro_sample_rate_divider(uint8_t divider)
 {
 	DEBUG_PRINTF("+++ icm20948_gyro_sample_rate_divider \n");
+	uint8_t new_val = read_single_icm20948_reg(ub_2, B2_GYRO_SMPLRT_DIV);
+	DEBUG_PRINTF("    In B2_GYRO_SMPLRT_DIV: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	print_binary(new_val);
+
+	DEBUG_PRINTF("    Divider = %d ", divider);
+	print_binary(divider);
+
 	write_single_icm20948_reg(ub_2, B2_GYRO_SMPLRT_DIV, divider);
+	HAL_Delay(100);
+
+	new_val = read_single_icm20948_reg(ub_2, B2_GYRO_SMPLRT_DIV);
+	DEBUG_PRINTF("    ITOG B2_GYRO_SMPLRT_DIV: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	print_binary(new_val);
+
+	DEBUG_PRINTF("    End icm20948_gyro_sample_rate_divider ****************************************************** \n");
 }
 
 void icm20948_accel_sample_rate_divider(uint16_t divider)
@@ -726,9 +808,11 @@ void icm20948_gyro_calibration()
 	DEBUG_PRINTF("+++ icm20948_gyro_calibration \n");
 	axises temp;
 	int32_t gyro_bias[3] = {0};
+	int32_t gyro_max[3] = {0};
+	int32_t gyro_min[3] = {0};
 	// int32_t gyro_biasEnd[3] = {0};
 	uint8_t gyro_offset[6] = {0};
-	int count = 333;
+	int count = 1000;
 
 	for (int i = 0; i < count; i++)
 	{
@@ -737,8 +821,43 @@ void icm20948_gyro_calibration()
 		gyro_bias[0] += temp.x;
 		gyro_bias[1] += temp.y;
 		gyro_bias[2] += temp.z;
+
+		if (i == 0)
+		{
+			gyro_max[0] = temp.x;
+			gyro_min[0] = temp.x;
+			gyro_max[1] = temp.y;
+			gyro_min[1] = temp.y;
+			gyro_max[2] = temp.z;
+			gyro_min[2] = temp.z;
+		}
+		else
+		{
+			if (temp.x > gyro_max[0])
+				gyro_max[0] = temp.x;
+			if (temp.x < gyro_min[0])
+				gyro_min[0] = temp.x;
+
+			if (temp.y > gyro_max[1])
+				gyro_max[1] = temp.y;
+			if (temp.y < gyro_min[1])
+				gyro_min[1] = temp.y;
+
+			if (temp.z > gyro_max[2])
+				gyro_max[2] = temp.z;
+			if (temp.z < gyro_min[2])
+				gyro_min[2] = temp.z;
+		}
 		HAL_Delay(10);
 	}
+
+	int32_t gyro_bias_razbros[3] = {0};
+	for (int i = 0; i < 3; i++)
+	{
+		gyro_bias_razbros[i] = gyro_max[i] - gyro_min[i];
+		DEBUG_PRINTF("    gyro_max[%d] = %li  gyro_min[%d] = %li  razbros = %li diapazon = %+8.3f \n", i, gyro_max[i], i, gyro_min[i], gyro_bias_razbros[i], gyro_bias_razbros[i] / gyro_scale_factor);
+	}
+
 	DEBUG_PRINTF("    SUM gyroBias0 = %li  gyroBias1 = %li  gyroBias2 = %li \n", gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
 	gyro_bias[0] = gyro_bias[0] / count;
@@ -829,7 +948,13 @@ void icm20948_accel_calibration()
 
 void icm20948_gyro_full_scale_select(gyro_full_scale full_scale)
 {
+	DEBUG_PRINTF("+++ icm20948_gyro_full_scale_select \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1);
+	DEBUG_PRINTF("    IN  B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	print_binary(new_val);
+
+	DEBUG_PRINTF("    Full scale = %d ", full_scale);
+	print_binary(new_val);
 
 	switch (full_scale)
 	{
@@ -850,8 +975,16 @@ void icm20948_gyro_full_scale_select(gyro_full_scale full_scale)
 		gyro_scale_factor = 16.4;
 		break;
 	}
+	DEBUG_PRINTF("    OUT  B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	print_binary(new_val);
 
 	write_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1, new_val);
+	HAL_Delay(100);
+
+	new_val = read_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1);	  // Считываем значение регистра B2_GYRO_CONFIG_1 после записи
+	DEBUG_PRINTF("    ITOG  B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	print_binary(new_val);
+	DEBUG_PRINTF("    End icm20948_gyro_full_scale_select ****************************************************** \n");
 }
 
 void icm20948_accel_full_scale_select(accel_full_scale full_scale)

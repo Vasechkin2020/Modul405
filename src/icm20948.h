@@ -89,6 +89,8 @@ typedef struct {
 
 /* Main Functions */
 
+HAL_StatusTypeDef ICM20948_DisableLPMMode(); // Отключение режима низкого энергопотребления (LPM) ICM-20948
+
 void enable_i2c_mode(void);					   // Отключение SPI и включение I2C
 void I2C_ScanDevices(I2C_HandleTypeDef *hi2c); // Функция для сканирования устройств на шине I2C
 // sensor init function.

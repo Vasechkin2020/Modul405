@@ -188,7 +188,7 @@ extern volatile float yaw_Mad;
 
 float roll_G = 0.0f, pitch_G = 0.0f, yaw_G = 0.0f; // Углы считаем из Акселерометра
 float roll_A = 0.0f, pitch_A = 0.0f;               // Углы считаем из Акселерометра только roll pitch. yaw не может быть посчитан
-float yaw_M = 0.0f, yaw_MM = 0.0f, yaw_MMM = 0.0f;                 // Углы считаем из Магнитометра
+float yaw_M = 0.0f, yaw_MMM = 0.0f;                 // Углы считаем из Магнитометра
 
 axises gyroAngle;         // Углы Эллекра по гироскопу проинтегрированные по времени между измерениями
 u_int64_t timeUpdateGyro; // Переменная для хранения времени последнего обновления
@@ -223,6 +223,7 @@ void workingTimer() // Отработка действий по таймеру �
         roll_G += my_gyro.x * dt;  // Получаем угол поворота по оси X
         pitch_G += my_gyro.y * dt; // Получаем угол поворота по оси X
         yaw_G += my_gyro.z * dt;   // Получаем угол поворота по оси X
+        // DEBUG_PRINTF(" roll_G= %+6.1f pitch_G= %+6.1f yaw_G= %+6.1f | \n", roll_G, pitch_G, yaw_G);
 
         // DEBUG_PRINTF("dt= %f | Gyro X= %.3f Y= %.3f Z= %.3f | \n", dt, my_gyro.x, gyroAngle.x);
 
@@ -252,11 +253,6 @@ void workingTimer() // Отработка действий по таймеру �
         // if (yaw_MM < 0)
         //     yaw_MM += 360.0f;// Коррекция для положительного диапазона (0–360°)
 
-        float mx_prime = my_mag.x * cosf(DEG2RAD(pitch_A)) + my_mag.y * sinf(DEG2RAD(roll_A)) * sinf(DEG2RAD(pitch_A)) + my_mag.z * cosf(DEG2RAD(roll_A)) * sinf(DEG2RAD(pitch_A));
-        float my_prime = my_mag.y * cosf(DEG2RAD(roll_A)) - my_mag.z * sinf(DEG2RAD(roll_A));
-        yaw_MM = atan2f(-my_prime, mx_prime);
-        yaw_MM = yaw_MM * 180.0f / M_PI;
-
         float mx_prime2 = my_mag.x * cosf(DEG2RAD(pitch_Mad)) + my_mag.y * sinf(DEG2RAD(roll_Mad)) * sinf(DEG2RAD(pitch_Mad)) + my_mag.z * cosf(DEG2RAD(roll_Mad)) * sinf(DEG2RAD(pitch_Mad));
         float my_prime2 = my_mag.y * cosf(DEG2RAD(roll_Mad)) - my_mag.z * sinf(DEG2RAD(roll_Mad));
         yaw_MMM = atan2f(-my_prime2, mx_prime2);
@@ -266,15 +262,15 @@ void workingTimer() // Отработка действий по таймеру �
     //----------------------------- 20 миллисекунд --------------------------------------
     if (flag_timer_20millisec)
     {
-        DEBUG_PRINTF("%lu | ", millis());
         flag_timer_20millisec = false;
+        // DEBUG_PRINTF("%lu | ", millis());
         // DEBUG_PRINTF("Gyro %+8.3f %+8.3f %+8.3f | ", my_gyro.x, my_gyro.y, my_gyro.z);
-        DEBUG_PRINTF(" roll_G= %+8.3f pitch_G= %+8.3f yaw_G= %+8.3f || ", roll_G, pitch_G, yaw_G);
         // DEBUG_PRINTF("Accel %+8.3f %+8.3f %+8.3f | ", my_accel.x, my_accel.y, my_accel.z);
         // DEBUG_PRINTF("roll_A= %+8.3f pitch_A= %+8.3f | ", roll_A, pitch_A);
-        DEBUG_PRINTF("Madgwick %+8.3f %+8.3f %+8.3f || ", roll_Mad, pitch_Mad, yaw_Mad);
-        DEBUG_PRINTF("Magn X= %+8.3f y= %+8.3f z= %+8.3f | ",my_mag.x,my_mag.y,my_mag.z);
-        DEBUG_PRINTF("yaw_M= %+8.3f yaw_MM= %+8.3f yaw_MMM= %+8.3f | \n", yaw_M, yaw_MM, yaw_MMM);
+        // DEBUG_PRINTF("Madgwick %+6.1f %+6.1f %+6.1f || ", roll_Mad, pitch_Mad, yaw_Mad);
+        // DEBUG_PRINTF("Magn X= %+8.2f y= %+8.2f z= %+8.2f | ",my_mag.x,my_mag.y,my_mag.z);
+        // DEBUG_PRINTF("yaw_M= %+8.2f yaw_MMM= %+8.2f |, yaw_M, yaw_MMM);
+        // DEBUG_PRINTF("\n", yaw_M, yaw_MMM);
     }
     //----------------------------- 50 миллисекунд --------------------------------------
     if (flag_timer_50millisec)
