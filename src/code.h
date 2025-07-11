@@ -244,7 +244,6 @@ void workingTimer() // Отработка действий по таймеру �
         // MadgwickAHRSupdate(my_gyro.x, my_gyro.y, my_gyro.z, my_accel.x, my_accel.y, my_accel.z, my_mag.x, my_mag.y, my_mag.z);
         MadgwickAHRSupdateIMU(my_gyro.x, my_gyro.y, my_gyro.z, my_accel.x, my_accel.y, my_accel.z);
         // uint32_t end = micros(); // Получаем текущее время в микросекундах
-        // DEBUG_PRINTF(" | Madgwick   %.2f  %.2f  %.2f || %lu  %lu\n", roll_M, pitch_M, yaw_M,end-start,end-start0);
 
         //********************** ВЫЧИСЛЕНИЕ КАК БУДТО МЫ ТОЛЬКО ГОРИЗОНТАЛЬНО ПОАОРАЧИВАЕМСЯ БЕЗ УЧЕТА НАКЛОНОВ ***********************************
         // Вычисление угла рыскания yaw
@@ -264,13 +263,13 @@ void workingTimer() // Отработка действий по таймеру �
     {
         flag_timer_20millisec = false;
         // DEBUG_PRINTF("%lu | ", millis());
-        // DEBUG_PRINTF("Gyro %+8.3f %+8.3f %+8.3f | ", my_gyro.x, my_gyro.y, my_gyro.z);
-        // DEBUG_PRINTF("Accel %+8.3f %+8.3f %+8.3f | ", my_accel.x, my_accel.y, my_accel.z);
+        DEBUG_PRINTF("Gyro %+8.3f %+8.3f %+8.3f | ", my_gyro.x, my_gyro.y, my_gyro.z);
+        DEBUG_PRINTF("Accel %+8.3f %+8.3f %+8.3f | ", my_accel.x, my_accel.y, my_accel.z);
         // DEBUG_PRINTF("roll_A= %+8.3f pitch_A= %+8.3f | ", roll_A, pitch_A);
-        // DEBUG_PRINTF("Madgwick %+6.1f %+6.1f %+6.1f || ", roll_Mad, pitch_Mad, yaw_Mad);
+        DEBUG_PRINTF("Madgwick %+8.3f %+8.3f %+8.3f || ", roll_Mad, pitch_Mad, yaw_Mad);
         // DEBUG_PRINTF("Magn X= %+8.2f y= %+8.2f z= %+8.2f | ",my_mag.x,my_mag.y,my_mag.z);
         // DEBUG_PRINTF("yaw_M= %+8.2f yaw_MMM= %+8.2f |, yaw_M, yaw_MMM);
-        // DEBUG_PRINTF("\n", yaw_M, yaw_MMM);
+        DEBUG_PRINTF("\n");
     }
     //----------------------------- 50 миллисекунд --------------------------------------
     if (flag_timer_50millisec)
