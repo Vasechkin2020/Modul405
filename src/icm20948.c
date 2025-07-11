@@ -97,11 +97,11 @@ void icm20948_init()
 	icm20948_device_reset();
 	icm20948_who_am_i();
 	ICM20948_DisableLPMMode(); // Отключение режима низкого энергопотребления (LPM) для нормальной работы датчика
-	HAL_Delay(500); // Задержка
+	HAL_Delay(500);			   // Задержка
 
 	// enable_i2c_mode();					   // Отключение SPI и включение I2C
 
-	icm20948_clock_source(1);	 // Используется для выбора лучшего источника тактирования (обычно авто-выбор для минимального дрейфа)
+	// Не нужно уже в LP все выбрали icm20948_clock_source(1);	 // Используется для выбора лучшего источника тактирования (обычно авто-выбор для минимального дрейфа)
 	icm20948_odr_align_enable(); // Используется для синхронизации частоты вывода данных (ODR) между акселерометром и гироскопом
 
 	// icm20948_spi_slave_enable(); Мне не нужно
@@ -133,8 +133,6 @@ void icm20948_init()
 
 	icm20948_wakeup();
 	//
-	icm20948_gyro_calibration();
-	icm20948_gyro_calibration();
 	icm20948_gyro_calibration();
 	icm20948_accel_calibration();
 
@@ -416,7 +414,7 @@ void icm20948_accel_read_g(axises *data)
 	smoothed_data.z = ALPHA * data->z + (1 - ALPHA) * smoothed_data.z;
 	// DEBUG_PRINTF("Norm (g): %.3f",norm);
 
-	DEBUG_PRINTF("Accel raw = %+8.3f %+8.3f %+8.3f smoothed= %+8.3f %+8.3f %+8.3f | \n", data->x, data->y, data->z, smoothed_data.x, smoothed_data.y, smoothed_data.z);
+	DEBUG_PRINTF("Accel raw = %+8.4f %+8.4f %+8.4f smoothed= %+8.4f %+8.4f %+8.4f | \n", data->x, data->y, data->z, smoothed_data.x, smoothed_data.y, smoothed_data.z);
 
 	*data = smoothed_data;
 }
@@ -614,24 +612,7 @@ HAL_StatusTypeDef ICM20948_DisableLPMMode()
 	HAL_StatusTypeDef status;
 	uint8_t data;
 
-	// Выбор банка 0
-	data = 0x00; // Банк 0
-	status = HAL_I2C_Mem_Write(ICM20948_I2C, ICM20948_I2C_ADDRESS, REG_BANK_SEL, 1, &data, 1, 100);
-	if (status != HAL_OK)
-	{
-		return status; // Возврат ошибки, если выбор банка не удался
-	}
-
-	// Проверка, что банк 0 выбран
-	data = 0xFF; // Сбрасываем переменную для чтения
-	status = HAL_I2C_Mem_Read(ICM20948_I2C, ICM20948_I2C_ADDRESS, REG_BANK_SEL, 1, &data, 1, 100);
-	DEBUG_PRINTF("ICM20948_DisableLPMMode bank: 0x%02X ", data); // Вывод выбранного банка
-	print_binary(data); // Вывод выбранного банка в бинарном виде
-
-	if (status != HAL_OK || data != 0x00)
-	{
-		return HAL_ERROR; // Ошибка, если банк не 0
-	}
+	select_user_bank(0); // Выбор банка 0 для работы с регистрами PWR_MGMT_1
 
 	// Отключение LP_EN в PWR_MGMT_1 (запись 0x01: LP_EN=0, CLKSEL=001)
 	data = 0x01; // LP_EN=0, CLKSEL=001, остальные биты по умолчанию
@@ -644,13 +625,15 @@ HAL_StatusTypeDef ICM20948_DisableLPMMode()
 	// Проверка, что PWR_MGMT_1 записался корректно
 	data = 0xFF; // Сбрасываем переменную для чтения
 	status = HAL_I2C_Mem_Read(ICM20948_I2C, ICM20948_I2C_ADDRESS, B0_PWR_MGMT_1, 1, &data, 1, 100);
-	
-	DEBUG_PRINTF("B0_PWR_MGMT_1 bank: 0x%02X ", data); // Вывод выбранного банка
-	print_binary(data); // Вывод выбранного банка в бинарном виде
-	
+
+	DEBUG_PRINTF("B0_PWR_MGMT_1 registr: 0x%02X ", data); // Вывод регистра
+	print_binary(data);									  // Вывод
+
 	if (status != HAL_OK || data != 0x01)
 	{
-		return HAL_ERROR; // Ошибка, если значение не 0x01
+		DEBUG_PRINTF("    B0_PWR_MGMT_1 registr ERROR !!!! 0x%02X ", data); // Вывод выбранного банка
+		print_binary(data);													// Вывод выбранного банка в бинарном виде
+		return HAL_ERROR;													// Ошибка, если значение не 0x01
 	}
 
 	return HAL_OK; // Успех
@@ -724,6 +707,13 @@ void icm20948_clock_source(uint8_t source)
 	new_val |= source;
 
 	write_single_icm20948_reg(ub_0, B0_PWR_MGMT_1, new_val);
+
+	HAL_Delay(100);
+	new_val = read_single_icm20948_reg(ub_0, B0_PWR_MGMT_1);
+	DEBUG_PRINTF("    ITOG  B0_PWR_MGMT_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	print_binary(new_val);
+
+	DEBUG_PRINTF("    End icm20948_clock_source ****************************************************** \n");
 }
 
 void icm20948_odr_align_enable()
@@ -812,7 +802,7 @@ void icm20948_gyro_calibration()
 	int32_t gyro_min[3] = {0};
 	// int32_t gyro_biasEnd[3] = {0};
 	uint8_t gyro_offset[6] = {0};
-	int count = 1000;
+	int count = 333;
 
 	for (int i = 0; i < count; i++)
 	{
@@ -1018,29 +1008,51 @@ void icm20948_accel_full_scale_select(accel_full_scale full_scale)
 // Вариант для I2C
 static void select_user_bank(userbank ub)
 {
+	HAL_StatusTypeDef status;
+	uint8_t data;
 
-	// Создание буфера для передачи: первый байт — адрес регистра REG_BANK_SEL, второй — значение банка
-	// REG_BANK_SEL находится по адресу 0x7F в банке 0
-	uint8_t data[2];
-	data[0] = REG_BANK_SEL; // Адрес регистра REG_BANK_SEL (0x7F)
-	data[1] = ub;			// Значение для записи (номер банка)
-
-	// Выполнение передачи данных по I2C
-	// HAL_I2C_Master_Transmit отправляет данные на устройство с адресом ICM20948_I2C_ADDRESS
-	// Параметры: I2C handle, адрес устройства, буфер данных, длина (2 байта), тайм-аут (100 мс)
-	HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(ICM20948_I2C, ICM20948_I2C_ADDRESS, data, 2, 100);
-
-	// Проверка статуса передачи для отладки
-	// Если передача не удалась (например, устройство не отвечает), выводим ошибку
+	// Выбор банка 0
+	data = ub; // Банк 0
+	status = HAL_I2C_Mem_Write(ICM20948_I2C, ICM20948_I2C_ADDRESS, REG_BANK_SEL, 1, &data, 1, 100);
 	if (status != HAL_OK)
 	{
-		// Для отладки можно вывести сообщение об ошибке через UART
-		DEBUG_PRINTF("I2C select_user_bank error: %d\n", status);
+		// return status; // Возврат ошибки, если выбор банка не удался
 	}
+
+	// Проверка, что банк 0 выбран
+	// data = 0xFF; // Сбрасываем переменную для чтения
+	// status = HAL_I2C_Mem_Read(ICM20948_I2C, ICM20948_I2C_ADDRESS, REG_BANK_SEL, 1, &data, 1, 100);
+	// DEBUG_PRINTF("    bank: 0x%02X \n", data); // Вывод выбранного банка
+
+	if (status != HAL_OK || data != ub)
+	{
+		DEBUG_PRINTF("    bank: ERROR !!!! 0x%02X \n", data); // Вывод выбранного банка
+															  // return HAL_ERROR;									  // Ошибка, если банк не 0
+	}
+
+	// // Создание буфера для передачи: первый байт — адрес регистра REG_BANK_SEL, второй — значение банка
+	// // REG_BANK_SEL находится по адресу 0x7F в банке 0
+	// uint8_t data[2];
+	// data[0] = REG_BANK_SEL; // Адрес регистра REG_BANK_SEL (0x7F)
+	// data[1] = ub;			// Значение для записи (номер банка)
+
+	// // Выполнение передачи данных по I2C
+	// // HAL_I2C_Master_Transmit отправляет данные на устройство с адресом ICM20948_I2C_ADDRESS
+	// // Параметры: I2C handle, адрес устройства, буфер данных, длина (2 байта), тайм-аут (100 мс)
+	// HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(ICM20948_I2C, ICM20948_I2C_ADDRESS, data, 2, 100);
+
+	// // Проверка статуса передачи для отладки
+	// // Если передача не удалась (например, устройство не отвечает), выводим ошибку
+	// if (status != HAL_OK)
+	// {
+	// 	// Для отладки можно вывести сообщение об ошибке через UART
+	// 	DEBUG_PRINTF("I2C select_user_bank error: %d\n", status);
+	// }
 }
 
 static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val)
 {
+	HAL_StatusTypeDef status;
 	// Выбор банка регистров (0, 1, 2 или 3) для доступа к нужному регистру 	// ICM-20948 использует банки регистров для организации своих настроек
 	select_user_bank(ub);
 
@@ -1049,11 +1061,13 @@ static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val)
 	data[0] = reg; // Адрес регистра, в который будет произведена запись
 	data[1] = val; // Значение, которое нужно записать в регистр
 
-	// Выполнение передачи данных по I2C	// HAL_I2C_Master_Transmit отправляет данные на устройство с адресом ICM20948_I2C_ADDRESS	// Параметры: I2C handle, адрес устройства, буфер данных, длина (2 байта), тайм-аут (100 мс)
-	HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(ICM20948_I2C, ICM20948_I2C_ADDRESS, data, 2, 100);
+	uint8_t data2 = val;
 
-	// Проверка статуса передачи для отладки	// Если передача не удалась (например, устройство не отвечает), можно добавить обработку ошибки
-	if (status != HAL_OK)
+	// status = HAL_I2C_Master_Transmit(ICM20948_I2C, ICM20948_I2C_ADDRESS, data, 2, 100);
+
+	status = HAL_I2C_Mem_Write(ICM20948_I2C, ICM20948_I2C_ADDRESS, reg, 1, &data2, 1, 100);
+
+	if (status != HAL_OK) // Проверка статуса передачи для отладки	// Если передача не удалась (например, устройство не отвечает), можно добавить обработку ошибки
 	{
 		// Для отладки можно вывести ошибку через UART или зажечь светодиод
 		DEBUG_PRINTF("I2C read_single_icm20948_reg write error: %d\n", status);
