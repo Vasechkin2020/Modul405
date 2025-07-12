@@ -167,6 +167,7 @@ uint8_t chip_id = 0;
 uint8_t BNO055_Offset_Array[OFFSET_SIZE];                                                                                                           // Массив для хранения офсетов
 uint8_t BNO055_Offset_Array_dafault1[OFFSET_SIZE] = {234, 255, 18, 0, 228, 255, 248, 255, 40, 254, 248, 255, 253, 255, 1, 0, 1, 0, 232, 3, 176, 4}; // Массив для хранения офсетов по умолчанию
 uint8_t BNO055_Offset_Array_dafault2[OFFSET_SIZE] = {240, 255, 7, 0, 249, 255, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 232, 3, 224, 1};     // Красный датчик
+uint8_t BNO055_Offset_Array_dafault2025[OFFSET_SIZE] = {240, 255, 7, 0, 249, 255, 26, 0, 57, 0, 30, 0, 254, 255, 1, 0, 1, 0, 232, 3, 126, 4};       // На даче в 2025 году на тестовой плате
 
 struct BNO055_Info_s
 {
@@ -353,16 +354,22 @@ void BNO055_Init()
         BNO055_StatusInfo();
         BNO055_RevInfo();
         BNO055_GetOffset_from_BNO055();
-        BNO055_SetOffset_to_BNO055(BNO055_Offset_Array_dafault2);
+        BNO055_SetOffset_to_BNO055(BNO055_Offset_Array_dafault2025);
         BNO055_GetOffset_from_BNO055();
         BNO055_SetOrientation(); // Установка ориентации датчика.
         BNO055_StatusInfo();
-        // BNO055_StatusCalibr();
+        BNO055_StatusCalibr();
         // BNO055_SetMode(eGYROONLY); // Режим работы где он все сам считает	  eIMU
-        // BNO055_SetMode(eIMU); // Режим работы где он все сам считает	  eIMU
+        BNO055_SetMode(eIMU); // Режим работы где он все сам считает	  eIMU
         // BNO055_SetMode(eNDOF_FMC_OFF); // Режим работы где он все сам считает	  eIMU
-        BNO055_SetMode(eNDOF); // Режим работы где он все сам считает	  eIMU
+        // BNO055_SetMode(eNDOF); // Режим работы где он все сам считает	  eIMU
         HAL_Delay(500);
+        for (size_t i = 0; i < 20; i++)
+        {
+            BNO055_StatusCalibr();
+            HAL_Delay(25);
+        }
+
         // BNO055_ReadData(); // Разовое считывание данных
         DEBUG_PRINTF("--- BNO055_Init\n");
     }
@@ -444,7 +451,7 @@ void BNO055_SetOrientation()
 // Запрос статуса колибровки
 void BNO055_StatusCalibr()
 {
-    printf("+++ BNO055_StatusCalibr ");
+    // printf("+++ BNO055_StatusCalibr ");
 
     BNO055_Write(eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
     BNO055_Read(eBNO055_REGISTER_CALIB_STAT, &BNO055.Calibr_Status, 1);
@@ -470,6 +477,8 @@ void BNO055_StatusCalibr()
     else
     {
         printf(" Calibrovka TRUE.\n");
+        BNO055_GetOffset_from_BNO055();
+        return;
     }
 }
 
@@ -607,7 +616,7 @@ void BNO055_SetOffset_to_BNO055(uint8_t *offsetArray_)
 // Разбор данных из буфера и запись знвеяний в переменные
 void calcBuffer(uint8_t *buffer)
 {
-    DEBUG_PRINTF("+++ calcBuffer\n");
+    // DEBUG_PRINTF("+++ calcBuffer ");
     // for (int i = 0; i < 20; i++)
     // {
     //     DEBUG_PRINTF("=%i ",buffer[i]);
@@ -619,7 +628,7 @@ void calcBuffer(uint8_t *buffer)
     struct SXyz accelData;
     struct SXyz gyrolData;
     struct SXyz magData;
-    
+
     static uint32_t timeBNO = 0;
     uint8_t aHigh = 0, aLow = 0, bLow = 0, bHigh = 0, cLow = 0, cHigh = 0;
 
@@ -631,7 +640,7 @@ void calcBuffer(uint8_t *buffer)
     cLow = buffer[4];
     cHigh = buffer[5];
 
-    accelData.x = (int16_t)(aLow | (aHigh << 8)) / 100.; //  1 m/s2 = 100 LSB 
+    accelData.x = (int16_t)(aLow | (aHigh << 8)) / 100.; //  1 m/s2 = 100 LSB
     accelData.y = (int16_t)(bLow | (bHigh << 8)) / 100.;
     accelData.z = (int16_t)(cLow | (cHigh << 8)) / 100.;
 
@@ -643,12 +652,12 @@ void calcBuffer(uint8_t *buffer)
     cLow = buffer[10];
     cHigh = buffer[11];
 
-    magData.x = (int16_t)(aLow | (aHigh << 8)) / 16.; //  Representation 1 µT = 16 LSB 
+    magData.x = (int16_t)(aLow | (aHigh << 8)) / 16.; //  Representation 1 µT = 16 LSB
     magData.y = (int16_t)(bLow | (bHigh << 8)) / 16.;
     magData.z = (int16_t)(cLow | (cHigh << 8)) / 16.;
-    
-    DEBUG_PRINTF("magData x= %.2f y= %.2f z= %.2f \n", magData.x, magData.y, magData.z);
 
+    // DEBUG_PRINTF("magData x= %+8.2f y= %+8.2f z= %+8.2f | ", magData.x, magData.y, magData.z);
+    
     // GYROSCOPE  ---------------------------------------------
     aLow = buffer[12];
     aHigh = buffer[13];
@@ -656,11 +665,27 @@ void calcBuffer(uint8_t *buffer)
     bHigh = buffer[15];
     cLow = buffer[16];
     cHigh = buffer[17];
-
+    
     gyrolData.x = (int16_t)(aLow | (aHigh << 8)) / 16.; // Table 3-22: Gyroscope unit settings  1 Dps = 16 LSB (gradus)     1 Rps = 900 LSB (radian)
     gyrolData.y = (int16_t)(bLow | (bHigh << 8)) / 16.;
     gyrolData.z = (int16_t)(cLow | (cHigh << 8)) / 16.;
 
+    static axises smoothed_data = {0, 0, 0}; // Начальные значения
+	float const ALPHA = 0.5;
+	// Экспоненциальное сглаживание везде по всем осям используем один коефициент
+	smoothed_data.x = ALPHA * gyrolData.x + (1 - ALPHA) * smoothed_data.x;
+	smoothed_data.y = ALPHA * gyrolData.y + (1 - ALPHA) * smoothed_data.y;
+	smoothed_data.z = ALPHA * gyrolData.z + (1 - ALPHA) * smoothed_data.z;
+    
+    DEBUG_PRINTF("BNO055 Gyro raw = %+8.3f %+8.3f %+8.3f smoothed= %+8.3f %+8.3f %+8.3f | ", gyrolData.x, gyrolData.y, gyrolData.z, smoothed_data.x, smoothed_data.y, smoothed_data.z);
+
+	gyrolData.x = smoothed_data.x;
+	gyrolData.y = smoothed_data.y;
+	gyrolData.z = smoothed_data.z;
+
+    // DEBUG_PRINTF("BNO055 gyro x= %+8.3f y= %+8.3f z= %+8.3f | ", gyrolData.x, gyrolData.y, gyrolData.z);
+    
+    
     // a,b,c это регистры которые мы считываем. В них могут быть значения для любых осей. Оси переопределяются в eBNO055_REGISTER_AXIS_MAP_CONFIG в зависимости от положения датчика.
     // Я просто подбираю нужную ось и знак. Если нужно переделываю на 360 градусов или +-180
 
@@ -677,7 +702,7 @@ void calcBuffer(uint8_t *buffer)
     eulerAngles.y = (int16_t)(bLow | (bHigh << 8)) / 16.;
     eulerAngles.z = (int16_t)(aLow | (aHigh << 8)) / 16.;
 
-    DEBUG_PRINTF("x= %.4f y= %.4f z= %.4f \n", eulerAngles.x, eulerAngles.y, eulerAngles.z);
+    // DEBUG_PRINTF(" eulerAngles x= %+8.3f y= %+8.3f z= %+8.3f | \n", eulerAngles.x, eulerAngles.y, eulerAngles.z);
 
     // УСКОРЕНИЕ---------------------------------------------
     aLow = buffer[32];
@@ -702,30 +727,30 @@ void calcBuffer(uint8_t *buffer)
     bno055.mag = magData;
     bno055.rate = (float)1000.0 / (millis() - timeBNO); // Считаем частоту
     timeBNO = millis();
-    DEBUG_PRINTF("--- calcBuffer\n");
+    // DEBUG_PRINTF("--- calcBuffer \n");
 }
 // Разовое считывание данных
 void BNO055_ReadData()
 {
-    DEBUG_PRINTF("+++ BNO055_ReadData\n");
-    // uint8_t buffer[20];
-    // if (BNO055_Read(eBNO055_REGISTER_ACC_DATA_X_LSB, buffer, 38) == HAL_OK) // Считываем в буфер
-    // {
-    //     calcBuffer(buffer);
-    //     DEBUG_PRINTF("    Start data BNO055 x= %.4f y= %.4f z= %.4f \n", bno055.angleEuler.x, bno055.angleEuler.y, bno055.angleEuler.z);
-    // }
-    // else
-    // {
-    //     DEBUG_PRINTF("Start data BNO055 ERROR\n");
-    // }
-    DEBUG_PRINTF("--- BNO055_ReadData\n");
+    // DEBUG_PRINTF("+++ BNO055_ReadData\n");
+    uint8_t buffer[38];
+    if (BNO055_Read(eBNO055_REGISTER_ACC_DATA_X_LSB, buffer, 38) == HAL_OK) // Считываем в буфер
+    {
+        calcBuffer(buffer);
+        // DEBUG_PRINTF("    BNO055_ReadData BNO055 x= %.4f y= %.4f z= %.4f \n", bno055.angleEuler.x, bno055.angleEuler.y, bno055.angleEuler.z);
+    }
+    else
+    {
+        DEBUG_PRINTF("BNO055_ReadData ERROR\n");
+    }
+    // DEBUG_PRINTF("--- BNO055_ReadData\n");
 }
 
 // Опрос датчика по флагам
 void workingBNO055()
 {
-    uint8_t static bufferBNO055[38]; //было 20 без гиро и акселя
-    if (flag_sendI2C) // Если взведен флаг после обмена по SPI что можно теперь работать по I2C
+    uint8_t static bufferBNO055[38]; // было 20 без гиро и акселя
+    if (flag_sendI2C)                // Если взведен флаг после обмена по SPI что можно теперь работать по I2C
     {
         flag_sendI2C = false;
         BNO055_Transmit_IT(eBNO055_REGISTER_ACC_DATA_X_LSB); // Отправка запроса к датчику.Указываем с какого регистра будем читать
@@ -733,7 +758,7 @@ void workingBNO055()
     if (i2cTransferComplete) // Запрос на считывание заданного числа байт с датчика в буфер
     {
         i2cTransferComplete = 0;
-        BNO055_Receive_IT(bufferBNO055, 38); //было 20 без гиро и акселя
+        BNO055_Receive_IT(bufferBNO055, 38); // было 20 без гиро и акселя
     }
     if (i2cReceiveComplete) // Обработка буфера после считывания данных по шине
     {

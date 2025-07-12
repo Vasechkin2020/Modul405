@@ -128,9 +128,10 @@ int main(void)
   // I2C_ScanDevices(&hi2c1);
   ak09916_init(); // Инициализация магнитометра
 
-  // BNO055_Init(); // Инициализация датчика на шине I2C
+  BNO055_Init(); // Инициализация датчика на шине I2C
 
   DEBUG_PRINTF("%lli LOOP !!!!!!!!!!!!!!!!!!!!!!!!!!! \r\n", timeSpi);
+  // HAL_Delay(999999);
   HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_RESET); // Выключаем светодиод что прошло выполнение кода до цикла
 
   while (1)
@@ -139,7 +140,7 @@ int main(void)
     // workingLaser();  // Отработка действий по лазерным датчикам
     // workingFlag();  // Остановка драйверов и моторов при обрыве связи
     // workingMotor(); // Отработка действий по таймеру в 1, 50, 60 милисекунд
-    // workingBNO055(); // Отработка по датчику BNO055
+    //  workingBNO055(); // Отработка по датчику BNO055
 
     workingTimer(); // Отработка действий по таймеру в 1, 50, 60 милисекунд
   }
