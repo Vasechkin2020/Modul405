@@ -72,7 +72,7 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim11); // Таймер для моторов шаговых для датчиков
   HAL_TIM_Base_Start_IT(&htim13); // Таймер для моторов шаговых для датчиков
 
-  HAL_Delay(4000);
+  HAL_Delay(3000);
   printf("\r\n *** Modul *** printBIM.ru *** 2025 *** \r\n");
   initFirmware();
 

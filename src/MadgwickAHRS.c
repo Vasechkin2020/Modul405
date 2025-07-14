@@ -26,7 +26,7 @@
 // Definitions
 
 #define sampleFreq 100.0f // sample frequency in Hz Я использую 100 HZ
-#define betaDef 0.1f	  // 2 * proportional gain
+#define betaDef 0.15f	  // 2 * proportional gain
 
 //---------------------------------------------------------------------------------------------------
 // Variable definitions

@@ -677,7 +677,7 @@ void calcBuffer(uint8_t *buffer)
 	smoothed_data.y = ALPHA * gyrolData.y + (1 - ALPHA) * smoothed_data.y;
 	smoothed_data.z = ALPHA * gyrolData.z + (1 - ALPHA) * smoothed_data.z;
     
-    DEBUG_PRINTF("BNO055 Gyro raw = %+8.3f %+8.3f %+8.3f smoothed= %+8.3f %+8.3f %+8.3f | ", gyrolData.x, gyrolData.y, gyrolData.z, smoothed_data.x, smoothed_data.y, smoothed_data.z);
+    // DEBUG_PRINTF("BNO055 Gyro raw = %+8.3f %+8.3f %+8.3f smoothed= %+8.3f %+8.3f %+8.3f | ", gyrolData.x, gyrolData.y, gyrolData.z, smoothed_data.x, smoothed_data.y, smoothed_data.z);
 
 	gyrolData.x = smoothed_data.x;
 	gyrolData.y = smoothed_data.y;
@@ -702,7 +702,7 @@ void calcBuffer(uint8_t *buffer)
     eulerAngles.y = (int16_t)(bLow | (bHigh << 8)) / 16.;
     eulerAngles.z = (int16_t)(aLow | (aHigh << 8)) / 16.;
 
-    // DEBUG_PRINTF(" eulerAngles x= %+8.3f y= %+8.3f z= %+8.3f | \n", eulerAngles.x, eulerAngles.y, eulerAngles.z);
+    DEBUG_PRINTF(" eulerAngles x= %+8.3f y= %+8.3f z= %+8.3f | ", eulerAngles.x, eulerAngles.y, eulerAngles.z);
 
     // УСКОРЕНИЕ---------------------------------------------
     aLow = buffer[32];
