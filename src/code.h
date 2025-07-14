@@ -236,7 +236,7 @@ void workingTimer() // Отработка действий по таймеру �
         // uint32_t start0 = micros(); // Получаем текущее время в микросекундах
 
         // DEBUG_PRINTF("%.3f %.3f %.3f \n",my_mag.x,my_mag.y,my_mag.z);
-        // float gradus = atan2(my_mag.y,my_mag.x) * 57.2958;
+        // float gradus = atan2f(my_mag.y,my_mag.x) * 57.2958;
         // DEBUG_PRINTF("gradus %.3f \n",gradus);
 
         // Обновление фильтра Madgwick

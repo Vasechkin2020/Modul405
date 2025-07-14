@@ -102,6 +102,7 @@ int main(void)
     uint32_t start = HAL_GetTick();
     for (int i = 0; i < 10000; i++) {
         result += sinf((float)i / 100.0f);
+        result += tanf((float)i / 100.0f);
     }
     uint32_t end = HAL_GetTick();
     uint32_t rez = end - start;
