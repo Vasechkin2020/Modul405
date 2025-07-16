@@ -34,11 +34,11 @@ void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : PtPin */
 
-  GPIO_InitStruct.Pin = ledRed_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(ledRed_GPIO_Port, &GPIO_InitStruct);
+  // GPIO_InitStruct.Pin = ledRed_Pin;
+  // GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  // GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  // GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  // HAL_GPIO_Init(ledRed_GPIO_Port, &GPIO_InitStruct);
 
   GPIO_InitStruct.Pin = ledGreen_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;

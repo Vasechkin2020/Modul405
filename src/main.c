@@ -41,21 +41,63 @@ int main(void)
   MX_GPIO_Init();
   HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_SET); // Сразу включаем светодиод что началась загрузка
   
-  MX_DMA_Init(); // Инициализация DMA
+  // MX_DMA_Init(); // Инициализация DMA
 
-  MX_I2C1_Init(); // Инициализация I2C1
+  // MX_I2C1_Init(); // Инициализация I2C1
 
-  MX_SPI1_Init(); // Инициализация SPI1 
+  // MX_SPI1_Init(); // Инициализация SPI1 
   
+  MX_USART1_UART_Init(); // Инициализация USART1
+  // MX_USART2_UART_Init(); // Инициализация USART2
+  // MX_UART4_Init(); // Инициализация UART4
+  // MX_USART6_UART_Init(); // Инициализация USART6
+
+  HAL_Delay(2000);
+  printf("\r\n *** Modul *** printBIM.ru *** 2025 *** \r\n");
+  // initFirmware();
+
+  printf("Init SD card ...\r\n");
+
   MX_SDIO_SD_Init(); // Инициализация SDIO для работы с SD картой
+
+  char buffer[128];
+
+  printf("Init Ok SD card ...\r\n");
+
+    // Проверка наличия и инициализации карты
+    if (HAL_SD_Init(&hsd) != HAL_OK) {
+        printf("Error init SD card\r\n");
+        while (1); // Ошибка
+    } else {
+        printf("SD card not find \r\n");
+    }
+
+    // // Получаем информацию о карте
+    // HAL_SD_CardInfoTypeDef cardInfo;
+    // HAL_SD_GetCardInfo(&hsd, &cardInfo);
+    // // Выводим информацию о карте
+    // printf("Информация о SD карте:\r\n");
+    // printf("Тип карты: %lus\r\n", cardInfo.CardType);
+    // printf("Версия карты: %lu.%lu\r\n", (cardInfo.CardVersion >> 8) & 0xFF, cardInfo.CardVersion & 0xFF);
+    // printf("Класс карты: %lu\r\n", cardInfo.Class);
+    // printf("Относительный адрес карты: %lu\r\n", cardInfo.RelCardAdd);
+    // printf("Количество блоков: %lu\r\n", cardInfo.BlockNbr);
+    // printf("Размер блока: %lu байт\r\n", cardInfo.BlockSize);
+    // printf("Логическое количество блоков: %lu\r\n", cardInfo.LogBlockNbr);
+    // printf("Логический размер блока: %lu байт\r\n", cardInfo.LogBlockSize);
+    
+    // Деиниитализация SD карты и освобождение пинов
+    // printf("Деинициализация SD карты\r\n");
+    
   HAL_SD_MspDeInit(&hsd); // SDIO MSP De-Initialization Function
 
 
-  MX_UART4_Init(); // Инициализация UART4
-  MX_UART5_Init(); // Инициализация UART5
-  MX_USART1_UART_Init(); // Инициализация USART1
-  MX_USART2_UART_Init(); // Инициализация USART2
-  MX_USART6_UART_Init(); // Инициализация USART6
+    HAL_Delay(999999);
+
+
+  // MX_UART5_Init(); // Инициализация UART5
+
+
 
   // for (int i = 0; i < 10; i++)
   // {
@@ -78,9 +120,6 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim11); // Таймер для моторов шаговых для датчиков
   HAL_TIM_Base_Start_IT(&htim13); // Таймер для моторов шаговых для датчиков
 
-  HAL_Delay(3000);
-  printf("\r\n *** Modul *** printBIM.ru *** 2025 *** \r\n");
-  initFirmware();
 
   initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
 

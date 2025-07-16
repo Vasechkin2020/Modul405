@@ -11,10 +11,43 @@ void MX_SDIO_SD_Init(void) // SDIO Initialization Function
   hsd.Init.ClockPowerSave = SDIO_CLOCK_POWER_SAVE_DISABLE;
   hsd.Init.BusWide = SDIO_BUS_WIDE_1B;
   hsd.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_DISABLE;
-  hsd.Init.ClockDiv = 0;
+  hsd.Init.ClockDiv = 4;
+
   if (HAL_SD_Init(&hsd) != HAL_OK)
   {
-    Error_Handler();
+    uint32_t sdError = HAL_SD_GetError(&hsd); // Получаем код ошибки SDIO
+    printf("Error init SD card (0x%08lX)\r\n", sdError);
+
+    switch (sdError)    // Расшифровываем ошибку (используем SDMMC_ERROR вместо SDIO_ERROR)
+    {
+    case SDMMC_ERROR_CMD_CRC_FAIL:
+      DEBUG_PRINTF("SD ERROR: CMD CRC FAIL (неправильный CRC команды)\r\n");
+      break;
+    case SDMMC_ERROR_DATA_CRC_FAIL:
+      DEBUG_PRINTF("SD ERROR: DATA CRC FAIL (ошибка CRC данных)\r\n");
+      break;
+    case SDMMC_ERROR_CMD_RSP_TIMEOUT:
+      DEBUG_PRINTF("SD ERROR: CMD RESPONSE TIMEOUT (карта не ответила)\r\n");
+      DEBUG_PRINTF("Проверьте:\r\n");
+      DEBUG_PRINTF("1. Карта вставлена?\r\n");
+      DEBUG_PRINTF("2. Частота SDIO слишком высокая? Попробуйте ClockDiv=206\r\n");
+      DEBUG_PRINTF("3. Контакты SDIO подключены правильно?\r\n");
+      break;
+    case SDMMC_ERROR_DATA_TIMEOUT:
+      DEBUG_PRINTF("SD ERROR: DATA TIMEOUT (таймаут передачи данных)\r\n");
+      break;
+    case SDMMC_ERROR_TX_UNDERRUN:
+      DEBUG_PRINTF("SD ERROR: TX UNDERRUN (буфер передачи пуст)\r\n");
+      break;
+    case SDMMC_ERROR_RX_OVERRUN:
+      DEBUG_PRINTF("SD ERROR: RX OVERRUN (буфер приёма переполнен)\r\n");
+      break;
+    default:
+      DEBUG_PRINTF("SD ERROR: Unknown error (0x%08lX)\r\n", sdError);
+      break;
+
+      Error_Handler();
+    }
   }
 }
 
@@ -36,14 +69,14 @@ void HAL_SD_MspInit(SD_HandleTypeDef *sdHandle) // SDIO MSP Initialization Funct
     */
     GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pull = GPIO_PULLUP; // Подтяжка для стабильности
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF12_SDIO;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     GPIO_InitStruct.Pin = GPIO_PIN_2;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pull = GPIO_PULLUP; // Подтяжка для стабильности
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF12_SDIO;
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
