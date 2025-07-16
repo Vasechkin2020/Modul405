@@ -15,6 +15,7 @@
 
 #include "tim.h"
 #include "usart.h"
+#include "sdio.h"
 #include "gpio.h"
 
 #include "code.h"
@@ -39,17 +40,22 @@ int main(void)
 
   MX_GPIO_Init();
   HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_SET); // Сразу включаем светодиод что началась загрузка
-  MX_DMA_Init();
+  
+  MX_DMA_Init(); // Инициализация DMA
 
-  MX_I2C1_Init();
+  MX_I2C1_Init(); // Инициализация I2C1
 
-  MX_SPI1_Init();
+  MX_SPI1_Init(); // Инициализация SPI1 
+  
+  MX_SDIO_SD_Init(); // Инициализация SDIO для работы с SD картой
+  HAL_SD_MspDeInit(&hsd); // SDIO MSP De-Initialization Function
 
-  MX_UART4_Init();
-  MX_UART5_Init();
-  MX_USART1_UART_Init();
-  MX_USART2_UART_Init();
-  MX_USART6_UART_Init();
+
+  MX_UART4_Init(); // Инициализация UART4
+  MX_UART5_Init(); // Инициализация UART5
+  MX_USART1_UART_Init(); // Инициализация USART1
+  MX_USART2_UART_Init(); // Инициализация USART2
+  MX_USART6_UART_Init(); // Инициализация USART6
 
   // for (int i = 0; i < 10; i++)
   // {
