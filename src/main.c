@@ -38,8 +38,8 @@ int main(void)
 
   EnableFPU(); // Включение FPU (CP10 и CP11: полный доступ) Работа с плавающей точкой
 
-  MX_GPIO_Init();
-  HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_SET); // Сразу включаем светодиод что началась загрузка
+  MX_GPIO_Init_Only_Clock();
+  // HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_SET); // Сразу включаем светодиод что началась загрузка
   
   // MX_DMA_Init(); // Инициализация DMA
 
@@ -48,21 +48,16 @@ int main(void)
   // MX_SPI1_Init(); // Инициализация SPI1 
   
   MX_USART1_UART_Init(); // Инициализация USART1
-  // MX_USART2_UART_Init(); // Инициализация USART2
-  // MX_UART4_Init(); // Инициализация UART4
-  // MX_USART6_UART_Init(); // Инициализация USART6
 
   HAL_Delay(2000);
   printf("\r\n *** Modul *** printBIM.ru *** 2025 *** \r\n");
   // initFirmware();
 
-  printf("Init SD card ...\r\n");
+  printf("Init SDIO ...\r\n");
 
   MX_SDIO_SD_Init(); // Инициализация SDIO для работы с SD картой
 
-  char buffer[128];
-
-  printf("Init Ok SD card ...\r\n");
+  printf("Init SDIO ok ...\r\n");
 
     // Проверка наличия и инициализации карты
     if (HAL_SD_Init(&hsd) != HAL_OK) {
@@ -95,6 +90,10 @@ int main(void)
     HAL_Delay(999999);
 
 
+  MX_GPIO_Init();
+  // MX_USART2_UART_Init(); // Инициализация USART2
+  // MX_UART4_Init(); // Инициализация UART4
+  // MX_USART6_UART_Init(); // Инициализация USART6
   // MX_UART5_Init(); // Инициализация UART5
 
 
@@ -223,7 +222,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLM = 8;
   RCC_OscInitStruct.PLL.PLLN = 168;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -241,6 +240,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+  
 }
 
 void Error_Handler(void)

@@ -11,14 +11,17 @@ void MX_SDIO_SD_Init(void) // SDIO Initialization Function
   hsd.Init.ClockPowerSave = SDIO_CLOCK_POWER_SAVE_DISABLE;
   hsd.Init.BusWide = SDIO_BUS_WIDE_1B;
   hsd.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_DISABLE;
-  hsd.Init.ClockDiv = 4;
+  hsd.Init.ClockDiv = 118; // Начальная частота ~400 кГц
+  // hsd.Init.ClockDiv = 118; //  // Частота SDIO SDIO_CK = SDIOCLK / [CLKDIV + 2]. The output clock frequency can vary between 187 KHz and 24 MHz. It is advised to keep the default ClockDiv value (0) to have a maximum SDIO_CK frequency of 24 MHz.
 
-  if (HAL_SD_Init(&hsd) != HAL_OK)
+  if (HAL_SD_Init(&hsd) != HAL_OK) // Ошибка инициализации контроллера SDIO
   {
     uint32_t sdError = HAL_SD_GetError(&hsd); // Получаем код ошибки SDIO
-    printf("Error init SD card (0x%08lX)\r\n", sdError);
+    uint32_t sdError2 = hsd.ErrorCode;
+    
+    printf("Error init SDIO (0x%08lX)  = %lu Error2= %lu \r\n", sdError, sdError, sdError2);
 
-    switch (sdError)    // Расшифровываем ошибку (используем SDMMC_ERROR вместо SDIO_ERROR)
+    switch (sdError) // Расшифровываем ошибку (используем SDMMC_ERROR вместо SDIO_ERROR)
     {
     case SDMMC_ERROR_CMD_CRC_FAIL:
       DEBUG_PRINTF("SD ERROR: CMD CRC FAIL (неправильный CRC команды)\r\n");
