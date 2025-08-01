@@ -11,7 +11,7 @@ void MX_SDIO_SD_Init(void) // SDIO Initialization Function
   hsd.Init.ClockPowerSave = SDIO_CLOCK_POWER_SAVE_DISABLE;
   hsd.Init.BusWide = SDIO_BUS_WIDE_1B;
   hsd.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_DISABLE;
-  hsd.Init.ClockDiv = 46; // Начальная частота ~400 кГц
+  hsd.Init.ClockDiv = 2; // Начальная частота ~400 кГц
   // hsd.Init.ClockDiv = 118; //  // Частота SDIO SDIO_CK = SDIOCLK / [CLKDIV + 2]. The output clock frequency can vary between 187 KHz and 24 MHz. It is advised to keep the default ClockDiv value (0) to have a maximum SDIO_CK frequency of 24 MHz.
 
   if (HAL_SD_Init(&hsd) != HAL_OK) // Ошибка инициализации контроллера SDIO
@@ -31,10 +31,6 @@ void MX_SDIO_SD_Init(void) // SDIO Initialization Function
       break;
     case SDMMC_ERROR_CMD_RSP_TIMEOUT:
       DEBUG_PRINTF("SD ERROR: CMD RESPONSE TIMEOUT (карта не ответила)\r\n");
-      DEBUG_PRINTF("Проверьте:\r\n");
-      DEBUG_PRINTF("1. Карта вставлена?\r\n");
-      DEBUG_PRINTF("2. Частота SDIO слишком высокая? Попробуйте ClockDiv=206\r\n");
-      DEBUG_PRINTF("3. Контакты SDIO подключены правильно?\r\n");
       break;
     case SDMMC_ERROR_DATA_TIMEOUT:
       DEBUG_PRINTF("SD ERROR: DATA TIMEOUT (таймаут передачи данных)\r\n");
