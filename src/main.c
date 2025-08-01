@@ -37,10 +37,13 @@ int main(void)
 {
   HAL_Init();
   SystemClock_Config();
+  MX_GPIO_Init_Only_Clock();
+  MX_USART1_UART_Init(); // Инициализация USART1
+  HAL_Delay(2000);
+  printf("\r\n *** Modul *** printBIM.ru *** 2025 *** \r\n");
 
   EnableFPU(); // Включение FPU (CP10 и CP11: полный доступ) Работа с плавающей точкой
 
-  MX_GPIO_Init_Only_Clock();
   // HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_SET); // Сразу включаем светодиод что началась загрузка
 
   // MX_DMA_Init(); // Инициализация DMA
@@ -49,10 +52,7 @@ int main(void)
 
   // MX_SPI1_Init(); // Инициализация SPI1
 
-  MX_USART1_UART_Init(); // Инициализация USART1
 
-  HAL_Delay(2000);
-  printf("\r\n *** Modul *** printBIM.ru *** 2025 *** \r\n");
   // initFirmware();
 
   printf("Init SDIO ...\r\n");
@@ -172,11 +172,6 @@ MX_FATFS_Init();
   f_close(&MyFile); // Закрытие файла
   f_mount(NULL, "", 0);
 
-
-
-  // Деиниитализация SD карты и освобождение пинов
-  // printf("Деинициализация SD карты\r\n");
-
   HAL_SD_MspDeInit(&hsd); // SDIO MSP De-Initialization Function
 
   HAL_Delay(999999);
@@ -210,32 +205,7 @@ MX_FATFS_Init();
 
   initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
 
-  if ((SCB->CPACR & (0xF << 20)) != (0xF << 20))
-    printf("FPU отключена!\n");
-  else
-    printf("FPU включена!\n");
-
-  uint32_t cpacr = SCB->CPACR; // Чтение регистра CPACR
-  if ((cpacr & ((3UL << 20) | (3UL << 22))) == ((3UL << 20) | (3UL << 22)))
-    printf("FPU2 включён\n");
-  else
-    printf("FPU2 отключён\n");
-
-  float result = 0.0f;
-  uint32_t start = HAL_GetTick();
-  for (int i = 0; i < 10000; i++)
-  {
-    result += sinf((float)i / 100.0f);
-    result += tanf((float)i / 100.0f);
-  }
-  uint32_t end = HAL_GetTick();
-  uint32_t rez = end - start;
-  printf("Time: %lu ms, Result: %f\n", rez, result);
-  if (rez > 100)
-    printf(" SOFT FPU !!!\n");
-  else
-    printf(" +++ HARD FPU !!!\n");
-
+  
   // HAL_Delay(4000);
 
   // while (1);

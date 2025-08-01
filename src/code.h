@@ -78,6 +78,32 @@ void EnableFPU(void)
 {
     // Включение FPU (CP10 и CP11: полный доступ)
     SCB->CPACR |= ((3UL << 20) | (3UL << 22)); // CP10 = 0b11, CP11 = 0b11
+
+    if ((SCB->CPACR & (0xF << 20)) != (0xF << 20))
+        printf("FPU отключена!\n");
+    else
+        printf("FPU включена!\n");
+
+    uint32_t cpacr = SCB->CPACR; // Чтение регистра CPACR
+    if ((cpacr & ((3UL << 20) | (3UL << 22))) == ((3UL << 20) | (3UL << 22)))
+        printf("FPU2 включён\n");
+    else
+        printf("FPU2 отключён\n");
+
+    float result = 0.0f;
+    uint32_t start = HAL_GetTick();
+    for (int i = 0; i < 10000; i++)
+    {
+        result += sinf((float)i / 100.0f);
+        result += tanf((float)i / 100.0f);
+    }
+    uint32_t end = HAL_GetTick();
+    uint32_t rez = end - start;
+    printf("Time: %lu ms, Result: %f\n", rez, result);
+    if (rez > 100)
+        printf(" SOFT FPU !!!\n");
+    else
+        printf(" +++ HARD FPU !!!\n");
 }
 
 // Вот функция на C, которая печатает целое число в бинарном формате с использованием printf:
