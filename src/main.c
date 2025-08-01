@@ -59,30 +59,20 @@ int main(void)
 
   printf("Init SDIO ok ...\r\n");
 
-    // Проверка наличия и инициализации карты
-    if (HAL_SD_Init(&hsd) != HAL_OK) {
-        printf("Error init SD card\r\n");
-        while (1); // Ошибка
-    } else {
-        printf("SD card not find \r\n");
-    }
+    // // Проверка наличия и инициализации карты
+    // if (HAL_SD_Init(&hsd) != HAL_OK) {
+    //     printf("Error init SD card\r\n");
+    //     while (1); // Ошибка
+    // } else {
+    //     printf("SD card not find \r\n");
+    // }
 
-    // // Получаем информацию о карте
-    // HAL_SD_CardInfoTypeDef cardInfo;
-    // HAL_SD_GetCardInfo(&hsd, &cardInfo);
-    // // Выводим информацию о карте
-    // printf("Информация о SD карте:\r\n");
-    // printf("Тип карты: %lus\r\n", cardInfo.CardType);
-    // printf("Версия карты: %lu.%lu\r\n", (cardInfo.CardVersion >> 8) & 0xFF, cardInfo.CardVersion & 0xFF);
-    // printf("Класс карты: %lu\r\n", cardInfo.Class);
-    // printf("Относительный адрес карты: %lu\r\n", cardInfo.RelCardAdd);
-    // printf("Количество блоков: %lu\r\n", cardInfo.BlockNbr);
-    // printf("Размер блока: %lu байт\r\n", cardInfo.BlockSize);
-    // printf("Логическое количество блоков: %lu\r\n", cardInfo.LogBlockNbr);
-    // printf("Логический размер блока: %lu байт\r\n", cardInfo.LogBlockSize);
+
     
     // Деиниитализация SD карты и освобождение пинов
     // printf("Деинициализация SD карты\r\n");
+    
+
     
   HAL_SD_MspDeInit(&hsd); // SDIO MSP De-Initialization Function
 

@@ -11,14 +11,14 @@ void MX_SDIO_SD_Init(void) // SDIO Initialization Function
   hsd.Init.ClockPowerSave = SDIO_CLOCK_POWER_SAVE_DISABLE;
   hsd.Init.BusWide = SDIO_BUS_WIDE_1B;
   hsd.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_DISABLE;
-  hsd.Init.ClockDiv = 118; // Начальная частота ~400 кГц
+  hsd.Init.ClockDiv = 46; // Начальная частота ~400 кГц
   // hsd.Init.ClockDiv = 118; //  // Частота SDIO SDIO_CK = SDIOCLK / [CLKDIV + 2]. The output clock frequency can vary between 187 KHz and 24 MHz. It is advised to keep the default ClockDiv value (0) to have a maximum SDIO_CK frequency of 24 MHz.
 
   if (HAL_SD_Init(&hsd) != HAL_OK) // Ошибка инициализации контроллера SDIO
   {
     uint32_t sdError = HAL_SD_GetError(&hsd); // Получаем код ошибки SDIO
     uint32_t sdError2 = hsd.ErrorCode;
-    
+
     printf("Error init SDIO (0x%08lX)  = %lu Error2= %lu \r\n", sdError, sdError, sdError2);
 
     switch (sdError) // Расшифровываем ошибку (используем SDMMC_ERROR вместо SDIO_ERROR)
@@ -52,6 +52,65 @@ void MX_SDIO_SD_Init(void) // SDIO Initialization Function
       Error_Handler();
     }
   }
+  if (HAL_SD_InitCard(&hsd) != HAL_OK)
+  {
+    uint32_t error4 = HAL_SD_GetError(&hsd); // Ошибка инициализации карты
+    uint32_t sdError4 = hsd.ErrorCode;
+    printf("Error init SD_Card (0x%08lX)  = %lu Error2= %lu \r\n", sdError4, sdError4, error4);
+    // if (error & HAL_SD_ERROR_CMD_CRC_FAIL)
+    // {
+    //   // Можно добавить специфичную обработку
+    // }
+    Error_Handler();
+  }
+
+  HAL_SD_CardStateTypeDef state = HAL_SD_GetCardState(&hsd);
+
+  if (state != HAL_SD_CARD_TRANSFER)
+  {
+    printf("Error HAL_SD_GetCardState\r\n");
+    Error_Handler();
+  }
+  else
+    printf("Card State: %lu (0=Idle, 1=Ready, 2=Ident, 3=Standby state , 4=Transfer state, 5=Data, 6=RCV, 7=Programming state)\n", state);
+
+  HAL_SD_CardInfoTypeDef CardInfo;
+  HAL_SD_GetCardInfo(&hsd, &CardInfo);
+
+  printf("Card Type: ");
+  switch (CardInfo.CardType)
+  {
+  case 0x00000000:
+    printf("SD Card Type: SDSC v1.1 (Standard Capacity, up to 2 GB)\r\n");
+    break;
+  case 0x00000001:
+    printf("SD Card Type: SDSC v2.0 (Standard Capacity, up to 4 GB)\r\n");
+    break;
+  case 0x00000002:
+    printf("SD Card Type: SDHC/SDXC (High Capacity, 4 GB - 2 TB)\r\n");
+    break;
+  case 0x00000003:
+    printf("SD Card Type: SDIO Card (I/O only)\r\n");
+    break;
+  case 0x00000004:
+    printf("SD Card Type: MMC High Capacity (eMMC)\r\n");
+    break;
+  case 0x00000005:
+    printf("SD Card Type: Standard MMC Card\r\n");
+    break;
+  case 0x00000006:
+    printf("SD Card Type: SDIO Combo Card (I/O + SD)\r\n");
+    break;
+  case 0x00000007:
+    printf("SD Card Type: High-Speed MMC Card\r\n");
+    break;
+  default:
+    printf("SD Card Type: Unknown (0x%08lX)\r\n", CardInfo.CardType);
+    break;
+  }
+
+  printf("Card Capacity: %lu MB\n", (uint32_t)(CardInfo.LogBlockNbr / 2048)); // 1MB = 2048 блоков по 512B
+  printf("Block Size: %lu bytes\n", CardInfo.LogBlockSize);
 }
 
 void HAL_SD_MspInit(SD_HandleTypeDef *sdHandle) // SDIO MSP Initialization Function
