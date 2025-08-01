@@ -17,6 +17,8 @@
 #include "usart.h"
 #include "sdio.h"
 #include "gpio.h"
+// #include "fatfs.h"
+#include "..\lib\FATFS\fatfs.h"
 
 #include "code.h"
 #include "motor.h"
