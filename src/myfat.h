@@ -1,8 +1,9 @@
 #ifndef MYFAT_H
 #define MYFAT_H
 
-#include "main.h" // Подключение заголовочного файла для работы с основными функциями микроконтроллера
-#include "sdio.h" // Подключение заголовочного файла для работы с SDIO интерфейсом
+#include "main.h"   // Подключение заголовочного файла для работы с основными функциями микроконтроллера
+#include "sdio.h"   // Подключение заголовочного файла для работы с SDIO интерфейсом
+#include <string.h> // Подключение заголовочного файла для работы со строками
 #include "..\lib\FATFS\fatfs.h"
 
 FRESULT res;
@@ -57,8 +58,7 @@ void init_MyFat()
     //===============================
 }
 
-// Запись поправочных значений для лазерных датчиков
-void saveLaserCfg()
+void saveLaserCfg() // Запись поправочных значений для лазерных датчиков
 {
     char writeBuffer[32];                            // Буфер для записи данных (достаточно для 4 float + разделители)
     char readBuffer[32];                             // Буфер для чтения данных
@@ -114,17 +114,51 @@ void saveLaserCfg()
     }
     else // Если чтение успешно
     {
-        readBuffer[bytesRead] = '\0';                                          // Завершение строки нулевым байтом
+        readBuffer[bytesRead] = '\0'; // Завершение строки нулевым байтом
+
+        char *pos;
+        if ((pos = strchr(readBuffer, '\n')) != NULL) // Удаляем символы перевода строки и возврата каретки
+            *pos = '\0';
+        if ((pos = strchr(readBuffer, '\r')) != NULL)
+            *pos = '\0';
         printf("Read %d bytes from laser.cfg: %s\r\n", bytesRead, readBuffer); // Вывод прочитанных данных
 
-        float readValues[4];                                                                                             // Массив для хранения считанных значений
-        sscanf(readBuffer, "%f;%f;%f;%f", &readValues[0], &readValues[1], &readValues[2], &readValues[3]);               // Парсинг строки
+        float readValues[4]; // Массив для хранения считанных значений
+                             // sscanf(readBuffer, "%f;%f;%f;%f", &readValues[0], &readValues[1], &readValues[2], &readValues[3]); // Парсинг строки
+        char *token = strtok(readBuffer, ";");
+        int i = 0;
+        while (token != NULL && i < 4)
+        {
+            readValues[i] = atof(token); // atof — преобразует строку в float
+            i++;
+            token = strtok(NULL, ";");
+        }
+
+        if (i != 4)
+        // if (sscanf(readBuffer, "%f;%f;%f;%f", &readValues[0], &readValues[1], &readValues[2], &readValues[3]) != 4)
+        {
+            printf("Ошибка парсинга строки!\n");
+            printf("Read %d bytes from laser.cfg: ", bytesRead);
+            for (int i = 0; i < bytesRead; i++)
+            {
+                printf("%c", readBuffer[i] == '\n' ? '\\' : readBuffer[i]);
+            }
+            printf("\n");
+
+            printf("Buffer hex dump: ");
+            for (int i = 0; i < bytesRead && i < 30; i++)
+            {
+                printf("%02X ", (unsigned char)readBuffer[i]);
+            }
+            printf("\n");
+        }
         printf("Parsed values: %.2f; %.2f; %.2f; %.2f\r\n", readValues[0], readValues[1], readValues[2], readValues[3]); // Вывод парсенных значений
     }
     f_close(&MyFile); // Закрытие файла
 }
 
-void saveByte()
+/*
+void saveByte() // Функция для записи 1 байта в файл на SD карту
 {
     char writeBuffer[16] = "1;2;3;4;5;6;7;8"; // Данные для записи
     char readBuffer[16];                      // Буфер для чтения
@@ -192,5 +226,5 @@ void saveByte()
 
     f_close(&MyFile); // Закрытие файла
 }
-
+*/
 #endif
