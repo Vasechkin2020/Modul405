@@ -1,0 +1,428 @@
+// ver 1.1
+
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+#include <inttypes.h>
+//----
+#include "main.h"
+#include "dma.h"
+#include "i2c.h"
+#include "spi.h"
+
+#include "config.h"
+
+#include "tim.h"
+#include "usart.h"
+#include "sdio.h"
+#include "gpio.h"
+// #include "fatfs.h"
+#include "..\lib\FATFS\fatfs.h"
+
+#include "code.h"
+#include "motor.h"
+#include "laser80M.h"
+#include "slaveSPI.h"
+#include "bno055.h"
+#include "icm20948.h"
+#include "MadgwickAHRS.h"
+
+void SystemClock_Config(void);
+volatile uint32_t millisCounter = 0;
+volatile uint64_t microsCounter = 0;
+volatile uint32_t overflow_count = 0; // Счётчик переполнений
+
+int main(void)
+{
+  HAL_Init();
+  SystemClock_Config();
+
+  EnableFPU(); // Включение FPU (CP10 и CP11: полный доступ) Работа с плавающей точкой
+
+  MX_GPIO_Init_Only_Clock();
+  // HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_SET); // Сразу включаем светодиод что началась загрузка
+
+  // MX_DMA_Init(); // Инициализация DMA
+
+  // MX_I2C1_Init(); // Инициализация I2C1
+
+  // MX_SPI1_Init(); // Инициализация SPI1
+
+  MX_USART1_UART_Init(); // Инициализация USART1
+
+  HAL_Delay(4000);
+  printf("\r\n *** Modul *** printBIM.ru *** 2025 *** \r\n");
+  // initFirmware();
+
+  printf("Init SDIO ...\r\n");
+
+  MX_SDIO_SD_Init(); // Инициализация SDIO для работы с SD картой
+
+  printf("Init SDIO ok ...\r\n");
+
+  //*************************************************************************/
+  MX_FATFS_Init();
+
+  FATFS SDFatFs;
+  FIL MyFile;
+  FRESULT res;
+  UINT bytesWritten, bytesRead;
+  FSIZE_t fileSize;
+  char writeBuffer[16] = "1;2;3;4;5;6;7;8"; // Данные для записи
+  char readBuffer[16];                      // Буфер для чтения
+
+  
+  res = f_mount(&SDFatFs, "", 1);// Монтирование файловой системы с отладкой
+  if (res != FR_OK)
+    printf("f_mount Failed to mount filesystem (error: %d)\r\n", res);
+  else
+    printf("f_mount Filesystem mounted successfully.\r\n");
+
+  // Проверка состояния диска и режима доступа
+  DWORD freeClusters, totalClusters, freeSectors;
+  FATFS *fs;
+  BYTE work[_MAX_SS]; // Буфер для проверки
+  res = f_getfree("", &freeClusters, &fs);
+  if (res != FR_OK)
+    printf("f_getfree Failed to get free space (error: %d)\r\n", res);
+  else
+  {
+    totalClusters = (fs->n_fatent - 2);     // Общее число кластеров
+    freeSectors = freeClusters * fs->csize; // Свободное место в секторах
+    printf("f_getfree Free clusters: %lu, Total clusters: %lu, Free sectors: %lu\r\n", freeClusters, totalClusters, freeSectors);
+
+    // Проверка, смонтировано ли как "только для чтения"
+    if (fs->fs_type & 0x80)
+      printf("f_getfree Filesystem mounted as read-only!\r\n");
+    else
+      printf("f_getfree Filesystem mounted with read/write access.\r\n");
+  }
+
+  // Проверка состояния диска через disk_ioctl
+  DSTATUS stat = disk_ioctl(0, GET_SECTOR_COUNT, work);
+  if (stat & STA_NOINIT)
+    printf("disk_ioctl Disk not initialized!\r\n");
+  else if (stat & STA_NODISK)
+    printf("disk_ioctl No disk present!\r\n");
+  else
+    printf("disk_ioctl Disk status: OK\r\n");
+
+  //===============================
+  f_open(&MyFile, "1.txt", FA_READ);
+  fileSize = f_size(&MyFile);
+  printf("f_open +++ 1 File size 1 txt: %lu bytes\r\n", fileSize);
+  f_close(&MyFile);
+  HAL_Delay(500);
+
+  // Открытие файла для добавления 1 байта
+  res = f_open(&MyFile, "1.txt", FA_OPEN_APPEND | FA_WRITE);
+  if (res != FR_OK)
+    printf("f_open Failed to open file for appending (error: %d)\r\n", res);
+  else
+    printf("f_open opened successfully.\r\n");
+
+  // Запись 1 байта
+  res = f_write(&MyFile, writeBuffer, 1, &bytesWritten);
+  if (res != FR_OK || bytesWritten != 1)
+    printf("f_write Failed to write to BUFFER (error: %d, bytes written: %d)\r\n", res, bytesWritten);
+  else
+  {
+    printf("f_write Successfully wrote %d byte BUFFER\r\n", bytesWritten);
+    res = f_sync(&MyFile); // Синхронизация данных
+    
+    uint32_t sdError44 = HAL_SD_GetError(&hsd); // Получаем код ошибки SDIO
+    uint32_t sdError42 = hsd.ErrorCode;
+
+    printf("Error f_sync (0x%08lX)  = %lu Error2= %lu \r\n", sdError44, sdError44, sdError42);
+
+    if (res == FR_OK)
+      printf("f_sync: OK. Data safely written to SD card.\r\n");
+    else
+    {
+      printf("f_sync failed with error: %d\r\n", res);
+      switch (res) // Дополнительно: расшифровка ошибки
+      {
+      case FR_DISK_ERR:
+        printf("Error: Low-level disk I/O error.\r\n");
+        break;
+      case FR_INT_ERR:
+        printf("Error: Assertion failed or internal FATFS error.\r\n");
+        break;
+      case FR_NOT_READY:
+        printf("Error: SD card not ready (e.g. removed).\r\n");
+        break;
+      case FR_WRITE_PROTECTED:
+        printf("Error: Card is write-protected.\r\n");
+        break;
+      case FR_DENIED:
+        printf("Error: Access denied (e.g. read-only file or no write permission).\r\n");
+        break;
+      case FR_INVALID_OBJECT:
+        printf("Error: Invalid file object (e.g. file not opened).\r\n");
+        break;
+      case FR_TIMEOUT:
+        printf("Error: Operation timed out.\r\n");
+        break;
+      default:
+        printf("Error: Unknown error code.\r\n");
+        break;
+      }
+    }
+  }
+  f_close(&MyFile);
+
+  HAL_Delay(500);
+
+  f_open(&MyFile, "1.txt", FA_READ);
+  fileSize = f_size(&MyFile);
+  printf("+++ 2 File size 1 txt: %lu bytes\r\n", fileSize);
+  f_close(&MyFile);
+  // UINT bytes_written;
+  // f_open(&MyFile, "test.txt", FA_WRITE | FA_CREATE_ALWAYS);
+  // f_write(&MyFile, "Hello", 5, &bytes_written);
+  // f_close(&MyFile);  // <-- Обновляет размер
+
+  HAL_Delay(500);
+  printf("-----------------------------\r\n");
+  //===============================
+
+  // Открытие файла для чтения
+  res = f_open(&MyFile, "1.txt", FA_READ);
+  if (res != FR_OK)
+    printf("f_open Failed to open file for reading (error: %d)\r\n", res);
+  else
+    printf("f_open opened for reading.\r\n");
+
+  fileSize = f_size(&MyFile);
+  printf("File size 1 txt: %lu bytes\r\n", fileSize);
+
+  // Проверка размера файла
+  fileSize = f_size(&MyFile);
+  printf("1 File size: %lu bytes\r\n", fileSize);
+
+  // Сброс указателя в начало файла
+  f_lseek(&MyFile, 0);
+  printf("File pointer reset to start.\r\n");
+
+  // Чтение данных из файла
+  res = f_read(&MyFile, readBuffer, sizeof(readBuffer) - 1, &bytesRead);
+  if (res != FR_OK || bytesRead == 0)
+  {
+    printf("f_read Failed to read from file (error: %d, bytes read: %d)\r\n", res, bytesRead);
+  }
+  else
+  {
+    readBuffer[bytesRead] = '\0'; // Завершаем строку
+    printf("f_read Read %d bytes:\r\n", bytesRead);
+    for (int i = 0; i < bytesRead; i++)
+    {
+      printf("f_read Byte %d: %d (char: %c)\r\n", i, (unsigned char)readBuffer[i], readBuffer[i]);
+    }
+    printf("f_read Read string: %s\r\n", readBuffer);
+  }
+
+  //===============================
+  //   printf("Opening file imu.txt for writing... | ");
+  //   res = f_open(&MyFile, "imu.txt", FA_CREATE_ALWAYS | FA_WRITE); // Создание и открытие файла imu.txt для записи с явным путем
+  //   if (res != FR_OK)
+  //     printf("Failed to open file for writing (error: %d)\r\n", res);
+  //   else
+  //     printf("File imu.txt opened successfully.\r\n");
+
+  //   //**************** */
+  //   res = f_write(&MyFile, writeBuffer, strlen(writeBuffer), &bytesWritten); // Запись данных в файл
+  //   if (res != FR_OK)
+  //     printf("Failed to write to file (error: %d)\r\n", res);
+
+  //   if (bytesWritten != strlen(writeBuffer))
+  //     printf("Partial write: %d of %d bytes written\r\n", bytesWritten, strlen(writeBuffer));
+  //   else
+  //     printf("Successfully wrote %d bytes to imu.config\r\n", bytesWritten);
+  // //===============================
+
+  f_close(&MyFile); // Закрытие файла
+  f_mount(NULL, "", 0);
+
+  // Деиниитализация SD карты и освобождение пинов
+
+  HAL_SD_MspDeInit(&hsd); // SDIO MSP De-Initialization Function
+  printf("HAL_SD_MspDeInit Ok. \n");
+
+  HAL_Delay(999999);
+
+  MX_GPIO_Init();
+  // MX_USART2_UART_Init(); // Инициализация USART2
+  // MX_UART4_Init(); // Инициализация UART4
+  // MX_USART6_UART_Init(); // Инициализация USART6
+  // MX_UART5_Init(); // Инициализация UART5
+
+  // for (int i = 0; i < 10; i++)
+  // {
+  //   HAL_GPIO_TogglePin(Dir_Motor3_GPIO_Port, Dir_Motor3_Pin);
+  //   HAL_GPIO_TogglePin(Step_Motor3_GPIO_Port, Step_Motor3_Pin);
+  //   HAL_Delay(100);
+  // }
+  MX_TIM2_Init(); // Таймер на микросекунды
+  MX_TIM6_Init(); // Таймер на милисекунды
+  MX_TIM7_Init(); // Таймеры на моторы
+  MX_TIM10_Init();
+  MX_TIM11_Init();
+  MX_TIM13_Init();
+
+  HAL_TIM_Base_Start_IT(&htim2); // Таймер для общего цикла
+  HAL_TIM_Base_Start_IT(&htim6); // Таймер для общего цикла
+
+  HAL_TIM_Base_Start_IT(&htim7);  // Таймер для моторов шаговых для датчиков
+  HAL_TIM_Base_Start_IT(&htim10); // Таймер для моторов шаговых для датчиков
+  HAL_TIM_Base_Start_IT(&htim11); // Таймер для моторов шаговых для датчиков
+  HAL_TIM_Base_Start_IT(&htim13); // Таймер для моторов шаговых для датчиков
+
+  initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
+
+  if ((SCB->CPACR & (0xF << 20)) != (0xF << 20))
+  {
+    printf("FPU отключена!\n");
+  }
+  else
+  {
+    printf("FPU включена!\n");
+  }
+
+  uint32_t cpacr = SCB->CPACR; // Чтение регистра CPACR
+  if ((cpacr & ((3UL << 20) | (3UL << 22))) == ((3UL << 20) | (3UL << 22)))
+  {
+    printf("FPU2 включён\n");
+  }
+  else
+  {
+    printf("FPU2 отключён\n");
+  }
+
+  float result = 0.0f;
+  uint32_t start = HAL_GetTick();
+  for (int i = 0; i < 10000; i++)
+  {
+    result += sinf((float)i / 100.0f);
+    result += tanf((float)i / 100.0f);
+  }
+  uint32_t end = HAL_GetTick();
+  uint32_t rez = end - start;
+  printf("Time: %lu ms, Result: %f\n", rez, result);
+  if (rez > 100)
+    printf(" SOFT FPU !!!\n");
+  else
+    printf(" +++ HARD FPU !!!\n");
+
+  // HAL_Delay(4000);
+
+  // while (1);
+
+  // initMotor(); // Начальная инициализация и настройка шаговых моторов
+  // // testMotorRun();
+  // setZeroMotor(); // Установка в ноль
+
+  // initLaser(); // Инициализация лазеров в зависимости от типа датчкика. определяем переменные буфер приема для каждого UART
+
+  // I2C_ScanDevices(&hi2c1);// Сканирование I2C шины
+  icm20948_init(); // Инициализация ICM-20948
+
+  // I2C_ScanDevices(&hi2c1);
+  ak09916_init(); // Инициализация магнитометра
+
+  BNO055_Init(); // Инициализация датчика на шине I2C
+
+  DEBUG_PRINTF("%lli LOOP !!!!!!!!!!!!!!!!!!!!!!!!!!! \r\n", timeSpi);
+  // HAL_Delay(999999);
+  HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_RESET); // Выключаем светодиод что прошло выполнение кода до цикла
+
+  while (1)
+  {
+    // workingSPI(); // Отработка действий по обмену по шине SPI
+    // workingLaser();  // Отработка действий по лазерным датчикам
+    // workingFlag();  // Остановка драйверов и моторов при обрыве связи
+    // workingMotor(); // Отработка действий по таймеру в 1, 50, 60 милисекунд
+    //  workingBNO055(); // Отработка по датчику BNO055
+
+    workingTimer(); // Отработка действий по таймеру в 1, 50, 60 милисекунд
+  }
+}
+
+#if DEBUG
+int __io_putchar(int ch)
+{
+  HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, 0xFFFF);
+  return ch;
+}
+#endif
+
+/**  * @brief System Clock Configuration  */
+
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  /** Configure the main internal regulator output voltage
+   */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  /** Initializes the RCC Oscillators according to the specified parameters
+   * in the RCC_OscInitTypeDef structure.
+   */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLN = 168;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Initializes the CPU, AHB and APB buses clocks
+   */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq();
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
+}
+
+#ifdef USE_FULL_ASSERT
+/**
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */

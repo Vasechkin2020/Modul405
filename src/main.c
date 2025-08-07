@@ -17,7 +17,7 @@
 #include "usart.h"
 #include "sdio.h"
 #include "gpio.h"
-// #include "fatfs.h"
+#include "myfat.h"
 #include "..\lib\FATFS\fatfs.h"
 
 #include "code.h"
@@ -52,7 +52,6 @@ int main(void)
 
   // MX_SPI1_Init(); // Инициализация SPI1
 
-
   // initFirmware();
 
   printf("Init SDIO ...\r\n");
@@ -61,116 +60,14 @@ int main(void)
 
   printf("Init SDIO ok ...\r\n");
   //**************************************** */
-MX_FATFS_Init();
+  MX_FATFS_Init();
 
-  FATFS SDFatFs;
-  FIL MyFile;
-  FRESULT res;
-  UINT bytesWritten, bytesRead;
-  FSIZE_t fileSize;
-  char writeBuffer[16] = "1;2;3;4;5;6;7;8"; // Данные для записи
-  char readBuffer[16];                      // Буфер для чтения
+  init_MyFat();
+  // saveByte();
+  saveLaserCfg();
 
-  
-  res = f_mount(&SDFatFs, "", 1);// Монтирование файловой системы с отладкой
-  if (res != FR_OK)
-    printf("f_mount Failed to mount filesystem (error: %d)\r\n", res);
-  else
-    printf("f_mount Filesystem mounted successfully.\r\n");
-
-  // Проверка состояния диска и режима доступа
-  DWORD freeClusters, totalClusters, freeSectors;
-  FATFS *fs;
-  BYTE work[_MAX_SS]; // Буфер для проверки
-  res = f_getfree("", &freeClusters, &fs);
-  if (res != FR_OK)
-    printf("f_getfree Failed to get free space (error: %d)\r\n", res);
-  else
-  {
-    totalClusters = (fs->n_fatent - 2);     // Общее число кластеров
-    freeSectors = freeClusters * fs->csize; // Свободное место в секторах
-    printf("f_getfree Free clusters: %lu, Total clusters: %lu, Free sectors: %lu\r\n", freeClusters, totalClusters, freeSectors);
-
-    // Проверка, смонтировано ли как "только для чтения"
-    if (fs->fs_type & 0x80)
-      printf("f_getfree Filesystem mounted as read-only!\r\n");
-    else
-      printf("f_getfree Filesystem mounted with read/write access.\r\n");
-  }
-
-  // Проверка состояния диска через disk_ioctl
-  DSTATUS stat = disk_ioctl(0, GET_SECTOR_COUNT, work);
-  if (stat & STA_NOINIT)
-    printf("disk_ioctl Disk not initialized!\r\n");
-  else if (stat & STA_NODISK)
-    printf("disk_ioctl No disk present!\r\n");
-  else
-    printf("disk_ioctl Disk status: OK\r\n");
-//**-----------------------
-//===============================
-  f_open(&MyFile, "1.txt", FA_READ);
-  fileSize = f_size(&MyFile);
-  printf("f_open +++ 1 File size 1 txt: %lu bytes\r\n", fileSize);
-  f_close(&MyFile);
-
-  // Открытие файла для добавления 1 байта
-  res = f_open(&MyFile, "1.txt", FA_OPEN_APPEND | FA_WRITE);
-  if (res != FR_OK)
-    printf("f_open Failed to open file for appending (error: %d)\r\n", res);
-  else
-    printf("f_open opened successfully.\r\n");
-
-  // Запись 1 байта
-  res = f_write(&MyFile, writeBuffer, 1, &bytesWritten);
-  if (res != FR_OK || bytesWritten != 1)
-    printf("f_write Failed to write to BUFFER (error: %d, bytes written: %d)\r\n", res, bytesWritten);
-  else
-  {
-    printf("f_write Successfully wrote %d byte to BUFFER\r\n", bytesWritten);
-    res = f_sync(&MyFile); // Синхронизация данных
-    
-    uint32_t sdError44 = HAL_SD_GetError(&hsd); // Получаем код ошибки SDIO
-    uint32_t sdError42 = hsd.ErrorCode;
-
-    printf("Error f_sync (0x%08lX)  = %lu hsd.ErrorCode= %lu \r\n", sdError44, sdError44, sdError42);
-
-    if (res == FR_OK)
-      printf("f_sync: OK. Data safely written to SD card.\r\n");
-    else
-    {
-      printf("f_sync failed with error: %d\r\n", res);
-      switch (res) // Дополнительно: расшифровка ошибки
-      {
-      case FR_DISK_ERR:
-        printf("Error: Low-level disk I/O error.\r\n");
-        break;
-      case FR_INT_ERR:
-        printf("Error: Assertion failed or internal FATFS error.\r\n");
-        break;
-      case FR_NOT_READY:
-        printf("Error: SD card not ready (e.g. removed).\r\n");
-        break;
-      case FR_WRITE_PROTECTED:
-        printf("Error: Card is write-protected.\r\n");
-        break;
-      case FR_DENIED:
-        printf("Error: Access denied (e.g. read-only file or no write permission).\r\n");
-        break;
-      case FR_INVALID_OBJECT:
-        printf("Error: Invalid file object (e.g. file not opened).\r\n");
-        break;
-      case FR_TIMEOUT:
-        printf("Error: Operation timed out.\r\n");
-        break;
-      default:
-        printf("Error: Unknown error code.\r\n");
-        break;
-      }
-    }
-  }
-
-  f_close(&MyFile); // Закрытие файла
-  f_mount(NULL, "", 0);
+  f_mount(NULL, "", 0); // Демонтирование файловой системы
+  printf("Filesystem unmounted.\r\n");
 
   HAL_SD_MspDeInit(&hsd); // SDIO MSP De-Initialization Function
 
@@ -205,7 +102,6 @@ MX_FATFS_Init();
 
   initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
 
-  
   // HAL_Delay(4000);
 
   // while (1);
