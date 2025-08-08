@@ -54,21 +54,21 @@ int main(void)
 
   // initFirmware();
 
-  printf("Init SDIO ...\r\n");
-
-  MX_SDIO_SD_Init(); // Инициализация SDIO для работы с SD картой
-
-  printf("Init SDIO ok ...\r\n");
   //**************************************** */
-  MX_FATFS_Init();
+  MX_SDIO_SD_Init(); // Инициализация SDIO для работы с SD картой
+  MX_FATFS_Init();   // Инициализация файловой системы FATFS
+  mountFilesystem(); // Функция для монтирования файловой системы
 
-  init_MyFat();
   // saveByte();
-  saveLaserCfg();
+  // saveLaserCfg();
 
-  f_mount(NULL, "", 0); // Демонтирование файловой системы
-  printf("Filesystem unmounted.\r\n");
+  uint8_t uintValues[22] = {1, 2, 3, 4, 5};                      // Массив с 5 целыми значениями
+  float floatValues[4] = {1.23f, 4.56f, 7.89f, 3.1415f};                 // Массив с 3 плавающими значениями
 
+  createAndTestUint8Config(uintValues, 22, "uconfig.cfg");   // Вызов функции для целых чисел
+  createAndTestFloatConfig(floatValues, 4, "laser.cfg"); // Вызов функции для плавающих чисел
+
+  unmountFilesystem();    // Функция для демонтирования файловой системы
   HAL_SD_MspDeInit(&hsd); // SDIO MSP De-Initialization Function
 
   HAL_Delay(999999);

@@ -5,6 +5,7 @@ SD_HandleTypeDef hsd;
 
 void MX_SDIO_SD_Init(void) // SDIO Initialization Function
 {
+  printf("Init SDIO ...\r\n");
   hsd.Instance = SDIO;
   hsd.Init.ClockEdge = SDIO_CLOCK_EDGE_RISING;
   hsd.Init.ClockBypass = SDIO_CLOCK_BYPASS_DISABLE;
@@ -107,6 +108,8 @@ void MX_SDIO_SD_Init(void) // SDIO Initialization Function
 
   printf("Card Capacity: %lu MB\n", (uint32_t)(CardInfo.LogBlockNbr / 2048)); // 1MB = 2048 блоков по 512B
   printf("Block Size: %lu bytes\n", CardInfo.LogBlockSize);
+
+  printf("Init SDIO ok ...\r\n"); // Инициализация SDIO завершена успешно
 }
 
 void HAL_SD_MspInit(SD_HandleTypeDef *sdHandle) // SDIO MSP Initialization Function
