@@ -921,8 +921,8 @@ void get_averaged_data(axises *data, uint16_t samples)
 		icm20948_accel_read(&raw);// Здесь вызывается ваша функция для получения сырых данных
 		temp.x += raw.x;
 		temp.y += raw.y;
-		// temp.z += raw.z;
-		temp.z += (raw.z- accel_scale_factor); // Отнимаем чтобы получить bias без гравитации;
+		temp.z += raw.z;
+		// temp.z += (raw.z- accel_scale_factor); // Отнимаем чтобы получить bias без гравитации;
 		HAL_Delay(10); // Задержка между выборками (настройте по датчику)
 	}
 	data->x = temp.x / samples;

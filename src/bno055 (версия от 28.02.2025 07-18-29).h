@@ -971,3 +971,20 @@ int main(void) {
         HAL_Delay(100); // Задержка для вывода данных
     }
 }
+
+
+// Place sensor with +X axis UP (strictly vertical). Starting in 10 seconds...
+// Position 1: X=16279.3838, Y=-500.0620, Z=-21.6160
+// Place sensor with -X axis UP (strictly vertical). Starting in 10 seconds...
+// Position 2: X=-16578.7305, Y=-445.4820, Z=158.5630
+// Place sensor with +Y axis UP (strictly vertical). Starting in 10 seconds...
+// Position 3: X=-154.9810, Y=15915.3486, Z=382.3530
+// Place sensor with -Y axis UP (strictly vertical). Starting in 10 seconds...
+// Position 4: X=-167.9700, Y=-16933.9473, Z=-1.0160
+// Place sensor with +Z axis UP (strictly vertical). Starting in 10 seconds...
+// Position 5: X=132.6900, Y=-598.1580, Z=16682.5664
+// Place sensor with -Z axis UP (strictly vertical). Starting in 10 seconds...
+// Position 6: X=95.3180, Y=-391.2770, Z=-16604.7754
+// Calibration done:
+// Bias: X=-149.6733, Y=-509.2993, Z=38.8955
+// Scale: X=16429.0566, Y=16424.6484, Z=16643.6719
