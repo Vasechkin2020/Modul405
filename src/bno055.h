@@ -364,7 +364,7 @@ void BNO055_Init()
         // BNO055_SetMode(eNDOF_FMC_OFF); // Режим работы где он все сам считает	  eIMU
         // BNO055_SetMode(eNDOF); // Режим работы где он все сам считает	  eIMU
         HAL_Delay(500);
-        for (size_t i = 0; i < 20; i++)
+        for (size_t i = 0; i < 3; i++)
         {
             BNO055_StatusCalibr();
             HAL_Delay(25);

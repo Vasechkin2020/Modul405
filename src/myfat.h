@@ -16,16 +16,19 @@ char writeBuffer[128]; // Буфер для записи данных (дост�
 char readBuffer[128];  // Буфер для чтения данных
 
 //********************* ОБЬЯВЛЕНИЕ  ******************************
-void mountFilesystem();                                                             // Функция для монтирования файловой системы
-void unmountFilesystem();                                                           // Функция для демонтирования файловой системы
-void saveLaserCfg();                                                                // Запись поправочных знаяений для лазерных датчиков
-void createAndTestUint8Config(uint8_t *values, uint8_t size, const char *filename); // Функция для целых чисел
-void createAndTestFloatConfig(float *values, uint8_t size, const char *filename);   // Функция для плавающих чисел
+void mountFilesystem();   // Функция для монтирования файловой системы
+void unmountFilesystem(); // Функция для демонтирования файловой системы
 
+FRESULT writeUint8ToFile(uint8_t *values, uint8_t size, const char *filename);  // Функция записи массива uint8_t в файл
+FRESULT writeFloatToFile(float *values, uint8_t size, const char *filename);    // Функция записи массива float в файл
+FRESULT readUint8FromFile(uint8_t *values, uint8_t size, const char *filename); // Функция считывания uint8_t из файла в массив
+FRESULT readFloatFromFile(float *values, uint8_t size, const char *filename);   // Функция считывания float из файла в массив
+
+// void saveLaserCfg();                                                                // Запись поправочных знаяений для лазерных датчиков
 // void saveByte();
-
 //********************* РЕАЛИЗАЦИЯ ******************************
-void mountFilesystem() // Функция для монтирования файловой системы
+// Функция для монтирования файловой системы
+void mountFilesystem()
 {
     res = f_mount(&SDFatFs, "", 1); // Монтирование файловой системы с отладкой
     if (res != FR_OK)
@@ -62,14 +65,220 @@ void mountFilesystem() // Функция для монтирования фай�
     else
         printf("disk_ioctl Disk status: OK\r\n");
     //**-----------------------
+    get_fattime(); // Установка текущего времени в формате FatFs
     //===============================
 }
 
-void unmountFilesystem() // Функция для демонтирования файловой системы
+// Функция для демонтирования файловой системы
+void unmountFilesystem()
 {
     f_mount(NULL, "", 0);                // Демонтирование файловой системы
     printf("Filesystem unmounted.\r\n"); // Вывод сообщения об успешном демонтировании
 }
+
+// Функция записи массива uint8_t в файл
+FRESULT writeUint8ToFile(uint8_t *values, uint8_t size, const char *filename)
+{
+    // Форматирование значений uint8_t в строку с разделителями
+    char tempBuffer[8];
+    writeBuffer[0] = '\0';
+    for (int i = 0; i < size; i++)
+    {
+        snprintf(tempBuffer, sizeof(tempBuffer), "%u", values[i]);
+        strcat(writeBuffer, tempBuffer);
+        if (i < size - 1)
+        {
+            strcat(writeBuffer, ";");
+        }
+    }
+    printf("Writing to %s: %s\r\n", filename, writeBuffer);
+
+    printf("Opening file %s for writing... | ", filename);
+    res = f_open(&MyFile, filename, FA_CREATE_ALWAYS | FA_WRITE);
+    if (res != FR_OK)
+    {
+        printf("Failed to open file %s for writing (error: %d)\r\n", filename, res);
+        return res;
+    }
+    printf("File %s opened successfully.\r\n", filename);
+
+    res = f_write(&MyFile, writeBuffer, strlen(writeBuffer), &bytesWritten);
+    if (res != FR_OK || bytesWritten != strlen(writeBuffer))
+    {
+        printf("Failed to write to %s (error: %d, bytes written: %d)\r\n", filename, res, bytesWritten);
+    }
+    else
+    {
+        printf("Successfully wrote %d bytes to %s\r\n", bytesWritten, filename);
+        res = f_sync(&MyFile);
+        if (res != FR_OK)
+        {
+            printf("f_sync failed with error: %d\r\n", res);
+        }
+        else
+        {
+            printf("File synchronized.\r\n");
+        }
+        FSIZE_t fileSize = f_size(&MyFile);
+        printf("File size after write: %lu bytes\r\n", fileSize);
+    }
+    f_close(&MyFile);
+    return res;
+}
+
+// Функция записи массива float в файл
+FRESULT writeFloatToFile(float *values, uint8_t size, const char *filename)
+{
+    // Форматирование значений float в строку с разделителями
+    char tempBuffer[16];
+    writeBuffer[0] = '\0';
+    for (int i = 0; i < size; i++)
+    {
+        snprintf(tempBuffer, sizeof(tempBuffer), "%.4f", values[i]);
+        strcat(writeBuffer, tempBuffer);
+        if (i < size - 1)
+        {
+            strcat(writeBuffer, ";");
+        }
+    }
+    printf("Writing to %s: %s\r\n", filename, writeBuffer);
+
+    printf("Opening file %s for writing... | ", filename);
+    res = f_open(&MyFile, filename, FA_CREATE_ALWAYS | FA_WRITE);
+    if (res != FR_OK)
+    {
+        printf("Failed to open file %s for writing (error: %d)\r\n", filename, res);
+        return res;
+    }
+    printf("File %s opened successfully.\r\n", filename);
+
+    res = f_write(&MyFile, writeBuffer, strlen(writeBuffer), &bytesWritten);
+    if (res != FR_OK || bytesWritten != strlen(writeBuffer))
+    {
+        printf("Failed to write to %s (error: %d, bytes written: %d)\r\n", filename, res, bytesWritten);
+    }
+    else
+    {
+        printf("Successfully wrote %d bytes to %s\r\n", bytesWritten, filename);
+        res = f_sync(&MyFile);
+        if (res != FR_OK)
+        {
+            printf("f_sync failed with error: %d\r\n", res);
+        }
+        else
+        {
+            printf("File synchronized.\r\n");
+        }
+        FSIZE_t fileSize = f_size(&MyFile);
+        printf("File size after write: %lu bytes\r\n", fileSize);
+    }
+    f_close(&MyFile);
+    return res;
+}
+
+// Функция считывания uint8_t из файла в массив
+FRESULT readUint8FromFile(uint8_t *values, uint8_t size, const char *filename)
+{
+    printf("Opening file %s for reading... | ", filename);
+    res = f_open(&MyFile, filename, FA_READ);
+    if (res != FR_OK)
+    {
+        printf("Failed to open file for reading (error: %d)\r\n", res);
+        return res;
+    }
+    printf("File %s opened for reading.\r\n", filename);
+
+    res = f_read(&MyFile, readBuffer, sizeof(readBuffer) - 1, &bytesRead);
+    if (res != FR_OK || bytesRead == 0)
+    {
+        printf("Failed to read from file (error: %d, bytes read: %d)\r\n", res, bytesRead);
+    }
+    else
+    {
+        readBuffer[bytesRead] = '\0';
+        printf("Read %d bytes from %s: %s\r\n", bytesRead, filename, readBuffer);
+
+        uint8_t readValues[128];
+        char *token = strtok(readBuffer, ";");
+        int i = 0;
+        while (token != NULL && i < size)
+        {
+            readValues[i] = (uint8_t)atoi(token);
+            token = strtok(NULL, ";");
+            i++;
+        }
+        // Копируем считанные значения в выходной массив
+        for (int j = 0; j < size && j < i; j++)
+        {
+            values[j] = readValues[j];
+        }
+        printf("Parsed values: ");
+        for (int j = 0; j < size; j++)
+        {
+            printf("%u", values[j]);
+            if (j < size - 1)
+            {
+                printf("; ");
+            }
+        }
+        printf("\r\n");
+    }
+    f_close(&MyFile);
+    return res;
+}
+
+// Функция считывания float из файла в массив
+FRESULT readFloatFromFile(float *values, uint8_t size, const char *filename)
+{
+    printf("Opening file %s for reading... | ", filename);
+    res = f_open(&MyFile, filename, FA_READ);
+    if (res != FR_OK)
+    {
+        printf("Failed to open file for reading (error: %d)\r\n", res);
+        return res;
+    }
+    printf("File %s opened for reading.\r\n", filename);
+
+    res = f_read(&MyFile, readBuffer, sizeof(readBuffer) - 1, &bytesRead);
+    if (res != FR_OK || bytesRead == 0)
+    {
+        printf("Failed to read from file (error: %d, bytes read: %d)\r\n", res, bytesRead);
+    }
+    else
+    {
+        readBuffer[bytesRead] = '\0';
+        printf("Read %d bytes from %s: %s\r\n", bytesRead, filename, readBuffer);
+
+        float readValues[128];
+        char *token = strtok(readBuffer, ";");
+        int i = 0;
+        while (token != NULL && i < size)
+        {
+            readValues[i] = (float)atof(token);
+            token = strtok(NULL, ";");
+            i++;
+        }
+        // Копируем считанные значения в выходной массив
+        for (int j = 0; j < size && j < i; j++)
+        {
+            values[j] = readValues[j];
+        }
+        printf("Parsed values: ");
+        for (int j = 0; j < size; j++)
+        {
+            printf("%.4f", values[j]);
+            if (j < size - 1)
+            {
+                printf("; ");
+            }
+        }
+        printf("\r\n");
+    }
+    f_close(&MyFile);
+    return res;
+}
+
+/*
 
 void saveLaserCfg() // Запись поправочных значений для лазерных датчиков
 {
@@ -168,185 +377,7 @@ void saveLaserCfg() // Запись поправочных значений дл
     f_close(&MyFile); // Закрытие файла
 }
 
-void createAndTestUint8Config(uint8_t *values, uint8_t size, const char *filename) // Функция для целых чисел
-{
-    // Форматирование значений uint8_t в строку с разделителями
-    char tempBuffer[8];            // Временный буфер для форматирования одного значения
-    writeBuffer[0] = '\0';         // Инициализация буфера
-    for (int i = 0; i < size; i++) // Цикл по всем элементам массива
-    {
-        snprintf(tempBuffer, sizeof(tempBuffer), "%u", values[i]); // Преобразование uint8_t в строку
-        strcat(writeBuffer, tempBuffer);                           // Добавление значения в общий буфер
-        if (i < size - 1)                                          // Добавление разделителя, кроме последнего значения
-        {
-            strcat(writeBuffer, ";"); // Добавление точки с запятой
-        }
-    }
-    printf("Writing to %s: %s\r\n", filename, writeBuffer); // Вывод строки, которая будет записана, с именем файла
 
-    printf("Opening file %s for writing... | ", filename);        // Вывод сообщения о начале открытия файла для записи
-    res = f_open(&MyFile, filename, FA_CREATE_ALWAYS | FA_WRITE); // Открытие файла (создание или перезапись)
-    if (res != FR_OK)                                             // Проверка успешности открытия
-    {
-        printf("Failed to open file %s for writing (error: %d)\r\n", filename, res); // Вывод ошибки открытия
-        return;                                                                      // Выход из функции при ошибке
-    }
-    printf("File %s opened successfully.\r\n", filename); // Вывод сообщения об успешном открытии
-
-    res = f_write(&MyFile, writeBuffer, strlen(writeBuffer), &bytesWritten); // Запись данных в файл
-    if (res != FR_OK || bytesWritten != strlen(writeBuffer))                 // Проверка успешности записи
-    {
-        printf("Failed to write to %s (error: %d, bytes written: %d)\r\n", filename, res, bytesWritten); // Вывод ошибки записи
-    }
-    else // Если запись успешна
-    {
-        printf("Successfully wrote %d bytes to %s\r\n", bytesWritten, filename); // Вывод количества записанных байт
-        res = f_sync(&MyFile);                                                   // Синхронизация данных на карту
-        if (res != FR_OK)                                                        // Проверка успешности синхронизации
-        {
-            printf("f_sync failed with error: %d\r\n", res); // Вывод ошибки синхронизации
-        }
-        else // Если синхронизация успешна
-        {
-            printf("File synchronized.\r\n"); // Вывод сообщения об успешной синхронизации
-        }
-        FSIZE_t fileSize = f_size(&MyFile);                       // Получение размера файла
-        printf("File size after write: %lu bytes\r\n", fileSize); // Вывод размера файла
-    }
-    f_close(&MyFile); // Закрытие файла
-
-    printf("Opening file %s for reading... | ", filename); // Вывод сообщения о начале открытия файла для чтения
-    res = f_open(&MyFile, filename, FA_READ);              // Открытие файла для чтения
-    if (res != FR_OK)                                      // Проверка успешности открытия
-    {
-        printf("Failed to open file for reading (error: %d)\r\n", res); // Вывод ошибки открытия
-        return;                                                         // Выход из функции при ошибке
-    }
-    printf("File %s opened for reading.\r\n", filename); // Вывод сообщения об успешном открытии
-
-    res = f_read(&MyFile, readBuffer, sizeof(readBuffer) - 1, &bytesRead); // Чтение данных из файла
-    if (res != FR_OK || bytesRead == 0)                                    // Проверка успешности чтения
-    {
-        printf("Failed to read from file (error: %d, bytes read: %d)\r\n", res, bytesRead); // Вывод ошибки чтения
-    }
-    else // Если чтение успешно
-    {
-        readBuffer[bytesRead] = '\0';                                             // Завершение строки нулевым байтом
-        printf("Read %d bytes from %s: %s\r\n", bytesRead, filename, readBuffer); // Вывод прочитанных данных
-
-        uint8_t readValues[128];               // Фиксированный массив для хранения до 128 значений
-        char *token = strtok(readBuffer, ";"); // Разбиение строки на токены по разделителю
-        int i = 0;                             // Счетчик для массива
-        while (token != NULL && i < size)      // Цикл по токенам
-        {
-            readValues[i] = (uint8_t)atoi(token); // Преобразование строки в uint8_t
-            token = strtok(NULL, ";");            // Переход к следующему токену
-            i++;                                  // Увеличение счетчика
-        }
-        printf("Parsed values: ");     // Вывод заголовка парсенных значений
-        for (int j = 0; j < size; j++) // Цикл по всем значениям
-        {
-            printf("%u", readValues[j]); // Вывод значения
-            if (j < size - 1)            // Добавление разделителя, кроме последнего
-            {
-                printf("; "); // Вывод точки с запятой и пробела
-            }
-        }
-        printf("\r\n"); // Перевод строки после вывода
-    }
-    f_close(&MyFile); // Закрытие файла
-}
-
-void createAndTestFloatConfig(float *values, uint8_t size, const char *filename) // Функция для плавающих чисел
-{
-    // Форматирование значений float в строку с разделителями
-    char tempBuffer[16];           // Временный буфер для форматирования одного значения
-    writeBuffer[0] = '\0';         // Инициализация буфера
-    for (int i = 0; i < size; i++) // Цикл по всем элементам массива
-    {
-        snprintf(tempBuffer, sizeof(tempBuffer), "%.2f", values[i]); // Преобразование float в строку с 2 знаками после запятой
-        strcat(writeBuffer, tempBuffer);                             // Добавление значения в общий буфер
-        if (i < size - 1)                                            // Добавление разделителя, кроме последнего значения
-        {
-            strcat(writeBuffer, ";"); // Добавление точки с запятой
-        }
-    }
-    printf("Writing to %s: %s\r\n", filename, writeBuffer); // Вывод строки, которая будет записана, с именем файла
-
-    printf("Opening file %s for writing... | ", filename);        // Вывод сообщения о начале открытия файла для записи
-    res = f_open(&MyFile, filename, FA_CREATE_ALWAYS | FA_WRITE); // Открытие файла (создание или перезапись)
-    if (res != FR_OK)                                             // Проверка успешности открытия
-    {
-        printf("Failed to open file %s for writing (error: %d)\r\n", filename, res); // Вывод ошибки открытия
-        return;                                                                      // Выход из функции при ошибке
-    }
-    printf("File %s opened successfully.\r\n", filename); // Вывод сообщения об успешном открытии
-
-    res = f_write(&MyFile, writeBuffer, strlen(writeBuffer), &bytesWritten); // Запись данных в файл
-    if (res != FR_OK || bytesWritten != strlen(writeBuffer))                 // Проверка успешности записи
-    {
-        printf("Failed to write to %s (error: %d, bytes written: %d)\r\n", filename, res, bytesWritten); // Вывод ошибки записи
-    }
-    else // Если запись успешна
-    {
-        printf("Successfully wrote %d bytes to %s\r\n", bytesWritten, filename); // Вывод количества записанных байт
-        res = f_sync(&MyFile);                                                   // Синхронизация данных на карту
-        if (res != FR_OK)                                                        // Проверка успешности синхронизации
-        {
-            printf("f_sync failed with error: %d\r\n", res); // Вывод ошибки синхронизации
-        }
-        else // Если синхронизация успешна
-        {
-            printf("File synchronized.\r\n"); // Вывод сообщения об успешной синхронизации
-        }
-        FSIZE_t fileSize = f_size(&MyFile);                       // Получение размера файла
-        printf("File size after write: %lu bytes\r\n", fileSize); // Вывод размера файла
-    }
-    f_close(&MyFile); // Закрытие файла
-
-    printf("Opening file %s for reading... | ", filename); // Вывод сообщения о начале открытия файла для чтения
-    res = f_open(&MyFile, filename, FA_READ);              // Открытие файла для чтения
-    if (res != FR_OK)                                      // Проверка успешности открытия
-    {
-        printf("Failed to open file for reading (error: %d)\r\n", res); // Вывод ошибки открытия
-        return;                                                         // Выход из функции при ошибке
-    }
-    printf("File %s opened for reading.\r\n", filename); // Вывод сообщения об успешном открытии
-
-    res = f_read(&MyFile, readBuffer, sizeof(readBuffer) - 1, &bytesRead); // Чтение данных из файла
-    if (res != FR_OK || bytesRead == 0)                                    // Проверка успешности чтения
-    {
-        printf("Failed to read from file (error: %d, bytes read: %d)\r\n", res, bytesRead); // Вывод ошибки чтения
-    }
-    else // Если чтение успешно
-    {
-        readBuffer[bytesRead] = '\0';                                             // Завершение строки нулевым байтом
-        printf("Read %d bytes from %s: %s\r\n", bytesRead, filename, readBuffer); // Вывод прочитанных данных
-
-        float readValues[128];                 // Фиксированный массив для хранения до 128 значений
-        char *token = strtok(readBuffer, ";"); // Разбиение строки на токены по разделителю
-        int i = 0;                             // Счетчик для массива
-        while (token != NULL && i < size)      // Цикл по токенам
-        {
-            readValues[i] = (float)atof(token); // Преобразование строки в float
-            token = strtok(NULL, ";");          // Переход к следующему токену
-            i++;                                // Увеличение счетчика
-        }
-        printf("Parsed values: ");     // Вывод заголовка парсенных значений
-        for (int j = 0; j < size; j++) // Цикл по всем значениям
-        {
-            printf("%.2f", readValues[j]); // Вывод значения с 2 знаками после запятой
-            if (j < size - 1)              // Добавление разделителя, кроме последнего
-            {
-                printf("; "); // Вывод точки с запятой и пробела
-            }
-        }
-        printf("\r\n"); // Перевод строки после вывода
-    }
-    f_close(&MyFile); // Закрытие файла
-}
-
-/*
 void saveByte() // Функция для записи 1 байта в файл на SD карту
 {
     char writeBuffer[16] = "1;2;3;4;5;6;7;8"; // Данные для записи

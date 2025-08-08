@@ -47,12 +47,15 @@ int main(void)
   // HAL_GPIO_WritePin(ledGreen_GPIO_Port, ledGreen_Pin, GPIO_PIN_SET); // Сразу включаем светодиод что началась загрузка
 
   // MX_DMA_Init(); // Инициализация DMA
-
-  // MX_I2C1_Init(); // Инициализация I2C1
-
   // MX_SPI1_Init(); // Инициализация SPI1
 
   // initFirmware();
+  MX_TIM2_Init(); // Таймер на микросекунды
+  MX_TIM6_Init(); // Таймер на милисекунды
+  MX_TIM7_Init(); // Таймеры на моторы
+  MX_TIM10_Init();
+  MX_TIM11_Init();
+  MX_TIM13_Init();
 
   //**************************************** */
   MX_SDIO_SD_Init(); // Инициализация SDIO для работы с SD картой
@@ -62,16 +65,23 @@ int main(void)
   // saveByte();
   // saveLaserCfg();
 
-  uint8_t uintValues[22] = {1, 2, 3, 4, 5};                      // Массив с 5 целыми значениями
-  float floatValues[4] = {1.23f, 4.56f, 7.89f, 3.1415f};                 // Массив с 3 плавающими значениями
+  MX_I2C1_Init(); // Инициализация I2C1
+  // I2C_ScanDevices(&hi2c1);// Сканирование I2C шины
 
-  createAndTestUint8Config(uintValues, 22, "uconfig.cfg");   // Вызов функции для целых чисел
-  createAndTestFloatConfig(floatValues, 4, "laser.cfg"); // Вызов функции для плавающих чисел
+  writeUint8ToFile(BNO055_Offset_Array_dafault2025, 22, "bno055.cfg"); // Вызов функции для целых чисел
+  readUint8FromFile(BNO055_Offset_Array_dafault2025, 22, "bno055.cfg"); // Вызов функции для целых чисел
+  BNO055_Init();                                                               // Инициализация датчика на шине I2C
+
+  float laserOffSet[4] = {1.23f, 4.56f, 7.89f, 3.1415f}; // Массив с 4 значениями калибровки лазеров
+  writeFloatToFile(laserOffSet, 4, "laser.cfg");
+  readFloatFromFile(laserOffSet, 4, "laser.cfg");
 
   unmountFilesystem();    // Функция для демонтирования файловой системы
   HAL_SD_MspDeInit(&hsd); // SDIO MSP De-Initialization Function
 
-  HAL_Delay(999999);
+  while (1)
+    ;
+  // HAL_Delay(999999);
 
   MX_GPIO_Init();
   // MX_USART2_UART_Init(); // Инициализация USART2
@@ -85,12 +95,20 @@ int main(void)
   //   HAL_GPIO_TogglePin(Step_Motor3_GPIO_Port, Step_Motor3_Pin);
   //   HAL_Delay(100);
   // }
-  MX_TIM2_Init(); // Таймер на микросекунды
-  MX_TIM6_Init(); // Таймер на милисекунды
-  MX_TIM7_Init(); // Таймеры на моторы
-  MX_TIM10_Init();
-  MX_TIM11_Init();
-  MX_TIM13_Init();
+
+  // HAL_Delay(4000);
+
+  // initMotor(); // Начальная инициализация и настройка шаговых моторов
+  // // testMotorRun();
+  // setZeroMotor(); // Установка в ноль
+
+  // initLaser(); // Инициализация лазеров в зависимости от типа датчкика. определяем переменные буфер приема для каждого UART
+
+  // I2C_ScanDevices(&hi2c1);// Сканирование I2C шины
+  // icm20948_init(); // Инициализация ICM-20948
+
+  // I2C_ScanDevices(&hi2c1);
+  // ak09916_init(); // Инициализация магнитометра
 
   HAL_TIM_Base_Start_IT(&htim2); // Таймер для общего цикла
   HAL_TIM_Base_Start_IT(&htim6); // Таймер для общего цикла
@@ -100,25 +118,7 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim11); // Таймер для моторов шаговых для датчиков
   HAL_TIM_Base_Start_IT(&htim13); // Таймер для моторов шаговых для датчиков
 
-  initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
-
-  // HAL_Delay(4000);
-
-  // while (1);
-
-  // initMotor(); // Начальная инициализация и настройка шаговых моторов
-  // // testMotorRun();
-  // setZeroMotor(); // Установка в ноль
-
-  // initLaser(); // Инициализация лазеров в зависимости от типа датчкика. определяем переменные буфер приема для каждого UART
-
-  // I2C_ScanDevices(&hi2c1);// Сканирование I2C шины
-  icm20948_init(); // Инициализация ICM-20948
-
-  // I2C_ScanDevices(&hi2c1);
-  ak09916_init(); // Инициализация магнитометра
-
-  BNO055_Init(); // Инициализация датчика на шине I2C
+  // initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
 
   DEBUG_PRINTF("%lli LOOP !!!!!!!!!!!!!!!!!!!!!!!!!!! \r\n", timeSpi);
   // HAL_Delay(999999);
