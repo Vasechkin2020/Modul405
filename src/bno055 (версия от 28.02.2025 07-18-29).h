@@ -747,3 +747,227 @@ void workingBNO055()
     }
 }
 #endif
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h> // sleep()
+#include <math.h>
+
+// ===== ЗАМЕНИ ЭТУ ФУНКЦИЮ НА РЕАЛЬНОЕ ЧТЕНИЕ ИЗ IMU =====
+void read_accel(float *ax, float *ay, float *az) {
+    // Тут должен быть вызов твоего драйвера IMU
+    // Пока эмуляция: ввод с клавиатуры
+    scanf("%f %f %f", ax, ay, az);
+}
+// ========================================================
+
+#define SAMPLES 100   // количество усредняемых замеров
+#define PAUSE_SEC 5   // пауза на установку датчика
+
+// Усреднение показаний
+void average_position(float *ax_avg, float *ay_avg, float *az_avg) {
+    float sum_x = 0, sum_y = 0, sum_z = 0;
+    float ax, ay, az;
+
+    for (int i = 0; i < SAMPLES; i++) {
+        read_accel(&ax, &ay, &az);
+        sum_x += ax;
+        sum_y += ay;
+        sum_z += az;
+        usleep(10000); // 10 мс между замерами (100 Гц)
+    }
+
+    *ax_avg = sum_x / SAMPLES;
+    *ay_avg = sum_y / SAMPLES;
+    *az_avg = sum_z / SAMPLES;
+}
+
+int main() {
+    float ax_p, ax_m;
+    float ay_p, ay_m;
+    float az_p, az_m;
+    float ax, ay, az;
+
+    printf("=== Калибровка акселерометра (6 положений) ===\n");
+    printf("На каждое положение даётся %d секунд, собирается %d замеров.\n", PAUSE_SEC, SAMPLES);
+    printf("Показания вводятся в g (или будут читаться из IMU).\n\n");
+
+    printf("1/6: Поставьте датчик +X вверх. Ждём %d сек...\n", PAUSE_SEC);
+    sleep(PAUSE_SEC);
+    average_position(&ax_p, &ay, &az);
+
+    printf("2/6: Поставьте датчик -X вверх. Ждём %d сек...\n", PAUSE_SEC);
+    sleep(PAUSE_SEC);
+    average_position(&ax_m, &ay, &az);
+
+    printf("3/6: Поставьте датчик +Y вверх. Ждём %d сек...\n", PAUSE_SEC);
+    sleep(PAUSE_SEC);
+    average_position(&ax, &ay_p, &az);
+
+    printf("4/6: Поставьте датчик -Y вверх. Ждём %d сек...\n", PAUSE_SEC);
+    sleep(PAUSE_SEC);
+    average_position(&ax, &ay_m, &az);
+
+    printf("5/6: Поставьте датчик +Z вверх. Ждём %d сек...\n", PAUSE_SEC);
+    sleep(PAUSE_SEC);
+    average_position(&ax, &ay, &az_p);
+
+    printf("6/6: Поставьте датчик -Z вверх. Ждём %d сек...\n", PAUSE_SEC);
+    sleep(PAUSE_SEC);
+    average_position(&ax, &ay, &az_m);
+
+    // Расчёт bias и scale
+    float bx = (ax_p + ax_m) / 2.0f;
+    float sx = 2.0f / (ax_p - ax_m);
+
+    float by = (ay_p + ay_m) / 2.0f;
+    float sy = 2.0f / (ay_p - ay_m);
+
+    float bz = (az_p + az_m) / 2.0f;
+    float sz = 2.0f / (az_p - az_m);
+
+    printf("\n=== Результаты калибровки ===\n");
+    printf("Bias:  bx = %.6f g,  by = %.6f g,  bz = %.6f g\n", bx, by, bz);
+    printf("Scale: sx = %.6f,    sy = %.6f,    sz = %.6f\n", sx, sy, sz);
+
+    printf("\nПример применения:\n");
+    printf("ax_cal = (ax_raw - bx) * sx\n");
+    printf("ay_cal = (ay_raw - by) * sy\n");
+    printf("az_cal = (az_raw - bz) * sz\n");
+
+    return 0;
+}
+
+
+//////////////////////////////
+#include "main.h"
+#include <stdio.h>
+#include <string.h>
+
+// Предполагается, что UART настроен для printf (см. ниже настройку _write)
+extern UART_HandleTypeDef huart2; // Замените на ваш UART (например, huart1, huart2)
+
+// Настройка printf для UART
+int _write(int file, char *ptr, int len) {
+    HAL_UART_Transmit(&huart2, (uint8_t*)ptr, len, HAL_MAX_DELAY);
+    return len;
+}
+
+// Структура для хранения сырых данных акселерометра
+typedef struct {
+    float x;
+    float y;
+    float z;
+} AccelData;
+
+// Структура для хранения параметров калибровки
+typedef struct {
+    float bias_x, bias_y, bias_z;   // Смещения по осям
+    float scale_x, scale_y, scale_z; // Масштабные коэффициенты
+} AccelCalibration;
+
+// Глобальные переменные для калибровки
+AccelCalibration accel_cal = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f};
+
+// Функция для получения усредненных данных акселерометра
+// Предполагается, что вы реализуете get_raw_accelerometer_data()
+void get_averaged_data(AccelData* data, uint16_t samples) {
+    AccelData temp = {0.0f, 0.0f, 0.0f};
+    for (uint16_t i = 0; i < samples; i++) {
+        AccelData raw;
+        // Здесь вызывается ваша функция для получения сырых данных
+        // Например: get_raw_accelerometer_data(&raw);
+        raw.x = /* ваша функция для получения X */;
+        raw.y = /* ваша функция для получения Y */;
+        raw.z = /* ваша функция для получения Z */;
+        
+        temp.x += raw.x;
+        temp.y += raw.y;
+        temp.z += raw.z;
+        HAL_Delay(10); // Задержка между выборками (настройте по датчику)
+    }
+    data->x = temp.x / samples;
+    data->y = temp.y / samples;
+    data->z = temp.z / samples;
+}
+
+// Функция калибровки (шестипозиционная)
+void calibrate_accelerometer(void) {
+    AccelData data[6]; // Данные для шести положений
+    const char* positions[6] = {
+        "Place sensor with +X axis UP (strictly vertical). Starting in 10 seconds...\r\n",
+        "Place sensor with -X axis UP (strictly vertical). Starting in 10 seconds...\r\n",
+        "Place sensor with +Y axis UP (strictly vertical). Starting in 10 seconds...\r\n",
+        "Place sensor with -Y axis UP (strictly vertical). Starting in 10 seconds...\r\n",
+        "Place sensor with +Z axis UP (strictly vertical). Starting in 10 seconds...\r\n",
+        "Place sensor with -Z axis UP (strictly vertical). Starting in 10 seconds...\r\n"
+    };
+    
+    // Сбор данных для каждого положения
+    for (int i = 0; i < 6; i++) {
+        // Вывод инструкции пользователю
+        printf("%s", positions[i]);
+        
+        // Задержка 10 секунд для смены положения
+        HAL_Delay(10000);
+        
+        // Сбор усредненных данных (1000 выборок)
+        get_averaged_data(&data[i], 1000);
+        
+        // Вывод собранных данных для проверки
+        printf("Position %d: X=%.4f, Y=%.4f, Z=%.4f\r\n", 
+               i+1, data[i].x, data[i].y, data[i].z);
+    }
+    
+    // Расчет смещений и масштабных коэффициентов
+    accel_cal.bias_x = (data[0].x + data[1].x) / 2.0f; // (+X, -X)
+    accel_cal.bias_y = (data[2].y + data[3].y) / 2.0f; // (+Y, -Y)
+    accel_cal.bias_z = (data[4].z + data[5].z) / 2.0f; // (+Z, -Z)
+    
+    accel_cal.scale_x = (data[0].x - data[1].x) / 2.0f; // (+X - -X) / 2g
+    accel_cal.scale_y = (data[2].y - data[3].y) / 2.0f; // (+Y - -Y) / 2g
+    accel_cal.scale_z = (data[4].z - data[5].z) / 2.0f; // (+Z - -Z) / 2g
+    
+    // Вывод параметров калибровки
+    printf("Calibration done:\r\n"
+           "Bias: X=%.4f, Y=%.4f, Z=%.4f\r\n"
+           "Scale: X=%.4f, Y=%.4f, Z=%.4f\r\n",
+           accel_cal.bias_x, accel_cal.bias_y, accel_cal.bias_z,
+           accel_cal.scale_x, accel_cal.scale_y, accel_cal.scale_z);
+}
+
+// Функция для применения калибровки к сырым данным
+void apply_calibration(AccelData* raw, AccelData* calibrated) {
+    calibrated->x = (raw->x - accel_cal.bias_x) / accel_cal.scale_x;
+    calibrated->y = (raw->y - accel_cal.bias_y) / accel_cal.scale_y;
+    calibrated->z = (raw->z - accel_cal.bias_z) / accel_cal.scale_z;
+}
+
+// Пример использования в main
+int main(void) {
+    // Инициализация HAL, UART, и акселерометра (предполагается, что уже сделано)
+    HAL_Init();
+    // ... (ваша инициализация UART, I2C/SPI, и акселерометра)
+    
+    // Вызов калибровки
+    calibrate_accelerometer();
+    
+    while (1) {
+        // Получение сырых данных
+        AccelData raw, calibrated;
+        // Например: get_raw_accelerometer_data(&raw);
+        raw.x = /* ваша функция для получения X */;
+        raw.y = /* ваша функция для получения Y */;
+        raw.z = /* ваша функция для получения Z */;
+        
+        // Применение калибровки
+        apply_calibration(&raw, &calibrated);
+        
+        // Вывод откалиброванных данных
+        printf("Calibrated: X=%.4f, Y=%.4f, Z=%.4f\r\n", 
+               calibrated.x, calibrated.y, calibrated.z);
+        
+        HAL_Delay(100); // Задержка для вывода данных
+    }
+}

@@ -164,10 +164,10 @@ volatile uint8_t i2cReceiveComplete = 0;  // Флаг завершения оп�
 uint8_t chip_id = 0;
 
 #define OFFSET_SIZE 22
-uint8_t BNO055_Offset_Array[OFFSET_SIZE];                                                                                                           // Массив для хранения офсетов
 uint8_t BNO055_Offset_Array_dafault1[OFFSET_SIZE] = {234, 255, 18, 0, 228, 255, 248, 255, 40, 254, 248, 255, 253, 255, 1, 0, 1, 0, 232, 3, 176, 4}; // Массив для хранения офсетов по умолчанию
 uint8_t BNO055_Offset_Array_dafault2[OFFSET_SIZE] = {240, 255, 7, 0, 249, 255, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 232, 3, 224, 1};     // Красный датчик
 uint8_t BNO055_Offset_Array_dafault2025[OFFSET_SIZE] = {240, 255, 7, 0, 249, 255, 26, 0, 57, 0, 30, 0, 254, 255, 1, 0, 1, 0, 232, 3, 126, 4};       // На даче в 2025 году на тестовой плате
+uint8_t BNO055_Offset_Array[OFFSET_SIZE] = {0};                                                                                                     //
 
 struct BNO055_Info_s
 {
@@ -204,15 +204,15 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c);
 void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c);
 
 void BNO055_Init();
-void BNO055_Reset();                                    // Перезапуск датчика
-void BNO055_SetMode(uint8_t mode_);                     // Установка нужного режима работы
-void BNO055_StatusInfo();                               // Запрос информации о статусе датчика
-void BNO055_RevInfo();                                  // Информация о прошивках датчика
-void BNO055_GetOffset_from_BNO055();                    // Считывание оффсет из датчика
-void BNO055_SetOffset_to_BNO055(uint8_t *offsetArray_); // Запись оффсет в датчик
-void BNO055_ReadData();                                 // Разовое считывание данных
-void BNO055_SetOrientation();                           // Установка ориентации датчика.
-void BNO055_StatusCalibr();                             // Запрос статуса колибровки
+void BNO055_Reset();                                      // Перезапуск датчика
+void BNO055_SetMode(uint8_t mode_);                       // Установка нужного режима работы
+void BNO055_StatusInfo();                                 // Запрос информации о статусе датчика
+void BNO055_RevInfo();                                    // Информация о прошивках датчика
+void BNO055_GetOffset_from_BNO055(uint8_t *offsetArray_); // Считывание оффсет из датчика
+void BNO055_SetOffset_to_BNO055(uint8_t *offsetArray_);   // Запись оффсет в датчик
+void BNO055_ReadData();                                   // Разовое считывание данных
+void BNO055_SetOrientation();                             // Установка ориентации датчика.
+void BNO055_StatusCalibr();                               // Запрос статуса колибровки
 
 //****************************************** РЕАЛИЗАЦИЯ ФУНКЦИЙ ***********************************
 
@@ -353,9 +353,11 @@ void BNO055_Init()
         HAL_Delay(25);
         BNO055_StatusInfo();
         BNO055_RevInfo();
-        BNO055_GetOffset_from_BNO055();
-        BNO055_SetOffset_to_BNO055(BNO055_Offset_Array_dafault2025);
-        BNO055_GetOffset_from_BNO055();
+        BNO055_GetOffset_from_BNO055(BNO055_Offset_Array);
+        // writeUint8ToFile(BNO055_Offset_Array_dafault2025, 22, "bno055.cfg");  // Вызов функции для целых чисел
+        readUint8FromFile(BNO055_Offset_Array, 22, "bno055.cfg"); // Вызов функции для целых чисел
+        BNO055_SetOffset_to_BNO055(BNO055_Offset_Array);
+        BNO055_GetOffset_from_BNO055(BNO055_Offset_Array);
         BNO055_SetOrientation(); // Установка ориентации датчика.
         BNO055_StatusInfo();
         BNO055_StatusCalibr();
@@ -477,7 +479,8 @@ void BNO055_StatusCalibr()
     else
     {
         printf(" Calibrovka TRUE.\n");
-        BNO055_GetOffset_from_BNO055();
+        BNO055_GetOffset_from_BNO055(BNO055_Offset_Array); // Считывание оффсет из датчика
+        // writeUint8ToFile(BNO055_Offset_Array, 22, "bno055.cfg");  // Запись оффсетов в файл
         return;
     }
 }
@@ -587,15 +590,15 @@ void BNO055_RevInfo()
     printf("--- END Init BNO055.\n");
 }
 // Считывание оффсет из датчика
-void BNO055_GetOffset_from_BNO055()
+void BNO055_GetOffset_from_BNO055(uint8_t *offsetArray_)
 {
     printf("BNO055_GetOffset_from_BNO055\n");
     BNO055_SetMode(eCONFIGMODE); /* Go to config mode if not there */
-    BNO055_Read(eBNO055_REGISTER_ACC_OFFSET_X_LSB, BNO055_Offset_Array, OFFSET_SIZE);
+    BNO055_Read(eBNO055_REGISTER_ACC_OFFSET_X_LSB, offsetArray_, OFFSET_SIZE);
 
     for (uint8_t i = 0; i < OFFSET_SIZE; i++)
     {
-        printf(" = %i", BNO055_Offset_Array[i]);
+        printf(" = %i", offsetArray_[i]);
     }
     printf("\n");
 }
@@ -657,7 +660,7 @@ void calcBuffer(uint8_t *buffer)
     magData.z = (int16_t)(cLow | (cHigh << 8)) / 16.;
 
     // DEBUG_PRINTF("magData x= %+8.2f y= %+8.2f z= %+8.2f | ", magData.x, magData.y, magData.z);
-    
+
     // GYROSCOPE  ---------------------------------------------
     aLow = buffer[12];
     aHigh = buffer[13];
@@ -665,27 +668,26 @@ void calcBuffer(uint8_t *buffer)
     bHigh = buffer[15];
     cLow = buffer[16];
     cHigh = buffer[17];
-    
+
     gyrolData.x = (int16_t)(aLow | (aHigh << 8)) / 16.; // Table 3-22: Gyroscope unit settings  1 Dps = 16 LSB (gradus)     1 Rps = 900 LSB (radian)
     gyrolData.y = (int16_t)(bLow | (bHigh << 8)) / 16.;
     gyrolData.z = (int16_t)(cLow | (cHigh << 8)) / 16.;
 
     static axises smoothed_data = {0, 0, 0}; // Начальные значения
-	float const ALPHA = 0.5;
-	// Экспоненциальное сглаживание везде по всем осям используем один коефициент
-	smoothed_data.x = ALPHA * gyrolData.x + (1 - ALPHA) * smoothed_data.x;
-	smoothed_data.y = ALPHA * gyrolData.y + (1 - ALPHA) * smoothed_data.y;
-	smoothed_data.z = ALPHA * gyrolData.z + (1 - ALPHA) * smoothed_data.z;
-    
+    float const ALPHA = 0.5;
+    // Экспоненциальное сглаживание везде по всем осям используем один коефициент
+    smoothed_data.x = ALPHA * gyrolData.x + (1 - ALPHA) * smoothed_data.x;
+    smoothed_data.y = ALPHA * gyrolData.y + (1 - ALPHA) * smoothed_data.y;
+    smoothed_data.z = ALPHA * gyrolData.z + (1 - ALPHA) * smoothed_data.z;
+
     // DEBUG_PRINTF("BNO055 Gyro raw = %+8.3f %+8.3f %+8.3f smoothed= %+8.3f %+8.3f %+8.3f | ", gyrolData.x, gyrolData.y, gyrolData.z, smoothed_data.x, smoothed_data.y, smoothed_data.z);
 
-	gyrolData.x = smoothed_data.x;
-	gyrolData.y = smoothed_data.y;
-	gyrolData.z = smoothed_data.z;
+    gyrolData.x = smoothed_data.x;
+    gyrolData.y = smoothed_data.y;
+    gyrolData.z = smoothed_data.z;
 
     // DEBUG_PRINTF("BNO055 gyro x= %+8.3f y= %+8.3f z= %+8.3f | ", gyrolData.x, gyrolData.y, gyrolData.z);
-    
-    
+
     // a,b,c это регистры которые мы считываем. В них могут быть значения для любых осей. Оси переопределяются в eBNO055_REGISTER_AXIS_MAP_CONFIG в зависимости от положения датчика.
     // Я просто подбираю нужную ось и знак. Если нужно переделываю на 360 градусов или +-180
 

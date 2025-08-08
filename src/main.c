@@ -66,11 +66,12 @@ int main(void)
   // saveLaserCfg();
 
   MX_I2C1_Init(); // Инициализация I2C1
-  // I2C_ScanDevices(&hi2c1);// Сканирование I2C шины
 
-  writeUint8ToFile(BNO055_Offset_Array_dafault2025, 22, "bno055.cfg"); // Вызов функции для целых чисел
-  readUint8FromFile(BNO055_Offset_Array_dafault2025, 22, "bno055.cfg"); // Вызов функции для целых чисел
+  // I2C_ScanDevices(&hi2c1);// Сканирование I2C шины
   BNO055_Init();                                                               // Инициализация датчика на шине I2C
+
+  // I2C_ScanDevices(&hi2c1);// Сканирование I2C шины
+  icm20948_init(); // Инициализация ICM-20948
 
   float laserOffSet[4] = {1.23f, 4.56f, 7.89f, 3.1415f}; // Массив с 4 значениями калибровки лазеров
   writeFloatToFile(laserOffSet, 4, "laser.cfg");
@@ -103,9 +104,6 @@ int main(void)
   // setZeroMotor(); // Установка в ноль
 
   // initLaser(); // Инициализация лазеров в зависимости от типа датчкика. определяем переменные буфер приема для каждого UART
-
-  // I2C_ScanDevices(&hi2c1);// Сканирование I2C шины
-  // icm20948_init(); // Инициализация ICM-20948
 
   // I2C_ScanDevices(&hi2c1);
   // ak09916_init(); // Инициализация магнитометра

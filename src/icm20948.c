@@ -34,7 +34,9 @@ static void write_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t *val, 
 
 static uint8_t read_single_ak09916_reg(uint8_t reg);
 static void write_single_ak09916_reg(uint8_t reg, uint8_t val);
-static uint8_t *read_multiple_ak09916_reg(uint8_t reg, uint8_t len);
+// static uint8_t *read_multiple_ak09916_reg(uint8_t reg, uint8_t len);
+
+void calibrate_accelerometer(void); // Функция калибровки (шестипозиционная)
 
 extern void print_binary(int num);
 
@@ -134,7 +136,8 @@ void icm20948_init()
 	icm20948_wakeup();
 	//
 	icm20948_gyro_calibration();
-	icm20948_accel_calibration();
+	// icm20948_accel_calibration();
+	calibrate_accelerometer();
 
 	DEBUG_PRINTF("    End icm20948_init \n");
 	HAL_Delay(500);
@@ -813,9 +816,9 @@ void icm20948_accel_sample_rate_divider(uint16_t divider)
 	uint8_t new_val1 = read_single_icm20948_reg(ub_2, B2_ACCEL_SMPLRT_DIV_1);
 	uint8_t new_val2 = read_single_icm20948_reg(ub_2, B2_ACCEL_SMPLRT_DIV_2);
 
-	DEBUG_PRINTF("    ITOG B2_ACCEL_SMPLRT_DIV_1: 0x%02X ", new_val1); // Вывод 
+	DEBUG_PRINTF("    ITOG B2_ACCEL_SMPLRT_DIV_1: 0x%02X ", new_val1); // Вывод
 	print_binary(new_val1);
-	DEBUG_PRINTF("    ITOG B2_ACCEL_SMPLRT_DIV_2: 0x%02X ", new_val2); // Вывод 
+	DEBUG_PRINTF("    ITOG B2_ACCEL_SMPLRT_DIV_2: 0x%02X ", new_val2); // Вывод
 	print_binary(new_val2);
 
 	DEBUG_PRINTF("    End icm20948_accel_sample_rate_divider ****************************************************** \n");
@@ -906,6 +909,81 @@ void icm20948_gyro_calibration()
 	write_multiple_icm20948_reg(ub_2, B2_XG_OFFS_USRH, gyro_offset, 6);
 	HAL_Delay(500);
 }
+
+// Функция для получения усредненных данных акселерометра
+// Предполагается, что вы реализуете get_raw_accelerometer_data()
+void get_averaged_data(axises *data, uint16_t samples)
+{
+	axises temp = {0.0f, 0.0f, 0.0f};
+	for (uint16_t i = 0; i < samples; i++)
+	{
+		axises raw;
+		icm20948_accel_read(&raw);// Здесь вызывается ваша функция для получения сырых данных
+		temp.x += raw.x;
+		temp.y += raw.y;
+		// temp.z += raw.z;
+		temp.z += (raw.z- accel_scale_factor); // Отнимаем чтобы получить bias без гравитации;
+		HAL_Delay(10); // Задержка между выборками (настройте по датчику)
+	}
+	data->x = temp.x / samples;
+	data->y = temp.y / samples;
+	data->z = temp.z / samples;
+}
+
+// Структура для хранения параметров калибровки
+typedef struct
+{
+	float bias_x, bias_y, bias_z;	 // Смещения по осям
+	float scale_x, scale_y, scale_z; // Масштабные коэффициенты
+} structAccelCalibration;
+structAccelCalibration accel_cal = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f}; // Глобальные переменные для калибровки
+
+// Функция калибровки (шестипозиционная)
+void calibrate_accelerometer(void)
+{
+	axises data[6]; // Данные для шести положений
+	const char *positions[6] = {
+		"Place sensor with +X axis UP (strictly vertical). Starting in 10 seconds...\r\n",
+		"Place sensor with -X axis UP (strictly vertical). Starting in 10 seconds...\r\n",
+		"Place sensor with +Y axis UP (strictly vertical). Starting in 10 seconds...\r\n",
+		"Place sensor with -Y axis UP (strictly vertical). Starting in 10 seconds...\r\n",
+		"Place sensor with +Z axis UP (strictly vertical). Starting in 10 seconds...\r\n",
+		"Place sensor with -Z axis UP (strictly vertical). Starting in 10 seconds...\r\n"};
+
+	// Сбор данных для каждого положения
+	for (int i = 0; i < 6; i++)
+	{
+		// Вывод инструкции пользователю
+		printf("%s", positions[i]);
+
+		// Задержка 10 секунд для смены положения
+		HAL_Delay(10000);
+
+		// Сбор усредненных данных (1000 выборок)
+		get_averaged_data(&data[i], 1000);
+
+		// Вывод собранных данных для проверки
+		printf("Position %d: X=%.4f, Y=%.4f, Z=%.4f\r\n",
+			   i + 1, data[i].x, data[i].y, data[i].z);
+	}
+
+	// Расчет смещений и масштабных коэффициентов
+	accel_cal.bias_x = (data[0].x + data[1].x) / 2.0f; // (+X, -X)
+	accel_cal.bias_y = (data[2].y + data[3].y) / 2.0f; // (+Y, -Y)
+	accel_cal.bias_z = (data[4].z + data[5].z) / 2.0f; // (+Z, -Z)
+
+	accel_cal.scale_x = (data[0].x - data[1].x) / 2.0f; // (+X - -X) / 2g
+	accel_cal.scale_y = (data[2].y - data[3].y) / 2.0f; // (+Y - -Y) / 2g
+	accel_cal.scale_z = (data[4].z - data[5].z) / 2.0f; // (+Z - -Z) / 2g
+
+	// Вывод параметров калибровки
+	printf("Calibration done:\r\n"
+		   "Bias: X=%.4f, Y=%.4f, Z=%.4f\r\n"
+		   "Scale: X=%.4f, Y=%.4f, Z=%.4f\r\n",
+		   accel_cal.bias_x, accel_cal.bias_y, accel_cal.bias_z,
+		   accel_cal.scale_x, accel_cal.scale_y, accel_cal.scale_z);
+}
+
 // Функция калибровки акселерометра
 void icm20948_accel_calibration()
 {
@@ -1347,12 +1425,12 @@ static void write_single_ak09916_reg(uint8_t reg, uint8_t val)
 	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x81);
 }
 
-static uint8_t *read_multiple_ak09916_reg(uint8_t reg, uint8_t len)
-{
-	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR);
-	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_REG, reg);
-	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x80 | len);
+// static uint8_t *read_multiple_ak09916_reg(uint8_t reg, uint8_t len)
+// {
+// 	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR);
+// 	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_REG, reg);
+// 	write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x80 | len);
 
-	HAL_Delay(1);
-	return read_multiple_icm20948_reg(ub_0, B0_EXT_SLV_SENS_DATA_00, len);
-}
+// 	HAL_Delay(1);
+// 	return read_multiple_icm20948_reg(ub_0, B0_EXT_SLV_SENS_DATA_00, len);
+// }
