@@ -75,17 +75,19 @@ typedef enum
 } operation_mode;
 
 /* Структура для bias */
-typedef struct {
-    float b_x;
-    float b_y;
-    float b_z;
-} MagnetometerBias;
+typedef struct
+{
+	float b_x;
+	float b_y;
+	float b_z;
+} StructBias;
 /* Структура для scale */
-typedef struct {
-    float s_x;
-    float s_y;
-    float s_z;
-} MagnetometerScale;
+typedef struct
+{
+	float s_x;
+	float s_y;
+	float s_z;
+} StructScale;
 
 /* Main Functions */
 

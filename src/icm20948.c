@@ -12,9 +12,19 @@
 static float gyro_scale_factor;
 static float accel_scale_factor;
 
+#include "..\lib\FATFS\fatfs.h"
+extern FRESULT writeUint8ToFile(uint8_t *values, uint8_t size, const char *filename);  // Функция записи массива uint8_t в файл
+extern FRESULT writeFloatToFile(float *values, uint8_t size, const char *filename);    // Функция записи массива float в файл
+extern FRESULT readUint8FromFile(uint8_t *values, uint8_t size, const char *filename); // Функция считывания uint8_t из файла в массив
+extern FRESULT readFloatFromFile(float *values, uint8_t size, const char *filename);   // Функция считывания float из файла в массив
+
 // Калибровочные коэффициенты
-MagnetometerBias mBias;	  // для магнетрометра
-MagnetometerScale mScale; // для магнетрометра масштабные коефициенты
+StructBias gBias; // для гироскопа
+StructBias aBias; // для акселерометра
+StructBias mBias; // для магнетрометра
+
+StructScale aScale; // для акселерометра масштабные коефициенты
+StructScale mScale; // для магнетрометра масштабные коефициенты
 
 axises my_gyro;
 axises my_accel;
@@ -134,10 +144,47 @@ void icm20948_init()
 	icm20948_accel_sample_rate_divider(10); // Установка делителя частоты дискретизации для акселрометра  //  - divider: Значение делителя (Output Data Rate = 1.125 кГц / (1 + divider)) // Используется для настройки частоты вывода данных гироскопа (например, 100 Гц при divider = 10)
 
 	icm20948_wakeup();
-	//
+	
 	icm20948_gyro_calibration();
 	// icm20948_accel_calibration();
+	
 	calibrate_accelerometer();
+	
+	printf("    writeFloatToFile icm20948.cfg \n");
+	float icm20948OffSet[9] = {0.0}; // Массив с 9 значениями калибровки датчика
+	icm20948OffSet[0] = gBias.b_x;
+	icm20948OffSet[1] = gBias.b_y;
+	icm20948OffSet[2] = gBias.b_z;
+	
+	icm20948OffSet[3] = aBias.b_x;
+	icm20948OffSet[4] = aBias.b_y;
+	icm20948OffSet[5] = aBias.b_z;
+	
+	icm20948OffSet[6] = aScale.s_x;
+	icm20948OffSet[7] = aScale.s_y;
+	icm20948OffSet[8] = aScale.s_z;
+
+	writeFloatToFile(icm20948OffSet, 9, "icm20948.cfg");
+	while (1)
+	{
+	}
+	
+	printf("    readFloatFromFile icm20948.cfg \n");
+	readFloatFromFile(icm20948OffSet, 9, "icm20948.cfg");
+	gBias.b_x = icm20948OffSet[0];
+	gBias.b_y = icm20948OffSet[1];
+	gBias.b_z = icm20948OffSet[2];
+	printf("gBias.b_x= %.3f gBias.b_y= %.3f gBias.b_z= %.3f | ", gBias.b_x, gBias.b_y, gBias.b_z);
+	
+	aBias.b_x = icm20948OffSet[3];
+	aBias.b_y = icm20948OffSet[4];
+	aBias.b_z = icm20948OffSet[5];
+	printf("aBias.b_x= %.3f aBias.b_y= %.3f aBias.b_z= %.3f | ", aBias.b_x, aBias.b_y, aBias.b_z);
+
+	aScale.s_x = icm20948OffSet[6];
+	aScale.s_y = icm20948OffSet[7];
+	aScale.s_z = icm20948OffSet[8];
+	printf("aScale.b_x= %.3f aScale.b_y= %.3f aScale.b_z= %.3f \n", aScale.s_x, aScale.s_y, aScale.s_z);
 
 	DEBUG_PRINTF("    End icm20948_init \n");
 	HAL_Delay(500);
@@ -370,16 +417,15 @@ void icm20948_gyro_read_dps(axises *data)
 {
 	icm20948_gyro_read(data);
 
-	data->x /= gyro_scale_factor;
-	data->y /= gyro_scale_factor;
-	data->z /= gyro_scale_factor;
+	data->x = (data->x - gBias.b_x) / gyro_scale_factor; // Считаем учитвая bias и установку
+	data->y = (data->y - gBias.b_y) / gyro_scale_factor;
+	data->z = (data->z - gBias.b_z) / gyro_scale_factor;
 
 	// DEBUG_PRINTF("Gyro gyro_scale_factor = %+8.3f | ", gyro_scale_factor);
 
 	static axises smoothed_data = {0, 0, 0}; // Начальные значения
 	float const ALPHA = 0.5;
-	// Экспоненциальное сглаживание везде по всем осям используем один коефициент
-	smoothed_data.x = ALPHA * data->x + (1 - ALPHA) * smoothed_data.x;
+	smoothed_data.x = ALPHA * data->x + (1 - ALPHA) * smoothed_data.x; // Экспоненциальное сглаживание везде по всем осям используем один коефициент
 	smoothed_data.y = ALPHA * data->y + (1 - ALPHA) * smoothed_data.y;
 	smoothed_data.z = ALPHA * data->z + (1 - ALPHA) * smoothed_data.z;
 
@@ -393,9 +439,9 @@ void icm20948_accel_read_g(axises *data)
 {
 	icm20948_accel_read(data); // Считывание необработанных данных акселерометра
 
-	data->x /= accel_scale_factor; // Преобразование в g делением на акселерационный коэффициент
-	data->y /= accel_scale_factor;
-	data->z /= accel_scale_factor;
+	data->x = ((data->x - aBias.b_x) * aScale.s_x) / accel_scale_factor; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
+	data->y = ((data->y - aBias.b_y) * aScale.s_y) / accel_scale_factor; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
+	data->z = ((data->z - aBias.b_z) * aScale.s_z) / accel_scale_factor; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
 
 	float norm = sqrt(data->x * data->x + data->y * data->y + data->z * data->z); // Нормализация для Маджвика
 	if (norm > 0)
@@ -596,7 +642,7 @@ void ak09916_soft_reset()
 	write_single_ak09916_reg(MAG_CNTL3, 0x01);
 	HAL_Delay(100);
 }
-
+// 
 void icm20948_wakeup()
 {
 	DEBUG_PRINTF("+++ icm20948_wakeup \n");
@@ -891,18 +937,22 @@ void icm20948_gyro_calibration()
 
 	DEBUG_PRINTF("    gyroBias0 = %li  gyroBias1 = %li gyroBias2 = %li \n", gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
+	gBias.b_x = gyro_bias[0];
+	gBias.b_y = gyro_bias[1];
+	gBias.b_z = gyro_bias[2];
+
 	// Construct the gyro biases for push to the hardware gyro bias registers,
 	// which are reset to zero upon device startup.
 	// Divide by 4 to get 32.9 LSB per deg/s to conform to expected bias input format.
 	// Biases are additive, so change sign on calculated average gyro biases
-	gyro_offset[0] = (-gyro_bias[0] / 4 >> 8) & 0xFF;
-	gyro_offset[1] = (-gyro_bias[0] / 4) & 0xFF;
-	gyro_offset[2] = (-gyro_bias[1] / 4 >> 8) & 0xFF;
-	gyro_offset[3] = (-gyro_bias[1] / 4) & 0xFF;
-	gyro_offset[4] = (-gyro_bias[2] / 4 >> 8) & 0xFF;
-	gyro_offset[5] = (-gyro_bias[2] / 4) & 0xFF;
+	// gyro_offset[0] = (-gyro_bias[0] / 4 >> 8) & 0xFF;
+	// gyro_offset[1] = (-gyro_bias[0] / 4) & 0xFF;
+	// gyro_offset[2] = (-gyro_bias[1] / 4 >> 8) & 0xFF;
+	// gyro_offset[3] = (-gyro_bias[1] / 4) & 0xFF;
+	// gyro_offset[4] = (-gyro_bias[2] / 4 >> 8) & 0xFF;
+	// gyro_offset[5] = (-gyro_bias[2] / 4) & 0xFF;
 
-	write_multiple_icm20948_reg(ub_2, B2_XG_OFFS_USRH, gyro_offset, 6);
+	// write_multiple_icm20948_reg(ub_2, B2_XG_OFFS_USRH, gyro_offset, 6);
 	HAL_Delay(500);
 }
 
@@ -924,14 +974,6 @@ void get_averaged_data(axises *data, uint16_t samples)
 	data->z = temp.z / samples;
 }
 
-// Структура для хранения параметров калибровки
-typedef struct
-{
-	float bias_x, bias_y, bias_z;	 // Смещения по осям
-	float scale_x, scale_y, scale_z; // Масштабные коэффициенты
-} structAccelCalibration;
-structAccelCalibration accel_cal = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f}; // Глобальные переменные для калибровки
-
 // Функция калибровки (шестипозиционная)
 void calibrate_accelerometer(void)
 {
@@ -951,30 +993,28 @@ void calibrate_accelerometer(void)
 		for (int j = 0; j < 10; j++)
 		{
 			printf("%d ", 10 - j); // Отсчет времени
-			fflush(stdout);        // Принудительный сброс буфера
+			fflush(stdout);		   // Принудительный сброс буфера
 			HAL_Delay(1000);	   // Задержка 1 секунда
 		}
 		printf("Start... | ");
-		fflush(stdout);        // Принудительный сброс буфера
+		fflush(stdout);																			   // Принудительный сброс буфера
 		get_averaged_data(&data[i], 1000);														   // Сбор усредненных данных (1000 выборок)
 		printf("Position %d: X=%.4f, Y=%.4f, Z=%.4f\r\n", i + 1, data[i].x, data[i].y, data[i].z); // Вывод собранных данных для проверки
 	}
 
 	// Расчет смещений и масштабных коэффициентов
-	accel_cal.bias_x = (data[0].x + data[1].x) / 2.0f; // (+X, -X)
-	accel_cal.bias_y = (data[2].y + data[3].y) / 2.0f; // (+Y, -Y)
-	accel_cal.bias_z = (data[4].z + data[5].z) / 2.0f; // (+Z, -Z)
+	aBias.b_x = (data[0].x + data[1].x) / 2.0f; // (+X, -X)
+	aBias.b_y = (data[2].y + data[3].y) / 2.0f; // (+Y, -Y)
+	aBias.b_z = (data[4].z + data[5].z) / 2.0f; // (+Z, -Z)
 
-	accel_cal.scale_x = (2.0 * accel_scale_factor) / (data[0].x - data[1].x); // Масштабный коэффициент для X
-	accel_cal.scale_y = (2.0 * accel_scale_factor) / (data[2].y - data[3].y); // Масштабный коэффициент для Y
-	accel_cal.scale_z = (2.0 * accel_scale_factor) / (data[4].z - data[5].z); // Масштабный коэффициент для Z
+	aScale.s_x = (2.0 * accel_scale_factor) / (data[0].x - data[1].x); // Масштабный коэффициент для X
+	aScale.s_y = (2.0 * accel_scale_factor) / (data[2].y - data[3].y); // Масштабный коэффициент для Y
+	aScale.s_z = (2.0 * accel_scale_factor) / (data[4].z - data[5].z); // Масштабный коэффициент для Z
 
 	// Вывод параметров калибровки
-	printf("Calibration done:\r\n"
-		   "Bias: X=%.4f, Y=%.4f, Z=%.4f\r\n"
-		   "Scale: X=%.4f, Y=%.4f, Z=%.4f\r\n",
-		   accel_cal.bias_x, accel_cal.bias_y, accel_cal.bias_z,
-		   accel_cal.scale_x, accel_cal.scale_y, accel_cal.scale_z);
+	printf("Calibration done: Bias: X=%.4f, Y=%.4f, Z=%.4f | Scale: X=%.4f, Y=%.4f, Z=%.4f\r\n",
+		   aBias.b_x, aBias.b_y, aBias.b_z,
+		   aScale.s_x, aScale.s_y, aScale.s_z);
 }
 
 // Функция калибровки акселерометра
