@@ -238,6 +238,8 @@ void workingTimer() // Отработка действий по таймеру �
         flag_timer_10millisec = false;
 
         icm20948_gyro_read_dps(&my_gyro);
+        icm20948_accel_read_g(&my_accel);
+        ak09916_mag_read_uT(&my_mag);
 
         static uint64_t last_timeGyro = 0; // Переменная для хранения времени последнего обновления
         timeUpdateGyro = micros();         // Получаем текущее время в микросекундах для расчета dt
@@ -252,10 +254,6 @@ void workingTimer() // Отработка действий по таймеру �
         // DEBUG_PRINTF(" roll_G= %+6.1f pitch_G= %+6.1f yaw_G= %+6.1f | \n", roll_G, pitch_G, yaw_G);
 
         // DEBUG_PRINTF("dt= %f | Gyro X= %.3f Y= %.3f Z= %.3f | \n", dt, my_gyro.x, gyroAngle.x);
-
-        icm20948_accel_read_g(&my_accel);
-
-        ak09916_mag_read_uT(&my_mag);
 
         Calculate_Accel_Angles(my_accel.x, my_accel.y, my_accel.z); // Вычисляем углы Эйлера только roll pitch. yaw не может быть посчитан
         // DEBUG_PRINTF("%lu | ", millis());

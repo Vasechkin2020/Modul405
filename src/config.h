@@ -2,6 +2,7 @@
 #define CONFIG_H
 
 #include <stdint.h>
+#include <math.h>
 
 #define RAD2DEG(x) ((x) * 180. / M_PI) // Первод из радиан в градусы
 #define DEG2RAD(x) ((x) * M_PI / 180.) // Первод из градусов в радианы
