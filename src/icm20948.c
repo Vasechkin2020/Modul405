@@ -248,16 +248,13 @@ void icm20948_gyro_read(axises *data)
 	data->y = (int16_t)(temp[2] << 8 | temp[3]);
 	data->z = (int16_t)(temp[4] << 8 | temp[5]);
 }
-
+// // Чтение необработанных данных акселерометра (16-битные значения с АЦП)
 void icm20948_accel_read(axises *data)
 {
 	uint8_t *temp = read_multiple_icm20948_reg(ub_0, B0_ACCEL_XOUT_H, 6);
-
 	data->x = (int16_t)(temp[0] << 8 | temp[1]);
 	data->y = (int16_t)(temp[2] << 8 | temp[3]);
 	data->z = (int16_t)(temp[4] << 8 | temp[5]);
-	// data->z = (int16_t)(temp[4] << 8 | temp[5]) + accel_scale_factor;
-	// Add scale factor because calibraiton function offset gravity acceleration.
 }
 
 bool ak09916_mag_read(axises *data)
@@ -391,17 +388,16 @@ void icm20948_gyro_read_dps(axises *data)
 
 	*data = smoothed_data;
 }
-// Считывание акселерометра
+// Считывание акселерометра и преобразование в g делением на акселерационный коэффициент accel_scale_factor
 void icm20948_accel_read_g(axises *data)
 {
-	icm20948_accel_read(data);
+	icm20948_accel_read(data); // Считывание необработанных данных акселерометра
 
-	data->x /= accel_scale_factor;
+	data->x /= accel_scale_factor; // Преобразование в g делением на акселерационный коэффициент
 	data->y /= accel_scale_factor;
 	data->z /= accel_scale_factor;
 
-	// Нормализация для Маджвика
-	float norm = sqrt(data->x * data->x + data->y * data->y + data->z * data->z);
+	float norm = sqrt(data->x * data->x + data->y * data->y + data->z * data->z); // Нормализация для Маджвика
 	if (norm > 0)
 	{
 		data->x = data->x / norm;
@@ -411,8 +407,8 @@ void icm20948_accel_read_g(axises *data)
 
 	static axises smoothed_data = {0, 0, 1}; // Начальные значения
 	float const ALPHA = 0.5;
-	// Экспоненциальное сглаживание везде по всем осям используем один коефициент
-	smoothed_data.x = ALPHA * data->x + (1 - ALPHA) * smoothed_data.x;
+
+	smoothed_data.x = ALPHA * data->x + (1 - ALPHA) * smoothed_data.x; // Экспоненциальное сглаживание везде по всем осям используем один коефициент
 	smoothed_data.y = ALPHA * data->y + (1 - ALPHA) * smoothed_data.y;
 	smoothed_data.z = ALPHA * data->z + (1 - ALPHA) * smoothed_data.z;
 	// DEBUG_PRINTF("Norm (g): %.3f",norm);
@@ -911,18 +907,16 @@ void icm20948_gyro_calibration()
 }
 
 // Функция для получения усредненных данных акселерометра
-// Предполагается, что вы реализуете get_raw_accelerometer_data()
 void get_averaged_data(axises *data, uint16_t samples)
 {
 	axises temp = {0.0f, 0.0f, 0.0f};
 	for (uint16_t i = 0; i < samples; i++)
 	{
 		axises raw;
-		icm20948_accel_read(&raw);// Здесь вызывается ваша функция для получения сырых данных
+		icm20948_accel_read(&raw); // Здесь вызывается ваша функция для получения сырых данных
 		temp.x += raw.x;
 		temp.y += raw.y;
 		temp.z += raw.z;
-		// temp.z += (raw.z- accel_scale_factor); // Отнимаем чтобы получить bias без гравитации;
 		HAL_Delay(10); // Задержка между выборками (настройте по датчику)
 	}
 	data->x = temp.x / samples;
@@ -953,18 +947,17 @@ void calibrate_accelerometer(void)
 	// Сбор данных для каждого положения
 	for (int i = 0; i < 6; i++)
 	{
-		// Вывод инструкции пользователю
-		printf("%s", positions[i]);
-
-		// Задержка 10 секунд для смены положения
-		HAL_Delay(10000);
-
-		// Сбор усредненных данных (1000 выборок)
-		get_averaged_data(&data[i], 1000);
-
-		// Вывод собранных данных для проверки
-		printf("Position %d: X=%.4f, Y=%.4f, Z=%.4f\r\n",
-			   i + 1, data[i].x, data[i].y, data[i].z);
+		printf("Position %d: %s", i + 1, positions[i]); // Вывод инструкции пользователю
+		for (int j = 0; j < 10; j++)
+		{
+			printf("%d ", 10 - j); // Отсчет времени
+			fflush(stdout);        // Принудительный сброс буфера
+			HAL_Delay(1000);	   // Задержка 1 секунда
+		}
+		printf("Start... | ");
+		fflush(stdout);        // Принудительный сброс буфера
+		get_averaged_data(&data[i], 1000);														   // Сбор усредненных данных (1000 выборок)
+		printf("Position %d: X=%.4f, Y=%.4f, Z=%.4f\r\n", i + 1, data[i].x, data[i].y, data[i].z); // Вывод собранных данных для проверки
 	}
 
 	// Расчет смещений и масштабных коэффициентов
@@ -972,9 +965,9 @@ void calibrate_accelerometer(void)
 	accel_cal.bias_y = (data[2].y + data[3].y) / 2.0f; // (+Y, -Y)
 	accel_cal.bias_z = (data[4].z + data[5].z) / 2.0f; // (+Z, -Z)
 
-	accel_cal.scale_x = (data[0].x - data[1].x) / 2.0f; // (+X - -X) / 2g
-	accel_cal.scale_y = (data[2].y - data[3].y) / 2.0f; // (+Y - -Y) / 2g
-	accel_cal.scale_z = (data[4].z - data[5].z) / 2.0f; // (+Z - -Z) / 2g
+	accel_cal.scale_x = (2.0 * accel_scale_factor) / (data[0].x - data[1].x); // Масштабный коэффициент для X
+	accel_cal.scale_y = (2.0 * accel_scale_factor) / (data[2].y - data[3].y); // Масштабный коэффициент для Y
+	accel_cal.scale_z = (2.0 * accel_scale_factor) / (data[4].z - data[5].z); // Масштабный коэффициент для Z
 
 	// Вывод параметров калибровки
 	printf("Calibration done:\r\n"
