@@ -80,8 +80,8 @@ int main(void)
   unmountFilesystem();    // Функция для демонтирования файловой системы
   HAL_SD_MspDeInit(&hsd); // SDIO MSP De-Initialization Function
 
-  while (1)
-    ;
+  // while (1)
+  //   ;
   // HAL_Delay(999999);
 
   MX_GPIO_Init();

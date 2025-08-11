@@ -16,6 +16,7 @@
 #include "laser80M.h"
 #include "sk60plus.h"
 #include "slaveSPI.h"
+#include "bno055.h"
 
 //********************************* ПЕРЕМЕННЫЕ ***************************************************************************
 
@@ -29,6 +30,12 @@ GPIO_TypeDef *myPort;
 extern axises my_gyro;
 extern axises my_accel;
 extern axises my_mag;
+
+extern struct SXyz eulerAngles;
+extern struct SXyz linAccData;
+extern struct SXyz accelData;
+extern struct SXyz gyrolData;
+extern struct SXyz magData;
 
 void EnableFPU(void);                                                      // Включение FPU (CP10 и CP11: полный доступ) Работа с плавающей точкой
 void timer6();                                                             // Обработчик прерывания таймера TIM6	1 раз в 1 милисекунду
@@ -58,6 +65,9 @@ extern void setZeroMotor();
 extern void BNO055_ReadData(); // Разовое считывание данных
 extern volatile uint32_t millisCounter;
 extern volatile uint32_t overflow_count; // Счётчик переполнений
+
+extern  volatile float linearAcc_x, linearAcc_y, linearAcc_z; // Углы считаем каждый раз из кватерниона.
+extern  float gravity_x, gravity_y, gravity_z; // Гравитация в кватернионе
 
 // int laser_pred = 0;            // Переменная для запоминания предыдущей команды
 uint8_t modeControlMotor = 0; // Режим в котором находиттся мотор после последней команды управления
@@ -267,9 +277,11 @@ void workingTimer() // Отработка действий по таймеру �
         // uint32_t start = micros(); // Получаем текущее время в микросекундах
         // MadgwickAHRSupdate(my_gyro.x, my_gyro.y, my_gyro.z, my_accel.x, my_accel.y, my_accel.z, my_mag.x, my_mag.y, my_mag.z);
         MadgwickAHRSupdateIMU(my_gyro.x, my_gyro.y, my_gyro.z, my_accel.x, my_accel.y, my_accel.z);
+
+
         // uint32_t end = micros(); // Получаем текущее время в микросекундах
 
-        //********************** ВЫЧИСЛЕНИЕ КАК БУДТО МЫ ТОЛЬКО ГОРИЗОНТАЛЬНО ПОАОРАЧИВАЕМСЯ БЕЗ УЧЕТА НАКЛОНОВ ***********************************
+        //********************** ВЫЧИСЛЕНИЕ КАК БУДТО МЫ ТОЛЬКО ГОРИЗОНТАЛЬНО ПОВОРАЧИВАЕМСЯ БЕЗ УЧЕТА НАКЛОНОВ ***********************************
         // Вычисление угла рыскания yaw
         yaw_M = atan2f(-my_mag.y, my_mag.x);
         yaw_M = yaw_M * 180.0f / M_PI; // Перевод в градусы
@@ -287,21 +299,25 @@ void workingTimer() // Отработка действий по таймеру �
     if (flag_timer_20millisec)
     {
         flag_timer_20millisec = false;
-        BNO055_ReadData(); // Разовое считывание данных
         // DEBUG_PRINTF("%lu | ", millis());
         // DEBUG_PRINTF("BNO055 gyro %+8.3f %+8.3f %+8.3f | ", gyrolData.x, gyrolData.y, gyrolData.z);
         // DEBUG_PRINTF("ICM20948 gyro %+8.3f %+8.3f %+8.3f | ", my_gyro.x, my_gyro.y, my_gyro.z);
         // DEBUG_PRINTF("Accel %+8.3f %+8.3f %+8.3f | ", my_accel.x, my_accel.y, my_accel.z);
         // DEBUG_PRINTF("roll_A= %+8.3f pitch_A= %+8.3f | ", roll_A, pitch_A);
-        DEBUG_PRINTF("Madgwick %+8.3f %+8.3f %+8.3f || ", roll_Mad, pitch_Mad, yaw_Mad);
+        // DEBUG_PRINTF("Madgwick %+8.3f %+8.3f %+8.3f || ", roll_Mad, pitch_Mad, yaw_Mad);
         // DEBUG_PRINTF("Magn X= %+8.2f y= %+8.2f z= %+8.2f | ",my_mag.x,my_mag.y,my_mag.z);
         // DEBUG_PRINTF("yaw_M= %+8.2f yaw_MMM= %+8.2f |, yaw_M, yaw_MMM);
-        DEBUG_PRINTF("\n");
+        // DEBUG_PRINTF("\n");
+
     }
     //----------------------------- 50 миллисекунд --------------------------------------
     if (flag_timer_50millisec)
     {
         flag_timer_50millisec = false;
+        BNO055_ReadData(); // Разовое считывание данных
+        // DEBUG_PRINTF(" | gravity_x= %+6.3f gravity_y= %+6.3f gravity_z= %+6.3f | ", gravity_x, gravity_y, gravity_z);
+        // DEBUG_PRINTF("lin_x= %+6.3f lin_y= %+6.3f lin_z= %+6.3f | ", linearAcc_x, linearAcc_y, linearAcc_z);
+        DEBUG_PRINTF("lin_x= %+6.3f lin_y= %+6.3f lin_z= %+6.3f \n", linearAcc_x, linearAcc_y, linearAcc_z);
 
         // DEBUG_PRINTF("50msec %li \r\n", millis());
         //  flag_data = true; // Есть новые данные по шине // РУчной вариант имитации пришедших данных с частотой 20Гц

@@ -35,6 +35,7 @@ volatile float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f; // quaternion of sens
 
 volatile float roll_Mad = 0.0f, pitch_Mad = 0.0f, yaw_Mad = 0.0f; // Углы считаем каждый раз из кватерниона.
 volatile float linearAcc_x = 0.0f, linearAcc_y = 0.0f, linearAcc_z = 0.0f; // Углы считаем каждый раз из кватерниона.
+float gravity_x, gravity_y, gravity_z; // Гравитация в кватернионе
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
@@ -252,24 +253,24 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 	yaw_Mad = RAD2DEG(yaw_Mad);
 
 	//************** ГРАВИТАЦИЯ ****************
-	float gravity_x, gravity_y, gravity_z; // Гравитация в кватернионе
+
 	gravity_x = 2.0f * (q1 * q3 - q0 * q2);
 	gravity_y = 2.0f * (q0 * q1 + q2 * q3);
 	gravity_z = q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3;
-	DEBUG_PRINTF(" | gravity_x=%.3f gravity_y=%.3f gravity_z=%.3f | ", gravity_x, gravity_y, gravity_z);
+	// DEBUG_PRINTF(" | gravity_x= %+6.3f gravity_y= %+6.3f gravity_z= %+6.3f | ", gravity_x, gravity_y, gravity_z);
 
 	// 1. Вычитаем гравитацию (оба значения в g)
     linearAcc_x = ax - gravity_x ; // Вычитаем гравитацию из акселерометра
     linearAcc_y = ay - gravity_y;
     linearAcc_z = az - gravity_z;
-	DEBUG_PRINTF(" | linearAcc_x=%.3f linearAcc_y=%.3f linearAcc_z=%.3f | ", linearAcc_x, linearAcc_y, linearAcc_z);
+	// DEBUG_PRINTF("lin_x= %+6.3f lin_y= %+6.3f lin_z= %+6.3f | ", linearAcc_x, linearAcc_y, linearAcc_z);
     
     // 2. Переводим в м/с²
 	const float g = 9.81f; // Ускорение свободного падения в м/с²
     linearAcc_x *= g;
     linearAcc_y *= g;
     linearAcc_z *= g;
-	DEBUG_PRINTF(" | linearAcc_x=%.3f m/s² linearAcc_y=%.3f m/s² linearAcc_z=%.3f m/s² | /n", linearAcc_x, linearAcc_y, linearAcc_z);
+	// DEBUG_PRINTF("lin_x= %+6.3f m/s² lin_y= %+6.3f m/s² lin_z= %+6.3f m/s² \n", linearAcc_x, linearAcc_y, linearAcc_z);
     
 }
 

@@ -4,6 +4,7 @@
         "dma.h": "c",
         "laser80m.h": "c",
         "icm20948.h": "c",
-        "gpio.h": "c"
+        "gpio.h": "c",
+        "fatfs.h": "c"
     }
 }

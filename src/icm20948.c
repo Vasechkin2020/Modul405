@@ -145,32 +145,33 @@ void icm20948_init()
 
 	icm20948_wakeup();
 	
+	float icm20948OffSet[9] = {0.0}; // Массив с 9 значениями калибровки датчика
+
 	// icm20948_accel_calibration(); // Старая версия калибровки акселерометра, которая не учитывает смещение и масштабирование
 	
-	icm20948_gyro_calibration();
-	calibrate_accelerometer();
+	// icm20948_gyro_calibration();
+	// calibrate_accelerometer();
 	
-	printf("    writeFloatToFile icm20948.cfg \n");
-	float icm20948OffSet[9] = {0.0}; // Массив с 9 значениями калибровки датчика
-	icm20948OffSet[0] = gBias.b_x;
-	icm20948OffSet[1] = gBias.b_y;
-	icm20948OffSet[2] = gBias.b_z;
-	printf("gBias.b_x= %.3f gBias.b_y= %.3f gBias.b_z= %.3f | ", gBias.b_x, gBias.b_y, gBias.b_z);
+	// printf("    writeFloatToFile icm20948.cfg \n");
+	// icm20948OffSet[0] = gBias.b_x;
+	// icm20948OffSet[1] = gBias.b_y;
+	// icm20948OffSet[2] = gBias.b_z;
+	// printf("gBias.b_x= %.3f gBias.b_y= %.3f gBias.b_z= %.3f | ", gBias.b_x, gBias.b_y, gBias.b_z);
 	
-	icm20948OffSet[3] = aBias.b_x;
-	icm20948OffSet[4] = aBias.b_y;
-	icm20948OffSet[5] = aBias.b_z;
-	printf("aBias.b_x= %.3f aBias.b_y= %.3f aBias.b_z= %.3f | ", aBias.b_x, aBias.b_y, aBias.b_z);
+	// icm20948OffSet[3] = aBias.b_x;
+	// icm20948OffSet[4] = aBias.b_y;
+	// icm20948OffSet[5] = aBias.b_z;
+	// printf("aBias.b_x= %.3f aBias.b_y= %.3f aBias.b_z= %.3f | ", aBias.b_x, aBias.b_y, aBias.b_z);
 	
-	icm20948OffSet[6] = aScale.s_x;
-	icm20948OffSet[7] = aScale.s_y;
-	icm20948OffSet[8] = aScale.s_z;
-	printf("aScale.b_x= %.3f aScale.b_y= %.3f aScale.b_z= %.3f \n", aScale.s_x, aScale.s_y, aScale.s_z);
+	// icm20948OffSet[6] = aScale.s_x;
+	// icm20948OffSet[7] = aScale.s_y;
+	// icm20948OffSet[8] = aScale.s_z;
+	// printf("aScale.b_x= %.3f aScale.b_y= %.3f aScale.b_z= %.3f \n", aScale.s_x, aScale.s_y, aScale.s_z);
 
-	writeFloatToFile(icm20948OffSet, 9, "icm20948.cfg");
-	while (1)
-	{
-	}
+	// writeFloatToFile(icm20948OffSet, 9, "icm20948.cfg");
+	// while (1)
+	// {
+	// }
 	
 	printf("    readFloatFromFile icm20948.cfg \n");
 	readFloatFromFile(icm20948OffSet, 9, "icm20948.cfg");
@@ -190,7 +191,7 @@ void icm20948_init()
 	printf("aScale.b_x= %.3f aScale.b_y= %.3f aScale.b_z= %.3f \n", aScale.s_x, aScale.s_y, aScale.s_z);
 
 	DEBUG_PRINTF("    End icm20948_init \n");
-	HAL_Delay(500);
+	HAL_Delay(2000);
 }
 
 void ak09916_init()
