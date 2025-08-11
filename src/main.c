@@ -67,7 +67,7 @@ int main(void)
 
   MX_I2C1_Init(); // Инициализация I2C1
 
-  // I2C_ScanDevices(&hi2c1);// Сканирование I2C шины
+  I2C_ScanDevices(&hi2c1);// Сканирование I2C шины
   BNO055_Init();                                                               // Инициализация датчика на шине I2C
 
   // I2C_ScanDevices(&hi2c1);// Сканирование I2C шины

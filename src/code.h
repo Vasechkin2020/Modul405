@@ -308,16 +308,16 @@ void workingTimer() // Отработка действий по таймеру �
         // DEBUG_PRINTF("Magn X= %+8.2f y= %+8.2f z= %+8.2f | ",my_mag.x,my_mag.y,my_mag.z);
         // DEBUG_PRINTF("yaw_M= %+8.2f yaw_MMM= %+8.2f |, yaw_M, yaw_MMM);
         // DEBUG_PRINTF("\n");
+        BNO055_ReadData(); // Разовое считывание данных
+        DEBUG_PRINTF("lin_x= %+6.3f lin_y= %+6.3f lin_z= %+6.3f \n", linearAcc_x, linearAcc_y, linearAcc_z);
 
     }
     //----------------------------- 50 миллисекунд --------------------------------------
     if (flag_timer_50millisec)
     {
         flag_timer_50millisec = false;
-        BNO055_ReadData(); // Разовое считывание данных
         // DEBUG_PRINTF(" | gravity_x= %+6.3f gravity_y= %+6.3f gravity_z= %+6.3f | ", gravity_x, gravity_y, gravity_z);
         // DEBUG_PRINTF("lin_x= %+6.3f lin_y= %+6.3f lin_z= %+6.3f | ", linearAcc_x, linearAcc_y, linearAcc_z);
-        DEBUG_PRINTF("lin_x= %+6.3f lin_y= %+6.3f lin_z= %+6.3f \n", linearAcc_x, linearAcc_y, linearAcc_z);
 
         // DEBUG_PRINTF("50msec %li \r\n", millis());
         //  flag_data = true; // Есть новые данные по шине // РУчной вариант имитации пришедших данных с частотой 20Гц

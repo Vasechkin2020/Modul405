@@ -33,9 +33,9 @@
 volatile float beta = betaDef;							   // 2 * proportional gain (Kp)
 volatile float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f; // quaternion of sensor frame relative to auxiliary frame
 
-volatile float roll_Mad = 0.0f, pitch_Mad = 0.0f, yaw_Mad = 0.0f; // Углы считаем каждый раз из кватерниона.
+volatile float roll_Mad = 0.0f, pitch_Mad = 0.0f, yaw_Mad = 0.0f;		   // Углы считаем каждый раз из кватерниона.
 volatile float linearAcc_x = 0.0f, linearAcc_y = 0.0f, linearAcc_z = 0.0f; // Углы считаем каждый раз из кватерниона.
-float gravity_x, gravity_y, gravity_z; // Гравитация в кватернионе
+float gravity_x, gravity_y, gravity_z;									   // Гравитация в кватернионе
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
@@ -259,19 +259,12 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 	gravity_z = q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3;
 	// DEBUG_PRINTF(" | gravity_x= %+6.3f gravity_y= %+6.3f gravity_z= %+6.3f | ", gravity_x, gravity_y, gravity_z);
 
-	// 1. Вычитаем гравитацию (оба значения в g)
-    linearAcc_x = ax - gravity_x ; // Вычитаем гравитацию из акселерометра
-    linearAcc_y = ay - gravity_y;
-    linearAcc_z = az - gravity_z;
-	// DEBUG_PRINTF("lin_x= %+6.3f lin_y= %+6.3f lin_z= %+6.3f | ", linearAcc_x, linearAcc_y, linearAcc_z);
-    
-    // 2. Переводим в м/с²
-	const float g = 9.81f; // Ускорение свободного падения в м/с²
-    linearAcc_x *= g;
-    linearAcc_y *= g;
-    linearAcc_z *= g;
+	const float g = 9.81f;				// Ускорение свободного падения в м/с²
+										// 1. Вычитаем гравитацию (оба значения в g)
+	linearAcc_x = (ax - gravity_x) * g; // Вычитаем гравитацию из акселерометра b Переводим в м/с²
+	linearAcc_y = (ay - gravity_y) * g;
+	linearAcc_z = (az - gravity_z) * g;
 	// DEBUG_PRINTF("lin_x= %+6.3f m/s² lin_y= %+6.3f m/s² lin_z= %+6.3f m/s² \n", linearAcc_x, linearAcc_y, linearAcc_z);
-    
 }
 
 //---------------------------------------------------------------------------------------------------
