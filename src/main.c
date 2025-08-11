@@ -69,7 +69,7 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim11); // Таймер для моторов шаговых для датчиков
   HAL_TIM_Base_Start_IT(&htim13); // Таймер для моторов шаговых для датчиков
 
-  printf("\r\n *** Modul *** printBIM.ru *** 2025 *** \r\n");
+  printf("\r\n *** Modul ver 1.5 11-08-25 *** printBIM.ru *** 2025 *** \r\n");
   initFirmware();
 
   initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
