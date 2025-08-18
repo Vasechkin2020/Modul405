@@ -17,7 +17,7 @@
 #include "usart.h"
 #include "gpio.h"
 
-#include "code.h"
+#include "code.h" 
 #include "motor.h"
 #include "laser80M.h"
 #include "slaveSPI.h"
@@ -74,6 +74,7 @@ int main(void)
 
   initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
 
+
   initMotor(); // Начальная инициализация и настройка шаговых моторов
   // testMotorRun();
   setZeroMotor(); // Установка в ноль
@@ -96,6 +97,7 @@ int main(void)
   }
 }
 
+
 #if DEBUG
 int __io_putchar(int ch)
 {
@@ -108,7 +110,7 @@ int __io_putchar(int ch)
 
 void SystemClock_Config(void)
 {
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0}; // Настройка осцилляторов
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
   /** Configure the main internal regulator output voltage

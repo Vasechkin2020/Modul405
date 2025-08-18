@@ -350,7 +350,7 @@ void initLaser() // Инициализация лазеров в зависим�
     printf("laserInit... \r\n");
     // Это общие данные для любых датчиков
     dataUART[0].num = 0;
-    dataUART[0].adr = rx_bufferLaser0;
+    dataUART[0].adr = rx_bufferLaser0; 
     dataUART[0].huart = &huart4;
 
     dataUART[1].num = 1;
