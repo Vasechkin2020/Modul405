@@ -44,9 +44,8 @@ uint8_t lenDataLaser; // Длинна полученных данных в бу�
 HAL_StatusTypeDef status;
 HAL_SPI_StateTypeDef statusGetState;
 
-axises my_gyro;  // Данные с гироскопа
-axises my_accel; // Данные с акселерометра
-axises my_mag;   // Данные с магнитометра
+axises icm20948_gyro;  // Данные с гироскопа
+axises icm20948_accel; // Данные с акселерометра
 
 bool flagTimeOut = true;            // Флаг таймаута при обрыве связи по SPI
 bool flagCollectDataForSPI = false; // Флаг можно собирать данные для отправки
@@ -713,12 +712,10 @@ void workingI2C()
         if (i2cReceiveComplete) // Обработка буфера после считывания данных по шине
         {
             i2cReceiveComplete = 0;
-            calcBufferICM(bufferICM20948, &my_accel, &my_gyro); // Обработка буфера после считывания данных по шине
-            icm20948_gyro_read_dps(&my_gyro); // Преобразуем, фильтруем данные гироскопа
-            icm20948_accel_read_g(&my_accel); // Преобразуем, фильтруем данные акселерометра
-            MadgwickAHRSupdateIMU(my_gyro.x, my_gyro.y, my_gyro.z, my_accel.x, my_accel.y, my_accel.z); // Обновление фильтра Madgwick
-
-            // MadgwickAHRSupdate(my_gyro.x, my_gyro.y, my_gyro.z, my_accel.x, my_accel.y, my_accel.z, my_mag.x, my_mag.y, my_mag.z);
+            calcBufferICM(bufferICM20948, &icm20948_accel, &icm20948_gyro); // Обработка буфера после считывания данных по шине
+            icm20948_gyro_read_dps(&icm20948_gyro); // Преобразуем, фильтруем данные гироскопа
+            icm20948_accel_read_g(&icm20948_accel); // Преобразуем, фильтруем данные акселерометра
+            MadgwickAHRSupdateIMU(icm20948_gyro.x, icm20948_gyro.y, icm20948_gyro.z, icm20948_accel.x, icm20948_accel.y, icm20948_accel.z); // Обновление фильтра Madgwick
 
             DEBUG_PRINTF("   - %lu\n", millis());
             // DEBUG_PRINTF("    calcBuffer ICM %lu\n", millis());

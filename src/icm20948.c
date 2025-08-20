@@ -1276,7 +1276,7 @@ void ICM20948_Receive_IT(uint8_t *buffer, uint16_t size)
  // Функция для расчета буфера ICM20948
 void calcBufferICM(uint8_t *buffer, axises* dataAccel, axises* dataGyro)
 {
-	DEBUG_PRINTF("ICM20948 buffer");
+	// DEBUG_PRINTF("ICM20948 buffer");
 	dataAccel->x = (int16_t)(buffer[0] << 8 | buffer[1]);
 	dataAccel->y = (int16_t)(buffer[2] << 8 | buffer[3]);
 	dataAccel->z = (int16_t)(buffer[4] << 8 | buffer[5]);
@@ -1285,11 +1285,11 @@ void calcBufferICM(uint8_t *buffer, axises* dataAccel, axises* dataGyro)
 	dataGyro->y = (int16_t)(buffer[8] << 8 | buffer[9]);
 	dataGyro->z = (int16_t)(buffer[10] << 8 | buffer[11]);
 
-	for (int i = 0; i < 12; i++)
-	{
-		DEBUG_PRINTF(" = 0x%02X", buffer[i]);
-	}
-	DEBUG_PRINTF(" \n");
+	// for (int i = 0; i < 12; i++)
+	// {
+	// 	DEBUG_PRINTF(" = 0x%02X", buffer[i]);
+	// }
+	// DEBUG_PRINTF(" \n");
 }
 static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val)
 {

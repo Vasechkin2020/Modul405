@@ -33,9 +33,15 @@
 volatile float beta = betaDef;							   // 2 * proportional gain (Kp)
 volatile float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f; // quaternion of sensor frame relative to auxiliary frame
 
-volatile float roll_Mad = 0.0f, pitch_Mad = 0.0f, yaw_Mad = 0.0f;		   // Углы считаем каждый раз из кватерниона.
-volatile float linearAcc_x = 0.0f, linearAcc_y = 0.0f, linearAcc_z = 0.0f; // Углы считаем каждый раз из кватерниона.
-float gravity_x, gravity_y, gravity_z;									   // Гравитация в кватернионе
+struct madgwickStruct
+{
+	float roll; // Угол крена (roll) в радианах
+	float pitch; // Угол тангажа (pitch) в радианах
+	float yaw; // Угол рыскания (yaw) в радианах
+	axises linAcc; // Линейное ускорение
+};
+
+struct madgwickStruct Madgw; // Структура для хранения углов и линейного ускорения и гравитации
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
@@ -167,6 +173,8 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 */
 //---------------------------------------------------------------------------------------------------
 // IMU algorithm update
+volatile float roll_Mad = 0.0f, pitch_Mad = 0.0f, yaw_Mad = 0.0f;		   // Углы считаем каждый раз из кватерниона.
+float gravity_x, gravity_y, gravity_z;									   // Гравитация в кватернионе
 
 void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az)
 {
@@ -248,9 +256,9 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 	pitch_Mad = asinf(-2.0f * (q1 * q3 - q0 * q2));
 	yaw_Mad = atan2f(q1 * q2 + q0 * q3, 0.5f - q2 * q2 - q3 * q3);
 
-	roll_Mad = RAD2DEG(roll_Mad);
-	pitch_Mad = RAD2DEG(pitch_Mad);
-	yaw_Mad = RAD2DEG(yaw_Mad);
+	Madgw.roll = RAD2DEG(roll_Mad);
+	Madgw.pitch = RAD2DEG(pitch_Mad);
+	Madgw.yaw = RAD2DEG(yaw_Mad);
 
 	//************** ГРАВИТАЦИЯ ****************
 
@@ -261,9 +269,9 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 
 	const float g = 9.81f;				// Ускорение свободного падения в м/с²
 										// 1. Вычитаем гравитацию (оба значения в g)
-	linearAcc_x = (ax - gravity_x) * g; // Вычитаем гравитацию из акселерометра b Переводим в м/с²
-	linearAcc_y = (ay - gravity_y) * g;
-	linearAcc_z = (az - gravity_z) * g;
+	Madgw.linAcc.x = (ax - gravity_x) * g; // Вычитаем гравитацию из акселерометра b Переводим в м/с²
+	Madgw.linAcc.y = (ay - gravity_y) * g;
+	Madgw.linAcc.z = (az - gravity_z) * g;
 	// DEBUG_PRINTF("lin_x= %+6.3f m/s² lin_y= %+6.3f m/s² lin_z= %+6.3f m/s² \n", linearAcc_x, linearAcc_y, linearAcc_z);
 }
 
