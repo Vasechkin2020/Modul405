@@ -42,9 +42,9 @@ int main(void)
   MX_USART1_UART_Init();     // Инициализация USART1
   HAL_Delay(3000);
   printf("\r\n *** Modul ver 1.5 11-08-25 *** printBIM.ru *** 2025 *** \r\n");
-  
+
   initFirmware(); // Заполнение данными Прошивки
-  EnableFPU(); // Включение FPU (CP10 и CP11: полный доступ) Работа с плавающей точкой
+  EnableFPU();    // Включение FPU (CP10 и CP11: полный доступ) Работа с плавающей точкой
 
   //******************** CD Card start ********************
   MX_SDIO_SD_Init(); // Инициализация SDIO для работы с SD картой
@@ -63,8 +63,8 @@ int main(void)
 
   unmountFilesystem();    // Функция для демонтирования файловой системы
   HAL_SD_MspDeInit(&hsd); // SDIO MSP De-Initialization Function
-  while (1)
-    ;
+  // while (1)
+  //   ;
   // HAL_Delay(999999);
   //******************** CD Card end ********************
 
@@ -111,8 +111,8 @@ int main(void)
     workingSPI(); // Отработка действий по обмену по шине SPI
     // workingLaser();  // Отработка действий по лазерным датчикам
     workingFlag();  // Остановка драйверов и моторов при обрыве связи
-    workingMotor(); // Отработка действий по таймеру в 1, 50, 60 милисекунд
-    // workingBNO055(); // Отработака по датчику BNO055
+    workingMotor(); // Отработка действий по шаговым моторам
+    workingBNO055(); // Отработака по датчику BNO055
 
     workingTimer(); // Отработка действий по таймеру в 1, 50, 60 милисекунд
   }
