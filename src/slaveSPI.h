@@ -13,7 +13,10 @@ volatile u_int64_t timeSpi = 0; // Время когда пришла коман
 
 extern SPI_HandleTypeDef hspi1;
 volatile bool flag_data = false;    // Флаг что данные передались
-volatile bool flag_sendI2C = false; // Флаг что можно отправлять запрос по I2C
+volatile bool flag_readBNO055 = false; // Флаг что можно отправлять запрос по I2C
+volatile bool flag_sendRequestBNO055 = true; // Флаг что отправили запрос по I2C для BNO055
+volatile bool flag_readICM20948 = false; // Флаг что можно отправлять запрос по I2C
+volatile bool flag_sendRequestICM20948 = true; // Флаг что можно отправили запрос по I2C для ICM20948
 
 // #define BUFFER_SIZE 10 // Размер буфера который передаем. Следить что-бы структуры не превышали этот размер Кратно 32 делать
 // uint8_t txBuffer[BUFFER_SIZE] = {0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xA0}; // = "Hello from STM32 Slave"; // Передающий буфер

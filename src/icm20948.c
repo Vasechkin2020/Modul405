@@ -15,7 +15,7 @@ static float accel_scale_factor;
 
 #include "..\lib\FATFS\fatfs.h"
 extern FRESULT writeUint8ToFile(uint8_t *values, uint8_t size, const char *filename);  // Функция записи массива uint8_t в файл
-extern FRESULT writeFloatToFile(float *values, uint8_t size, const char *filename);    // Функция записи массива float в файл
+extern FRESULT writeFloatToFile(float *values, uint8_t size, const char *filename);	   // Функция записи массива float в файл
 extern FRESULT readUint8FromFile(uint8_t *values, uint8_t size, const char *filename); // Функция считывания uint8_t из файла в массив
 extern FRESULT readFloatFromFile(float *values, uint8_t size, const char *filename);   // Функция считывания float из файла в массив
 
@@ -37,14 +37,16 @@ axises my_mag;
 
 static void select_user_bank(userbank ub);
 
-static uint8_t read_single_icm20948_reg(userbank ub, uint8_t reg);
-static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val);
-static void write_single_icm20948_reg2(uint8_t reg, uint8_t val);
-static uint8_t *read_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t len);
-static void write_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t *val, uint8_t len);
 
-static uint8_t read_single_ak09916_reg(uint8_t reg);
-static void write_single_ak09916_reg(uint8_t reg, uint8_t val);
+
+static uint8_t read_single_icm20948_reg(userbank ub, uint8_t reg); // Чтение одного регистра ICM20948
+static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val); // Запись одного регистра ICM20948
+static void write_single_icm20948_reg2(uint8_t reg, uint8_t val); // Запись одного регистра ICM20948 без указания userbank
+static uint8_t *read_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t len); // Чтение нескольких регистров ICM20948
+static void write_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t *val, uint8_t len); // Запись нескольких регистров ICM20948
+
+static uint8_t read_single_ak09916_reg(uint8_t reg); // Чтение одного регистра AK09916
+static void write_single_ak09916_reg(uint8_t reg, uint8_t val); //	 Запись одного регистра AK09916
 // static uint8_t *read_multiple_ak09916_reg(uint8_t reg, uint8_t len);
 
 void calibrate_accelerometer(void); // Функция калибровки (шестипозиционная)
@@ -145,25 +147,25 @@ void icm20948_init()
 	icm20948_accel_sample_rate_divider(10); // Установка делителя частоты дискретизации для акселрометра  //  - divider: Значение делителя (Output Data Rate = 1.125 кГц / (1 + divider)) // Используется для настройки частоты вывода данных гироскопа (например, 100 Гц при divider = 10)
 
 	icm20948_wakeup();
-	
+
 	float icm20948OffSet[9] = {0.0}; // Массив с 9 значениями калибровки датчика
 
 	// icm20948_accel_calibration(); // Старая версия калибровки акселерометра, которая не учитывает смещение и масштабирование
-	
+
 	// icm20948_gyro_calibration();
 	// calibrate_accelerometer();
-	
+
 	// printf("    writeFloatToFile icm20948.cfg \n");
 	// icm20948OffSet[0] = gBias.b_x;
 	// icm20948OffSet[1] = gBias.b_y;
 	// icm20948OffSet[2] = gBias.b_z;
 	// printf("gBias.b_x= %.3f gBias.b_y= %.3f gBias.b_z= %.3f | ", gBias.b_x, gBias.b_y, gBias.b_z);
-	
+
 	// icm20948OffSet[3] = aBias.b_x;
 	// icm20948OffSet[4] = aBias.b_y;
 	// icm20948OffSet[5] = aBias.b_z;
 	// printf("aBias.b_x= %.3f aBias.b_y= %.3f aBias.b_z= %.3f | ", aBias.b_x, aBias.b_y, aBias.b_z);
-	
+
 	// icm20948OffSet[6] = aScale.s_x;
 	// icm20948OffSet[7] = aScale.s_y;
 	// icm20948OffSet[8] = aScale.s_z;
@@ -173,14 +175,14 @@ void icm20948_init()
 	// while (1)
 	// {
 	// }
-	
+
 	printf("    readFloatFromFile icm20948.cfg \n");
 	readFloatFromFile(icm20948OffSet, 9, "icm20948.cfg");
 	gBias.b_x = icm20948OffSet[0];
 	gBias.b_y = icm20948OffSet[1];
 	gBias.b_z = icm20948OffSet[2];
 	printf("gBias.b_x= %.3f gBias.b_y= %.3f gBias.b_z= %.3f | ", gBias.b_x, gBias.b_y, gBias.b_z);
-	
+
 	aBias.b_x = icm20948OffSet[3];
 	aBias.b_y = icm20948OffSet[4];
 	aBias.b_z = icm20948OffSet[5];
@@ -647,7 +649,7 @@ void ak09916_soft_reset()
 	write_single_ak09916_reg(MAG_CNTL3, 0x01);
 	HAL_Delay(100);
 }
-// 
+//
 void icm20948_wakeup()
 {
 	DEBUG_PRINTF("+++ icm20948_wakeup \n");
@@ -1255,6 +1257,36 @@ static void select_user_bank(userbank ub)
 	// }
 }
 
+extern volatile uint8_t i2cTransferComplete; // Флаг завершения операции
+extern volatile uint8_t i2cReceiveComplete;	 // Флаг завершения операции
+
+//***************************** ЧЕРЕЗ ПРЕРЫВАНИЯ **************************************
+// Функция для чтения данных из ICM20948 используя прерывание
+void ICM20948_Transmit_IT(uint8_t _reg)
+{
+	i2cTransferComplete = 0;
+	static uint8_t reg = B0_ACCEL_XOUT_H; // Статическая переменная для хранения регистра
+	HAL_I2C_Master_Transmit_IT(&hi2c1, ICM20948_I2C_ADDRESS, &reg, 1); // Отправляем адрес регистра
+	// HAL_Delay(1);													   // Ждем завершения передачи.Обязательно!!! Нельзя выходитьт из функции пока поманда не передастся.
+	// DEBUG_PRINTF("ICM20948_Transmit_IT \n");
+}
+
+// Функция для чтения данных из ICM20948 используя прерывание
+void ICM20948_Receive_IT(uint8_t *buffer, uint16_t size)
+{
+	i2cReceiveComplete = 0;
+	HAL_I2C_Master_Receive_IT(&hi2c1, ICM20948_I2C_ADDRESS, buffer, size); // Запускаем чтение данных из регистра
+}
+ // Функция для расчета буфера ICM20948
+void calcBufferICM(uint8_t *buffer)
+{
+	DEBUG_PRINTF("ICM20948 buffer");
+	for (int i = 0; i < 12; i++)
+	{
+		DEBUG_PRINTF(" = 0x%02X", buffer[i]);
+	}
+	DEBUG_PRINTF(" \n");
+}
 static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val)
 {
 	HAL_StatusTypeDef status;

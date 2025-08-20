@@ -1,5 +1,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "sdio.h"
+#include <stdio.h>
+
 
 SD_HandleTypeDef hsd;
 

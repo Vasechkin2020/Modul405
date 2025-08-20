@@ -241,17 +241,23 @@ HAL_StatusTypeDef BNO055_Mem_Write(uint8_t reg, uint8_t *data_, uint16_t size_)
 }
 //***************************** ЧЕРЕЗ ПРЕРЫВАНИЯ **************************************
 // Функция для чтения данных из BNO055 используя прерывание
-void BNO055_Transmit_IT(uint8_t reg)
+void BNO055_Transmit_IT(uint8_t _reg)
 {
     i2cTransferComplete = 0;
+    static uint8_t reg = eBNO055_REGISTER_ACC_DATA_X_LSB; // Статическая переменная для хранения регистра eBNO055_REGISTER_ACC_DATA_X_LSB
     HAL_I2C_Master_Transmit_IT(&hi2c1, BNO055_ADDRESS, &reg, 1); // Отправляем адрес регистра
-    HAL_Delay(2);                                                // Ждем завершения передачи.Обязательно!!! Нельзя выходитьт из функции пока поманда не передастся.
+    uint64_t start = micros(); // Запоминаем время начала передачи
+    while (micros() - start < 1000) // Ждем завершения передачи, таймаут 1 мс
+        ;
+    
+    // HAL_Delay(2);                                                // Ждем завершения передачи.Обязательно!!! Нельзя выходитьт из функции пока поманда не передастся.
     // while (!i2cTransferComplete)  // Так жать плохо.может зависнуть если ошибка по шине
     //     ;
     // DEBUG_PRINTF("BNO055_Transmit_IT \n");
 }
 
-void BNO055_Receive_IT(uint8_t *buffer, uint16_t size)
+// Функция для чтения данных из BNO055 используя прерывание 
+void BNO055_Receive_IT(uint8_t *buffer, uint16_t size) 
 {
     i2cReceiveComplete = 0;
     HAL_I2C_Master_Receive_IT(&hi2c1, BNO055_ADDRESS, buffer, size); // Запускаем чтение данных из регистра
@@ -618,7 +624,7 @@ void BNO055_SetOffset_to_BNO055(uint8_t *offsetArray_)
     BNO055_Mem_Write(eBNO055_REGISTER_ACC_OFFSET_X_LSB, offsetArray_, OFFSET_SIZE);
 }
 // Разбор данных из буфера и запись знвеяний в переменные
-void calcBuffer(uint8_t *buffer)
+void calcBufferBNO(uint8_t *buffer)
 {
     // DEBUG_PRINTF("+++ calcBuffer ");
     // for (int i = 0; i < 20; i++)
@@ -647,7 +653,7 @@ void calcBuffer(uint8_t *buffer)
     accelData.x = (int16_t)(aLow | (aHigh << 8)) / 100.; //  1 m/s2 = 100 LSB
     accelData.y = (int16_t)(bLow | (bHigh << 8)) / 100.;
     accelData.z = (int16_t)(cLow | (cHigh << 8)) / 100.;
-    
+
     DEBUG_PRINTF("BNO055 Accel x= %+8.2f y= %+8.2f z= %+8.2f | ", accelData.x, accelData.y, accelData.z);
 
     // MAGNETROMETR  ---------------------------------------------
@@ -732,6 +738,7 @@ void calcBuffer(uint8_t *buffer)
     bno055.mag = magData;
     bno055.rate = (float)1000.0 / (millis() - timeBNO); // Считаем частоту
     timeBNO = millis();
+    DEBUG_PRINTF("\n");
     // DEBUG_PRINTF("--- calcBuffer \n");
 }
 // Разовое считывание данных
@@ -741,7 +748,7 @@ void BNO055_ReadData()
     uint8_t buffer[38];
     if (BNO055_Read(eBNO055_REGISTER_ACC_DATA_X_LSB, buffer, 38) == HAL_OK) // Считываем в буфер
     {
-        calcBuffer(buffer);
+        calcBufferBNO(buffer);
         // DEBUG_PRINTF("    BNO055_ReadData BNO055 x= %.4f y= %.4f z= %.4f \n", bno055.angleEuler.x, bno055.angleEuler.y, bno055.angleEuler.z);
     }
     else
@@ -751,26 +758,5 @@ void BNO055_ReadData()
     // DEBUG_PRINTF("--- BNO055_ReadData\n");
 }
 
-// Опрос датчика по флагам
-void workingBNO055()
-{
-    uint8_t static bufferBNO055[38]; // было 20 без гиро и акселя
-    if (flag_sendI2C)                // Если взведен флаг после обмена по SPI что можно теперь работать по I2C
-    {
-        flag_sendI2C = false;
-        BNO055_Transmit_IT(eBNO055_REGISTER_ACC_DATA_X_LSB); // Отправка запроса к датчику.Указываем с какого регистра будем читать
-    }
-    if (i2cTransferComplete) // Запрос на считывание заданного числа байт с датчика в буфер
-    {
-        i2cTransferComplete = 0;
-        BNO055_Receive_IT(bufferBNO055, 38); // было 20 без гиро и акселя
-    }
-    if (i2cReceiveComplete) // Обработка буфера после считывания данных по шине
-    {
-        i2cReceiveComplete = 0;
-        calcBuffer(bufferBNO055);
-        // DEBUG_PRINTF("    ready BNO %lu\n", millis());
-        // BNO055_StatusCalibr();
-    }
-}
+
 #endif
