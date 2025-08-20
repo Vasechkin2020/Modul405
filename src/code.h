@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <limits.h> // для CHAR_BIT
 
 #include "motor.h"
 #include "laser80M.h"
@@ -62,6 +63,71 @@ u_int8_t modeControlLaser = 0; // Режим в котором находитт�
 // SDataLaser dataLaser[4]; // Структура куда пишем даные из датчиков
 
 //********************************* ФУНКЦИИ ***************************************************************************
+
+// Функция для включения FPU (Floating Point Unit) на STM32F4xx
+void EnableFPU(void)
+{
+    // Включение FPU (CP10 и CP11: полный доступ)
+    SCB->CPACR |= ((3UL << 20) | (3UL << 22)); // CP10 = 0b11, CP11 = 0b11
+
+    if ((SCB->CPACR & (0xF << 20)) != (0xF << 20))
+        printf("FPU отключена!\n");
+    else
+        printf("FPU включена!\n");
+
+    uint32_t cpacr = SCB->CPACR; // Чтение регистра CPACR
+    if ((cpacr & ((3UL << 20) | (3UL << 22))) == ((3UL << 20) | (3UL << 22)))
+        printf("FPU2 включён\n");
+    else
+        printf("FPU2 отключён\n");
+
+    float result = 0.0f;
+    uint32_t start = HAL_GetTick();
+    for (int i = 0; i < 10000; i++)
+    {
+        result += sinf((float)i / 100.0f);
+        result += tanf((float)i / 100.0f);
+    }
+    uint32_t end = HAL_GetTick();
+    uint32_t rez = end - start;
+    printf("Time: %lu ms, Result: %f\n", rez, result);
+    if (rez > 100)
+        printf(" SOFT FPU !!!\n");
+    else
+        printf(" +++ HARD FPU !!!\n");
+}
+
+// Вот функция на C, которая печатает целое число в бинарном формате с использованием printf:
+void print_binary(int num)
+{
+    // Определяем количество бит в числе int
+    int bits = sizeof(num) * CHAR_BIT;
+
+    // Маска для проверки каждого бита (начинаем со старшего бита)
+    unsigned mask = 1 << (bits - 1);
+
+    // Пропускаем ведущие нули для более компактного вывода
+    int leading_zero = 1;
+
+    printf("Binary representation of %d: ", num);
+
+    for (int i = 0; i < bits; i++)
+    {
+        if (num & mask)
+        {
+            putchar('1');
+            leading_zero = 0;
+        }
+        else if (!leading_zero || i == bits - 1)
+        {
+            // Печатаем нули, если уже были единицы или это последний бит
+            putchar('0');
+        }
+        mask >>= 1;
+    }
+    putchar('\n');
+}
+
 // Функция для возврата количества миллисекунд
 uint32_t millis()
 {
