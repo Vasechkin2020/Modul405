@@ -244,15 +244,12 @@ HAL_StatusTypeDef BNO055_Mem_Write(uint8_t reg, uint8_t *data_, uint16_t size_)
 void BNO055_Transmit_IT(uint8_t _reg)
 {
     i2cTransferComplete = 0;
-    static uint8_t reg = eBNO055_REGISTER_ACC_DATA_X_LSB; // Статическая переменная для хранения регистра eBNO055_REGISTER_ACC_DATA_X_LSB
+    static uint8_t reg = eBNO055_REGISTER_ACC_DATA_X_LSB; // Статическая переменная для хранения регистра Передаём адрес переменной reg, который сохранится после выхода из функции
     HAL_I2C_Master_Transmit_IT(&hi2c1, BNO055_ADDRESS, &reg, 1); // Отправляем адрес регистра
-    uint64_t start = micros(); // Запоминаем время начала передачи
-    while (micros() - start < 1000) // Ждем завершения передачи, таймаут 1 мс
-        ;
-    
-    // HAL_Delay(2);                                                // Ждем завершения передачи.Обязательно!!! Нельзя выходитьт из функции пока поманда не передастся.
-    // while (!i2cTransferComplete)  // Так жать плохо.может зависнуть если ошибка по шине
-    //     ;
+    // uint64_t startTime = micros(); // Запоминаем время начала передачи
+    // while (startTime + 500 > micros() ) // Ждем завершения передачи 
+    // {
+    // }
     // DEBUG_PRINTF("BNO055_Transmit_IT \n");
 }
 

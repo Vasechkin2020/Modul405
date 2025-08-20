@@ -27,10 +27,6 @@ StructBias mBias; // для магнетрометра
 StructScale aScale; // для акселерометра масштабные коефициенты
 StructScale mScale; // для магнетрометра масштабные коефициенты
 
-axises my_gyro;
-axises my_accel;
-axises my_mag;
-
 /* Static Functions */
 // static void cs_high();
 // static void cs_low();
@@ -1278,9 +1274,17 @@ void ICM20948_Receive_IT(uint8_t *buffer, uint16_t size)
 	HAL_I2C_Master_Receive_IT(&hi2c1, ICM20948_I2C_ADDRESS, buffer, size); // Запускаем чтение данных из регистра
 }
  // Функция для расчета буфера ICM20948
-void calcBufferICM(uint8_t *buffer)
+void calcBufferICM(uint8_t *buffer, axises* dataAccel, axises* dataGyro)
 {
 	DEBUG_PRINTF("ICM20948 buffer");
+	dataAccel->x = (int16_t)(buffer[0] << 8 | buffer[1]);
+	dataAccel->y = (int16_t)(buffer[2] << 8 | buffer[3]);
+	dataAccel->z = (int16_t)(buffer[4] << 8 | buffer[5]);
+
+	dataGyro->x = (int16_t)(buffer[6] << 8 | buffer[7]);
+	dataGyro->y = (int16_t)(buffer[8] << 8 | buffer[9]);
+	dataGyro->z = (int16_t)(buffer[10] << 8 | buffer[11]);
+
 	for (int i = 0; i < 12; i++)
 	{
 		DEBUG_PRINTF(" = 0x%02X", buffer[i]);

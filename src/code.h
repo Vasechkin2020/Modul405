@@ -16,6 +16,7 @@
 #include "slaveSPI.h"
 #include "bno055.h"
 #include "icm20948.h"
+#include "MadgwickAHRS.h"
 
 //********************************* ПЕРЕМЕННЫЕ ***************************************************************************
 
@@ -42,6 +43,10 @@ struct dataUART dataUART[4];
 uint8_t lenDataLaser; // Длинна полученных данных в буфере
 HAL_StatusTypeDef status;
 HAL_SPI_StateTypeDef statusGetState;
+
+axises my_gyro;  // Данные с гироскопа
+axises my_accel; // Данные с акселерометра
+axises my_mag;   // Данные с магнитометра
 
 bool flagTimeOut = true;            // Флаг таймаута при обрыве связи по SPI
 bool flagCollectDataForSPI = false; // Флаг можно собирать данные для отправки
@@ -204,12 +209,14 @@ void workingTimer() // Отработка действий по таймеру �
         flag_timer_10millisec = false;
         // HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin);             // Инвертирование состояния выхода.
         // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_10); // Инвертирование состояния выхода.
+        // BNO055_ReadData(); // Разовое считывание данных
     }
     //----------------------------- 50 миллисекунд --------------------------------------
     if (flag_timer_50millisec)
     {
         flag_timer_50millisec = false;
-        DEBUG_PRINTF("50msec %li \r\n", millis());
+        flag_readBNO055 = true; // Флаг что можно читать данные с BNO055
+        // DEBUG_PRINTF("50msec %li \r\n", millis());
         //  flag_data = true; // Есть новые данные по шине // РУчной вариант имитации пришедших данных с частотой 20Гц
         // static uint64_t current_time = 0;
         // static uint64_t now_time = 0;
@@ -220,7 +227,6 @@ void workingTimer() // Отработка действий по таймеру �
         // current_time = now_time; // Текущее время в микросекундах
         // printf("Elapsed Time: %lu microseconds\n", aaaa);
         // DEBUG_PRINTF("%lu \r\n", micros());
-        flag_readBNO055 = true; // Флаг что можно читать данные с BNO055
     }
 
     //----------------------------- 1 секунда --------------------------------------
@@ -659,14 +665,14 @@ void workingSPI()
 // Опрос датчиков на I2C по флагам на прерываниях
 void workingI2C()
 {
-    uint8_t static bufferBNO055[38]={0};   // было 20 без гиро и акселя
-    uint8_t static bufferICM20948[12]={0}; // буфер для ICM20948
+    uint8_t static bufferBNO055[38] = {0};   // было 20 без гиро и акселя
+    uint8_t static bufferICM20948[12] = {0}; // буфер для ICM20948
 
     if (flag_readBNO055) // Если взведен флаг после обмена по SPI что можно теперь работать по I2C с BNO055
     {
         if (flag_sendRequestBNO055) // Если взведен флаг что нужно отправить запрос к BNO055
         {
-            flag_sendRequestBNO055 = false;                      // Сбрасываем флаг отправки запроса к BNO055
+            flag_sendRequestBNO055 = false; // Сбрасываем флаг отправки запроса к BNO055
             // DEBUG_PRINTF("    BNO055_Transmit_IT %lu \n", millis());
             DEBUG_PRINTF("   + %lu\n", millis());
             BNO055_Transmit_IT(eBNO055_REGISTER_ACC_DATA_X_LSB); // Отправка запроса к датчику.Указываем с какого регистра будем читать
@@ -680,13 +686,13 @@ void workingI2C()
         if (i2cReceiveComplete) // Обработка буфера после считывания данных по шине
         {
             i2cReceiveComplete = 0;
-            // calcBufferBNO(bufferBNO055);
+            calcBufferBNO(bufferBNO055);
             DEBUG_PRINTF("    calcBuffer BNO %lu\n", millis());
             // BNO055_StatusCalibr();
 
             flag_readBNO055 = false;
             flag_sendRequestBNO055 = true; // Взводим флаг что можно снова запрос к BNO055
-            // flag_readICM20948 = true;      // Взводим флаг что можно работать дальше с ICM20948
+            flag_readICM20948 = true;      // Взводим флаг что можно работать дальше с ICM20948
         }
     }
 
@@ -707,7 +713,13 @@ void workingI2C()
         if (i2cReceiveComplete) // Обработка буфера после считывания данных по шине
         {
             i2cReceiveComplete = 0;
-            calcBufferICM(bufferICM20948);
+            calcBufferICM(bufferICM20948, &my_accel, &my_gyro); // Обработка буфера после считывания данных по шине
+            icm20948_gyro_read_dps(&my_gyro); // Преобразуем, фильтруем данные гироскопа
+            icm20948_accel_read_g(&my_accel); // Преобразуем, фильтруем данные акселерометра
+            MadgwickAHRSupdateIMU(my_gyro.x, my_gyro.y, my_gyro.z, my_accel.x, my_accel.y, my_accel.z); // Обновление фильтра Madgwick
+
+            // MadgwickAHRSupdate(my_gyro.x, my_gyro.y, my_gyro.z, my_accel.x, my_accel.y, my_accel.z, my_mag.x, my_mag.y, my_mag.z);
+
             DEBUG_PRINTF("   - %lu\n", millis());
             // DEBUG_PRINTF("    calcBuffer ICM %lu\n", millis());
 

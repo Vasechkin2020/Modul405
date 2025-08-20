@@ -96,7 +96,7 @@ HAL_StatusTypeDef ICM20948_DisableLPMMode(); // Отключение режим�
 void ICM20948_Transmit_IT(uint8_t reg);					  // Функция для чтения данных из ICM20948 используя прерывание
 void ICM20948_Receive_IT(uint8_t *buffer, uint16_t size); // Функция для чтения данных из ICM20948 используя прерывание
 
-void calcBufferICM(uint8_t *buffer); // Функция для расчета буфера ICM20948
+void calcBufferICM(uint8_t *buffer, axises* dataAccel, axises* dataGyro); // Функция для расчета буфера ICM20948
 
 void enable_i2c_mode(void);					   // Отключение SPI и включение I2C
 void I2C_ScanDevices(I2C_HandleTypeDef *hi2c); // Функция для сканирования устройств на шине I2C
