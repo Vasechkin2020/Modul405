@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <limits.h> // для CHAR_BIT
 
+#include "config.h"
 #include "motor.h"
 #include "laser80M.h"
 #include "sk60plus.h"
@@ -673,7 +674,7 @@ void workingI2C()
         {
             flag_sendRequestBNO055 = false; // Сбрасываем флаг отправки запроса к BNO055
             // DEBUG_PRINTF("    BNO055_Transmit_IT %lu \n", millis());
-            DEBUG_PRINTF("   + %lu\n", millis());
+            // DEBUG_PRINTF("   + %lu\n", millis());
             BNO055_Transmit_IT(eBNO055_REGISTER_ACC_DATA_X_LSB); // Отправка запроса к датчику.Указываем с какого регистра будем читать
         }
         if (i2cTransferComplete) // Запрос на считывание заданного числа байт с датчика в буфер
@@ -686,7 +687,7 @@ void workingI2C()
         {
             i2cReceiveComplete = 0;
             calcBufferBNO(bufferBNO055);
-            DEBUG_PRINTF("    calcBuffer BNO %lu\n", millis());
+            // DEBUG_PRINTF("    calcBuffer BNO %lu\n", millis());
             // BNO055_StatusCalibr();
 
             flag_readBNO055 = false;
@@ -717,12 +718,16 @@ void workingI2C()
             icm20948_accel_read_g(&icm20948_accel); // Преобразуем, фильтруем данные акселерометра
             MadgwickAHRSupdateIMU(icm20948_gyro.x, icm20948_gyro.y, icm20948_gyro.z, icm20948_accel.x, icm20948_accel.y, icm20948_accel.z); // Обновление фильтра Madgwick
 
-            DEBUG_PRINTF("   - %lu\n", millis());
+            // DEBUG_PRINTF("   - %lu\n", millis());
             // DEBUG_PRINTF("    calcBuffer ICM %lu\n", millis());
 
             flag_readICM20948 = false;
             flag_sendRequestICM20948 = true; // Взводим флаг что можно снова запрос к BNO055
+            
+            DEBUG_PRINTF("BNO %+8.3f %+8.3f %+8.3f |", bno055.angleEuler.x, bno055.angleEuler.y, bno055.angleEuler.z);
+            DEBUG_PRINTF("Madgwick %+8.3f %+8.3f %+8.3f || \n ", Madgw.roll, Madgw.pitch, Madgw.yaw);
         }
+
     }
 }
 

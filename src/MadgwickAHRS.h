@@ -13,6 +13,7 @@
 #ifndef MadgwickAHRS_h
 #define MadgwickAHRS_h
 
+#include "icm20948.h"
 //----------------------------------------------------------------------------------------------------
 // Variable declaration
 
@@ -24,6 +25,17 @@ extern volatile float q0, q1, q2, q3;	// quaternion of sensor frame relative to 
 
 void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz);
 void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az);
+
+
+struct madgwickStruct
+{
+	float roll; // Угол крена (roll) в радианах
+	float pitch; // Угол тангажа (pitch) в радианах
+	float yaw; // Угол рыскания (yaw) в радианах
+	axises linAcc; // Линейное ускорение
+};
+
+struct madgwickStruct Madgw; // Структура для хранения углов и линейного ускорения и гравитации
 
 #endif
 //=====================================================================================================

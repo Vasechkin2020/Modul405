@@ -651,7 +651,7 @@ void calcBufferBNO(uint8_t *buffer)
     accelData.y = (int16_t)(bLow | (bHigh << 8)) / 100.;
     accelData.z = (int16_t)(cLow | (cHigh << 8)) / 100.;
 
-    DEBUG_PRINTF("BNO055 Accel x= %+8.2f y= %+8.2f z= %+8.2f | ", accelData.x, accelData.y, accelData.z);
+    // DEBUG_PRINTF("BNO055 Accel x= %+8.2f y= %+8.2f z= %+8.2f | ", accelData.x, accelData.y, accelData.z);
 
     // MAGNETROMETR  ---------------------------------------------
     aLow = buffer[6];
@@ -725,7 +725,8 @@ void calcBufferBNO(uint8_t *buffer)
     linAccData.y = (int16_t)(bLow | (bHigh << 8)) / 100.;
     linAccData.z = (int16_t)(cLow | (cHigh << 8)) / 100.; // Дальше не используем так как не летаем а ездим по плоскости. И заменяем на угловую скорость полученную из угла Эллера
 
-    DEBUG_PRINTF("lin x= %+8.4f y= %+8.4f z= %+8.4f  //  ", linAccData.x, linAccData.y, linAccData.z);
+    // DEBUG_PRINTF("lin x= %+8.4f y= %+8.4f z= %+8.4f  //  ", linAccData.x, linAccData.y, linAccData.z);
+    // DEBUG_PRINTF("\n");
 
     bno055.status = 0;
     bno055.angleEuler = eulerAngles;
@@ -735,7 +736,6 @@ void calcBufferBNO(uint8_t *buffer)
     bno055.mag = magData;
     bno055.rate = (float)1000.0 / (millis() - timeBNO); // Считаем частоту
     timeBNO = millis();
-    DEBUG_PRINTF("\n");
     // DEBUG_PRINTF("--- calcBuffer \n");
 }
 // Разовое считывание данных

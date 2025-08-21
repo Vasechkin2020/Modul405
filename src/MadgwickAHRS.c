@@ -33,15 +33,7 @@
 volatile float beta = betaDef;							   // 2 * proportional gain (Kp)
 volatile float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f; // quaternion of sensor frame relative to auxiliary frame
 
-struct madgwickStruct
-{
-	float roll; // Угол крена (roll) в радианах
-	float pitch; // Угол тангажа (pitch) в радианах
-	float yaw; // Угол рыскания (yaw) в радианах
-	axises linAcc; // Линейное ускорение
-};
 
-struct madgwickStruct Madgw; // Структура для хранения углов и линейного ускорения и гравитации
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
