@@ -41,7 +41,7 @@ int main(void)
   MX_GPIO_Init_Only_Clock(); // Инициализация ТОЛЬКО тактирования GPIO
   MX_USART1_UART_Init();     // Инициализация USART1
   HAL_Delay(3000);
-  printf("\r\n *** Modul ver 1.5 11-08-25 *** printBIM.ru *** 2025 *** \r\n");
+  printf("\r\n *** Modul ver 1.6 01-09-25 *** printBIM.ru *** 2025 *** \r\n");
 
   initFirmware(); // Заполнение данными Прошивки
   EnableFPU();    // Включение FPU (CP10 и CP11: полный доступ) Работа с плавающей точкой

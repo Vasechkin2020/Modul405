@@ -244,17 +244,17 @@ HAL_StatusTypeDef BNO055_Mem_Write(uint8_t reg, uint8_t *data_, uint16_t size_)
 void BNO055_Transmit_IT(uint8_t _reg)
 {
     i2cTransferComplete = 0;
-    static uint8_t reg = eBNO055_REGISTER_ACC_DATA_X_LSB; // Статическая переменная для хранения регистра Передаём адрес переменной reg, который сохранится после выхода из функции
+    static uint8_t reg = eBNO055_REGISTER_ACC_DATA_X_LSB;        // Статическая переменная для хранения регистра Передаём адрес переменной reg, который сохранится после выхода из функции
     HAL_I2C_Master_Transmit_IT(&hi2c1, BNO055_ADDRESS, &reg, 1); // Отправляем адрес регистра
     // uint64_t startTime = micros(); // Запоминаем время начала передачи
-    // while (startTime + 500 > micros() ) // Ждем завершения передачи 
+    // while (startTime + 500 > micros() ) // Ждем завершения передачи
     // {
     // }
     // DEBUG_PRINTF("BNO055_Transmit_IT \n");
 }
 
-// Функция для чтения данных из BNO055 используя прерывание 
-void BNO055_Receive_IT(uint8_t *buffer, uint16_t size) 
+// Функция для чтения данных из BNO055 используя прерывание
+void BNO055_Receive_IT(uint8_t *buffer, uint16_t size)
 {
     i2cReceiveComplete = 0;
     HAL_I2C_Master_Receive_IT(&hi2c1, BNO055_ADDRESS, buffer, size); // Запускаем чтение данных из регистра
@@ -636,8 +636,10 @@ void calcBufferBNO(uint8_t *buffer)
     struct SXyz gyrolData;
     struct SXyz magData;
 
-    static uint32_t timeBNO = 0;
     uint8_t aHigh = 0, aLow = 0, bLow = 0, bHigh = 0, cLow = 0, cHigh = 0;
+    static uint32_t timeBNO = 0;
+    if (timeBNO == 0)
+        timeBNO = millis(); // Инициализация первого раза
 
     // ACCELERATION ---------------------------------------------
     aLow = buffer[0];
@@ -754,6 +756,5 @@ void BNO055_ReadData()
     }
     // DEBUG_PRINTF("--- BNO055_ReadData\n");
 }
-
 
 #endif

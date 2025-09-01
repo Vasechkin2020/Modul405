@@ -215,7 +215,8 @@ void workingTimer() // Отработка действий по таймеру �
     if (flag_timer_50millisec)
     {
         flag_timer_50millisec = false;
-        flag_readBNO055 = true; // Флаг что можно читать данные с BNO055
+        // flag_readBNO055 = true; // Флаг что можно читать данные с BNO055
+
         // DEBUG_PRINTF("50msec %li \r\n", millis());
         //  flag_data = true; // Есть новые данные по шине // РУчной вариант имитации пришедших данных с частотой 20Гц
         // static uint64_t current_time = 0;
@@ -331,8 +332,9 @@ void collect_Data_for_Send()
         }
     }
 
-    Modul2Data_send.bno055 = bno055;
-    Modul2Data_send.spi = spi;
+    Modul2Data_send.bno055 = bno055;     // Записываем данные с BNO055
+    Modul2Data_send.icm20948 = icm20948; // Записываем данные с ICM20948
+    Modul2Data_send.spi = spi;           // Записываем данные по SPI
 
     uint32_t cheksum_send = 0;                                          // Считаем контрольную сумму отправляемой структуры
     unsigned char *adr_structura = (unsigned char *)(&Modul2Data_send); // Запоминаем адрес начала структуры. Используем для побайтной передачи
@@ -340,8 +342,8 @@ void collect_Data_for_Send()
     {
         cheksum_send += adr_structura[i]; // Побайтно складываем все байты структуры кроме последних 4 в которых переменная в которую запишем результат
     }
-    Modul2Data_send.cheksum = cheksum_send;
-    DataForSPI = Modul2Data_send; // Копируем в специальную переменную.
+    Modul2Data_send.cheksum = cheksum_send; // Записываем контрольную сумму в структуру
+    DataForSPI = Modul2Data_send;           // Копируем в специальную переменную.
 }
 
 // Отработка пришедших команд. Изменение скорости, траектории и прочее
@@ -631,8 +633,8 @@ void workingSPI()
         flag_readBNO055 = true;
 
         timeSpi = millis(); // Запоминаем время обмена
-        // DEBUG_PRINTF ("In = %#x %#x %#x %#x \r\n",rxBuffer[0],rxBuffer[1],rxBuffer[2],rxBuffer[3]);
-        // DEBUG_PRINTF ("Out = %#x %#x %#x %#x \r\n",txBuffer[0],txBuffer[1],txBuffer[2],txBuffer[3]);
+        DEBUG_PRINTF("In = %#x %#x %#x %#x | ", rxBuffer[0], rxBuffer[1], rxBuffer[2], rxBuffer[3]);
+        DEBUG_PRINTF("Out = %#x %#x %#x %#x \r\n", txBuffer[0], txBuffer[1], txBuffer[2], txBuffer[3]);
         // DEBUG_PRINTF("+\n");
         processingDataReceive(); // Обработка пришедших данных после состоявшегося обмена  !!! Подумать почему меняю данные даже если они с ошибкой, потом по факту когда будет все работать
         // DEBUG_PRINTF(" mode= %i \n",Data2Modul_receive.controlMotor.mode);
@@ -713,21 +715,45 @@ void workingI2C()
         if (i2cReceiveComplete) // Обработка буфера после считывания данных по шине
         {
             i2cReceiveComplete = 0;
-            calcBufferICM(bufferICM20948, &icm20948_accel, &icm20948_gyro); // Обработка буфера после считывания данных по шине
-            icm20948_gyro_read_dps(&icm20948_gyro); // Преобразуем, фильтруем данные гироскопа
-            icm20948_accel_read_g(&icm20948_accel); // Преобразуем, фильтруем данные акселерометра
+            calcBufferICM(bufferICM20948, &icm20948_accel, &icm20948_gyro);                                                                 // Обработка буфера после считывания данных по шине
+            icm20948_gyro_read_dps(&icm20948_gyro);                                                                                         // Преобразуем, фильтруем данные гироскопа
+            icm20948_accel_read_g(&icm20948_accel);                                                                                         // Преобразуем, фильтруем данные акселерометра
             MadgwickAHRSupdateIMU(icm20948_gyro.x, icm20948_gyro.y, icm20948_gyro.z, icm20948_accel.x, icm20948_accel.y, icm20948_accel.z); // Обновление фильтра Madgwick
+
+            icm20948.status = 0;
+                                                   // Статус все хорошо
+            icm20948.gyro.x = icm20948_gyro.x; // Записываем гироскоп в структуру для отправки
+            icm20948.gyro.y = icm20948_gyro.y;
+            icm20948.gyro.z = icm20948_gyro.z;
+
+            icm20948.accel.x = icm20948_accel.x; // Записываем акселерометр в структуру для отправки
+            icm20948.accel.y = icm20948_accel.y;
+            icm20948.accel.z = icm20948_accel.z;
+
+            icm20948.angleEuler.x = Madgw.roll; // Записываем углы Эйлера в структуру для отправки
+            icm20948.angleEuler.y = Madgw.pitch;
+            icm20948.angleEuler.z = Madgw.yaw;
+
+            icm20948.linear.x = Madgw.linAcc.x; // Записываем линейное ускорение в структуру для отправки
+            icm20948.linear.y = Madgw.linAcc.y;
+            icm20948.linear.z = Madgw.linAcc.z;
+
+            static uint32_t timeICM20948 = 0; // Время для подсчета частоты опроса
+            if (timeICM20948 == 0)
+                timeICM20948 = millis(); // Инициализация первого раза
+
+            icm20948.rate = (float)1000.0 / (millis() - timeICM20948); // Считаем частоту
+            timeICM20948 = millis(); // Запоминаем время
 
             // DEBUG_PRINTF("   - %lu\n", millis());
             // DEBUG_PRINTF("    calcBuffer ICM %lu\n", millis());
 
             flag_readICM20948 = false;
             flag_sendRequestICM20948 = true; // Взводим флаг что можно снова запрос к BNO055
-            
+
             DEBUG_PRINTF("BNO %+8.3f %+8.3f %+8.3f |", bno055.angleEuler.x, bno055.angleEuler.y, bno055.angleEuler.z);
             DEBUG_PRINTF("Madgwick %+8.3f %+8.3f %+8.3f || \n ", Madgw.roll, Madgw.pitch, Madgw.yaw);
         }
-
     }
 }
 
