@@ -247,7 +247,7 @@ void workingTimer() // Отработка действий по таймеру �
         //     // DEBUG_PRINTF("Timer HAL_SPI_STATE_BUSY_TX_RX %u \n", statusGetState);
         // }
         // HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin); // Инвертирование состояния выхода.
-        DEBUG_PRINTF("%li \r\n", millis());
+        printf("%li \r\n", millis());
         //  uint8_t UART1_rxBuffer[4] = {0xAA,0xFF,0xAA,0xFF};
         //   uint8_t UART1_rxBuffer[1] = {0x56}; //Запрос версии "V"
         //   uint8_t UART1_rxBuffer[1] = {0x4F}; // Включить лазер "O"
@@ -633,8 +633,8 @@ void workingSPI()
         flag_readBNO055 = true;
 
         timeSpi = millis(); // Запоминаем время обмена
-        DEBUG_PRINTF("In = %#x %#x %#x %#x | ", rxBuffer[0], rxBuffer[1], rxBuffer[2], rxBuffer[3]);
-        DEBUG_PRINTF("Out = %#x %#x %#x %#x \r\n", txBuffer[0], txBuffer[1], txBuffer[2], txBuffer[3]);
+        // DEBUG_PRINTF("In = %#x %#x %#x %#x | ", rxBuffer[0], rxBuffer[1], rxBuffer[2], rxBuffer[3]);
+        // DEBUG_PRINTF("Out = %#x %#x %#x %#x \r\n", txBuffer[0], txBuffer[1], txBuffer[2], txBuffer[3]);
         // DEBUG_PRINTF("+\n");
         processingDataReceive(); // Обработка пришедших данных после состоявшегося обмена  !!! Подумать почему меняю данные даже если они с ошибкой, потом по факту когда будет все работать
         // DEBUG_PRINTF(" mode= %i \n",Data2Modul_receive.controlMotor.mode);
@@ -801,7 +801,7 @@ void initFirmware()
 {
     Modul2Data_send.firmware.gen = 1;
     Modul2Data_send.firmware.ver = 22;
-    Modul2Data_send.firmware.debug = DEBUG;
+    Modul2Data_send.firmware.debug = DEBUG_2;
 #ifdef LASER60
     Modul2Data_send.firmware.laser = 60;
 #endif

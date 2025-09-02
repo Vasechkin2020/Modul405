@@ -27,25 +27,25 @@ void MX_SDIO_SD_Init(void) // SDIO Initialization Function
     switch (sdError) // Расшифровываем ошибку (используем SDMMC_ERROR вместо SDIO_ERROR)
     {
     case SDMMC_ERROR_CMD_CRC_FAIL:
-      DEBUG_PRINTF("SD ERROR: CMD CRC FAIL (неправильный CRC команды)\r\n");
+      printf("SD ERROR: CMD CRC FAIL (неправильный CRC команды)\r\n");
       break;
     case SDMMC_ERROR_DATA_CRC_FAIL:
-      DEBUG_PRINTF("SD ERROR: DATA CRC FAIL (ошибка CRC данных)\r\n");
+      printf("SD ERROR: DATA CRC FAIL (ошибка CRC данных)\r\n");
       break;
     case SDMMC_ERROR_CMD_RSP_TIMEOUT:
-      DEBUG_PRINTF("SD ERROR: CMD RESPONSE TIMEOUT (карта не ответила)\r\n");
+      printf("SD ERROR: CMD RESPONSE TIMEOUT (карта не ответила)\r\n");
       break;
     case SDMMC_ERROR_DATA_TIMEOUT:
-      DEBUG_PRINTF("SD ERROR: DATA TIMEOUT (таймаут передачи данных)\r\n");
+      printf("SD ERROR: DATA TIMEOUT (таймаут передачи данных)\r\n");
       break;
     case SDMMC_ERROR_TX_UNDERRUN:
-      DEBUG_PRINTF("SD ERROR: TX UNDERRUN (буфер передачи пуст)\r\n");
+      printf("SD ERROR: TX UNDERRUN (буфер передачи пуст)\r\n");
       break;
     case SDMMC_ERROR_RX_OVERRUN:
-      DEBUG_PRINTF("SD ERROR: RX OVERRUN (буфер приёма переполнен)\r\n");
+      printf("SD ERROR: RX OVERRUN (буфер приёма переполнен)\r\n");
       break;
     default:
-      DEBUG_PRINTF("SD ERROR: Unknown error (0x%08lX)\r\n", sdError);
+      printf("SD ERROR: Unknown error (0x%08lX)\r\n", sdError);
       break;
 
       Error_Handler();

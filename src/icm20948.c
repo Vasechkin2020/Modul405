@@ -99,12 +99,12 @@ void I2C_ScanDevices(I2C_HandleTypeDef *hi2c)
 
 	// Вывод завершающего сообщения
 	printf("I2C scan completed.\n");
-	HAL_Delay(5000);
+	HAL_Delay(2000);
 }
 
 void icm20948_init()
 {
-	DEBUG_PRINTF("+++ icm20948_init \n");
+	printf("+++ icm20948_init \n");
 	icm20948_device_reset();
 	icm20948_who_am_i();
 	ICM20948_DisableLPMMode(); // Отключение режима низкого энергопотребления (LPM) для нормальной работы датчика
@@ -189,13 +189,13 @@ void icm20948_init()
 	aScale.s_z = icm20948OffSet[8];
 	printf("aScale.b_x= %.3f aScale.b_y= %.3f aScale.b_z= %.3f \n", aScale.s_x, aScale.s_y, aScale.s_z);
 
-	DEBUG_PRINTF("    End icm20948_init \n");
+	printf("    End icm20948_init \n");
 	HAL_Delay(2000);
 }
 
 void ak09916_init()
 {
-	DEBUG_PRINTF("+++ ak09916_init \n");
+	printf("+++ ak09916_init \n");
 	// write_single_icm20948_reg(ub_0, B0_LP_CONFIG, 0x40);		  // I2C_MST_CYCLE = 1
 	// write_single_icm20948_reg(ub_3, B3_I2C_MST_ODR_CONFIG, 0x03); // ~134 Гц
 
@@ -287,7 +287,7 @@ void ak09916_init()
 	mScale.s_y = 0.986;
 	mScale.s_z = 0.987;
 
-	DEBUG_PRINTF("    End ak09916_init \n");
+	printf("    End ak09916_init \n");
 }
 
 void icm20948_gyro_read(axises *data)
@@ -373,7 +373,7 @@ bool ak09916_mag_read(axises *data)
 	uint8_t hofl_bit = (st2 >> 3) & 0x01; // Бит 3 (HOFL)// Проверка HOFL в ST2
 	if (hofl_bit == 1)
 	{
-		DEBUG_PRINTF("Magnetic Sensor Overflow!\n");
+		printf("Magnetic Sensor Overflow!\n");
 		return false; // Прерываем, данные недостоверны
 	}
 
@@ -585,33 +585,33 @@ bool ak09916_mag_read_uT(axises *data)
 /* Sub Functions */
 bool icm20948_who_am_i()
 {
-	DEBUG_PRINTF("+++ icm20948_who_am_i \n");
+	printf("+++ icm20948_who_am_i \n");
 	uint8_t icm20948_id = read_single_icm20948_reg(ub_0, B0_WHO_AM_I);
 	if (icm20948_id == ICM20948_ID)
 	{
-		DEBUG_PRINTF("    ICM-20948 connected successfully WHO_AM_I = 0x%02X\n", ICM20948_ID);
+		printf("    ICM-20948 connected successfully WHO_AM_I = 0x%02X\n", ICM20948_ID);
 		return true;
 	}
 	else
 	{
-		DEBUG_PRINTF("    ICM-20948 connection failed: 0x%02X real= 0x%02X\n ", ICM20948_ID, icm20948_id);
+		printf("    ICM-20948 connection failed: 0x%02X real= 0x%02X\n ", ICM20948_ID, icm20948_id);
 		return false;
 	}
 }
 
 bool ak09916_who_am_i()
 {
-	DEBUG_PRINTF("+++ ak09916_who_am_i \n");
+	printf("+++ ak09916_who_am_i \n");
 	uint8_t ak09916_id = read_single_ak09916_reg(MAG_WIA2);
 
 	if (ak09916_id == AK09916_ID)
 	{
-		DEBUG_PRINTF("    ak09916_who_am_i connected successfully 0x%02X \n", AK09916_ID);
+		printf("    ak09916_who_am_i connected successfully 0x%02X \n", AK09916_ID);
 		return true;
 	}
 	else
 	{
-		DEBUG_PRINTF("    ak09916_who_am_i connection failed: 0x%02X real= 0x%02X \n ", AK09916_ID, ak09916_id);
+		printf("    ak09916_who_am_i connection failed: 0x%02X real= 0x%02X \n ", AK09916_ID, ak09916_id);
 		return false;
 	}
 }
@@ -620,35 +620,35 @@ void icm20948_device_reset()
 {
 	// write_single_icm20948_reg(ub_0, B0_PWR_MGMT_1, 0x80 | 0x41);
 	write_single_icm20948_reg(ub_0, B0_PWR_MGMT_1, 0x80);
-	DEBUG_PRINTF("+++ icm20948_device_reset \n");
+	printf("+++ icm20948_device_reset \n");
 	HAL_Delay(100);
 }
 
 // Включаем bypass режим для первоначальной настройки магнитометра
 void icm20948_bypass_en()
 {
-	DEBUG_PRINTF("+++ icm20948_bypass_en \n");
+	printf("+++ icm20948_bypass_en \n");
 	write_single_icm20948_reg(ub_0, B0_INT_PIN_CFG, 0x02);
 	HAL_Delay(100);
 }
 // Выключаем bypass режим для первоначальной настройки магнитометра
 void icm20948_bypass_disable()
 {
-	DEBUG_PRINTF("+++ icm20948_bypass_disable \n");
+	printf("+++ icm20948_bypass_disable \n");
 	write_single_icm20948_reg(ub_0, B0_INT_PIN_CFG, 0x00);
 	HAL_Delay(100);
 }
 
 void ak09916_soft_reset()
 {
-	DEBUG_PRINTF("+++ ak09916_soft_reset \n");
+	printf("+++ ak09916_soft_reset \n");
 	write_single_ak09916_reg(MAG_CNTL3, 0x01);
 	HAL_Delay(100);
 }
 //
 void icm20948_wakeup()
 {
-	DEBUG_PRINTF("+++ icm20948_wakeup \n");
+	printf("+++ icm20948_wakeup \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_0, B0_PWR_MGMT_1);
 	new_val &= 0xBF;
 	write_single_icm20948_reg(ub_0, B0_PWR_MGMT_1, new_val);
@@ -674,12 +674,12 @@ HAL_StatusTypeDef ICM20948_DisableLPMMode()
 	data = 0xFF; // Сбрасываем переменную для чтения
 	status = HAL_I2C_Mem_Read(ICM20948_I2C, ICM20948_I2C_ADDRESS, B0_PWR_MGMT_1, 1, &data, 1, 100);
 
-	DEBUG_PRINTF("B0_PWR_MGMT_1 registr: 0x%02X ", data); // Вывод регистра
+	printf("B0_PWR_MGMT_1 registr: 0x%02X ", data); // Вывод регистра
 	print_binary(data);									  // Вывод
 
 	if (status != HAL_OK || data != 0x01)
 	{
-		DEBUG_PRINTF("    B0_PWR_MGMT_1 registr ERROR !!!! 0x%02X ", data); // Вывод выбранного банка
+		printf("    B0_PWR_MGMT_1 registr ERROR !!!! 0x%02X ", data); // Вывод выбранного банка
 		print_binary(data);													// Вывод выбранного банка в бинарном виде
 		return HAL_ERROR;													// Ошибка, если значение не 0x01
 	}
@@ -689,7 +689,7 @@ HAL_StatusTypeDef ICM20948_DisableLPMMode()
 
 void icm20948_sleep()
 {
-	DEBUG_PRINTF("+++ icm20948_sleep \n");
+	printf("+++ icm20948_sleep \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_0, B0_PWR_MGMT_1);
 	new_val |= 0x40;
 
@@ -708,7 +708,7 @@ void icm20948_spi_slave_enable()
 // Сброс внутреннего I2C-мастера ICM-20948
 void icm20948_i2c_master_reset() // Используется для перезапуска внутреннего I2C-мастера, который управляет связью с магнитометром AK09916
 {
-	DEBUG_PRINTF("+++ icm20948_i2c_master_reset \n");
+	printf("+++ icm20948_i2c_master_reset \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_0, B0_USER_CTRL);
 	new_val |= 0x02;
 
@@ -717,19 +717,19 @@ void icm20948_i2c_master_reset() // Используется для переза
 
 void icm20948_i2c_master_enable()
 {
-	DEBUG_PRINTF("+++ icm20948_i2c_master_enable \n");
+	printf("+++ icm20948_i2c_master_enable \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_0, B0_USER_CTRL);
-	DEBUG_PRINTF("    1 icm20948_i2c_master_enable B0_USER_CTRL: 0x%02X\n", new_val); //
+	printf("    1 icm20948_i2c_master_enable B0_USER_CTRL: 0x%02X\n", new_val); //
 	new_val |= 0x20;
 
 	write_single_icm20948_reg(ub_0, B0_USER_CTRL, new_val);
 	HAL_Delay(100);
 	new_val = read_single_icm20948_reg(ub_0, B0_USER_CTRL);
-	DEBUG_PRINTF("    2 icm20948_i2c_master_enable B0_USER_CTRL: 0x%02X\n", new_val); //
+	printf("    2 icm20948_i2c_master_enable B0_USER_CTRL: 0x%02X\n", new_val); //
 }
 void icm20948_i2c_master_disable()
 {
-	DEBUG_PRINTF("+++ icm20948_i2c_master_disable \n");
+	printf("+++ icm20948_i2c_master_disable \n");
 	write_single_icm20948_reg(ub_0, B0_USER_CTRL, 0x00);
 	HAL_Delay(100);
 }
@@ -737,20 +737,20 @@ void icm20948_i2c_master_disable()
 void icm20948_i2c_master_clk_frq(uint8_t config)
 {
 	uint8_t new_val = read_single_icm20948_reg(ub_3, B3_I2C_MST_CTRL);
-	DEBUG_PRINTF("    1 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
+	printf("    1 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
 	new_val |= config;
-	DEBUG_PRINTF("    2 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
+	printf("    2 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
 	// new_val = config;
 
 	write_single_icm20948_reg(ub_3, B3_I2C_MST_CTRL, new_val);
 
 	new_val = read_single_icm20948_reg(ub_3, B3_I2C_MST_CTRL);
-	DEBUG_PRINTF("    3 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
+	printf("    3 icm20948_i2c_master_clk_frq I2C_MST_CTRL: 0x%02X\n", new_val); // Вывод I2C_MST_CTRL
 }
 
 void icm20948_clock_source(uint8_t source)
 {
-	DEBUG_PRINTF("+++ icm20948_clock_source \n");
+	printf("+++ icm20948_clock_source \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_0, B0_PWR_MGMT_1);
 	new_val |= source;
 
@@ -758,101 +758,101 @@ void icm20948_clock_source(uint8_t source)
 
 	HAL_Delay(100);
 	new_val = read_single_icm20948_reg(ub_0, B0_PWR_MGMT_1);
-	DEBUG_PRINTF("    ITOG  B0_PWR_MGMT_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	printf("    ITOG  B0_PWR_MGMT_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
 
-	DEBUG_PRINTF("    End icm20948_clock_source ****************************************************** \n");
+	printf("    End icm20948_clock_source ****************************************************** \n");
 }
 
 void icm20948_odr_align_enable()
 {
-	DEBUG_PRINTF("+++ icm20948_odr_align_enable \n");
+	printf("+++ icm20948_odr_align_enable \n");
 	write_single_icm20948_reg(ub_2, B2_ODR_ALIGN_EN, 0x01);
 }
 
 void icm20948_gyro_low_pass_filter(uint8_t config)
 {
-	DEBUG_PRINTF("+++ icm20948_gyro_low_pass_filter \n");
+	printf("+++ icm20948_gyro_low_pass_filter \n");
 
 	uint8_t new_val = read_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1);
-	DEBUG_PRINTF("    In B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	printf("    In B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
-	DEBUG_PRINTF("    Config = %d ", config);
+	printf("    Config = %d ", config);
 	print_binary(config);
 	new_val |= config << 3;
-	DEBUG_PRINTF("    Out B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	printf("    Out B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
 
 	write_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1, new_val);
 
 	HAL_Delay(100);
 	new_val = read_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1);
-	DEBUG_PRINTF("    ITOG  B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	printf("    ITOG  B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
 
-	DEBUG_PRINTF("    End icm20948_gyro_low_pass_filter ****************************************************** \n");
+	printf("    End icm20948_gyro_low_pass_filter ****************************************************** \n");
 	HAL_Delay(100);
 }
 
 void icm20948_accel_low_pass_filter(uint8_t config)
 {
-	DEBUG_PRINTF("+++ icm20948_accel_low_pass_filter \n");
+	printf("+++ icm20948_accel_low_pass_filter \n");
 
 	uint8_t new_val = read_single_icm20948_reg(ub_2, B2_ACCEL_CONFIG);
 
-	DEBUG_PRINTF("    In B2_ACCEL_CONFIG: 0x%02X ", new_val); //
+	printf("    In B2_ACCEL_CONFIG: 0x%02X ", new_val); //
 	print_binary(new_val);
 
-	DEBUG_PRINTF("    Config = %d ", config);
+	printf("    Config = %d ", config);
 	print_binary(config);
 
 	new_val |= config << 3;
 
-	DEBUG_PRINTF("    Out B2_ACCEL_CONFIG: 0x%02X ", new_val); // Вывод B2_ACCEL_CONFIG
+	printf("    Out B2_ACCEL_CONFIG: 0x%02X ", new_val); // Вывод B2_ACCEL_CONFIG
 	print_binary(new_val);
 
 	write_single_icm20948_reg(ub_2, B2_ACCEL_CONFIG, new_val);
 
 	HAL_Delay(100);
 	new_val = read_single_icm20948_reg(ub_2, B2_ACCEL_CONFIG);
-	DEBUG_PRINTF("    ITOG  B2_ACCEL_CONFIG: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	printf("    ITOG  B2_ACCEL_CONFIG: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
 
-	DEBUG_PRINTF("    End icm20948_accel_low_pass_filter ****************************************************** \n");
+	printf("    End icm20948_accel_low_pass_filter ****************************************************** \n");
 }
 
 void icm20948_gyro_sample_rate_divider(uint8_t divider)
 {
-	DEBUG_PRINTF("+++ icm20948_gyro_sample_rate_divider \n");
+	printf("+++ icm20948_gyro_sample_rate_divider \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_2, B2_GYRO_SMPLRT_DIV);
-	DEBUG_PRINTF("    In B2_GYRO_SMPLRT_DIV: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	printf("    In B2_GYRO_SMPLRT_DIV: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
 
-	DEBUG_PRINTF("    Divider = %d ", divider);
+	printf("    Divider = %d ", divider);
 	print_binary(divider);
 
 	write_single_icm20948_reg(ub_2, B2_GYRO_SMPLRT_DIV, divider);
 	HAL_Delay(100);
 
 	new_val = read_single_icm20948_reg(ub_2, B2_GYRO_SMPLRT_DIV);
-	DEBUG_PRINTF("    ITOG B2_GYRO_SMPLRT_DIV: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	printf("    ITOG B2_GYRO_SMPLRT_DIV: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
 
-	DEBUG_PRINTF("    End icm20948_gyro_sample_rate_divider ****************************************************** \n");
+	printf("    End icm20948_gyro_sample_rate_divider ****************************************************** \n");
 }
 
 void icm20948_accel_sample_rate_divider(uint16_t divider)
 {
-	DEBUG_PRINTF("+++ icm20948_accel_sample_rate_divider \n");
-	DEBUG_PRINTF("    Divider = %d ", divider);
+	printf("+++ icm20948_accel_sample_rate_divider \n");
+	printf("    Divider = %d ", divider);
 	print_binary(divider);
 
 	uint8_t divider_1 = (uint8_t)(divider >> 8);
 	uint8_t divider_2 = (uint8_t)(0x0F & divider);
 
-	DEBUG_PRINTF("    Divider1 = %d ", divider_1);
+	printf("    Divider1 = %d ", divider_1);
 	print_binary(divider_1);
-	DEBUG_PRINTF("    Divider2 = %d ", divider_2);
+	printf("    Divider2 = %d ", divider_2);
 	print_binary(divider_2);
 
 	write_single_icm20948_reg(ub_2, B2_ACCEL_SMPLRT_DIV_1, divider_1);
@@ -861,17 +861,17 @@ void icm20948_accel_sample_rate_divider(uint16_t divider)
 	uint8_t new_val1 = read_single_icm20948_reg(ub_2, B2_ACCEL_SMPLRT_DIV_1);
 	uint8_t new_val2 = read_single_icm20948_reg(ub_2, B2_ACCEL_SMPLRT_DIV_2);
 
-	DEBUG_PRINTF("    ITOG B2_ACCEL_SMPLRT_DIV_1: 0x%02X ", new_val1); // Вывод
+	printf("    ITOG B2_ACCEL_SMPLRT_DIV_1: 0x%02X ", new_val1); // Вывод
 	print_binary(new_val1);
-	DEBUG_PRINTF("    ITOG B2_ACCEL_SMPLRT_DIV_2: 0x%02X ", new_val2); // Вывод
+	printf("    ITOG B2_ACCEL_SMPLRT_DIV_2: 0x%02X ", new_val2); // Вывод
 	print_binary(new_val2);
 
-	DEBUG_PRINTF("    End icm20948_accel_sample_rate_divider ****************************************************** \n");
+	printf("    End icm20948_accel_sample_rate_divider ****************************************************** \n");
 }
 
 void ak09916_operation_mode_setting(operation_mode mode)
 {
-	DEBUG_PRINTF("+++ ak09916_operation_mode_setting \n");
+	printf("+++ ak09916_operation_mode_setting \n");
 	write_single_ak09916_reg(MAG_CNTL2, mode);
 	HAL_Delay(100);
 }
@@ -879,7 +879,7 @@ void ak09916_operation_mode_setting(operation_mode mode)
 // Функция калибровки гироскопа
 void icm20948_gyro_calibration()
 {
-	DEBUG_PRINTF("+++ icm20948_gyro_calibration \n");
+	printf("+++ icm20948_gyro_calibration \n");
 	axises temp;
 	int32_t gyro_bias[3] = {0};
 	int32_t gyro_max[3] = {0};
@@ -927,16 +927,16 @@ void icm20948_gyro_calibration()
 	for (int i = 0; i < 3; i++)
 	{
 		gyro_bias_razbros[i] = gyro_max[i] - gyro_min[i];
-		DEBUG_PRINTF("    gyro_max[%d] = %li  gyro_min[%d] = %li  razbros = %li diapazon = %+8.3f \n", i, gyro_max[i], i, gyro_min[i], gyro_bias_razbros[i], gyro_bias_razbros[i] / gyro_scale_factor);
+		printf("    gyro_max[%d] = %li  gyro_min[%d] = %li  razbros = %li diapazon = %+8.3f \n", i, gyro_max[i], i, gyro_min[i], gyro_bias_razbros[i], gyro_bias_razbros[i] / gyro_scale_factor);
 	}
 
-	DEBUG_PRINTF("    SUM gyroBias0 = %li  gyroBias1 = %li  gyroBias2 = %li \n", gyro_bias[0], gyro_bias[1], gyro_bias[2]);
+	printf("    SUM gyroBias0 = %li  gyroBias1 = %li  gyroBias2 = %li \n", gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
 	gyro_bias[0] = gyro_bias[0] / count;
 	gyro_bias[1] = gyro_bias[1] / count;
 	gyro_bias[2] = gyro_bias[2] / count;
 
-	DEBUG_PRINTF("    gyroBias0 = %li  gyroBias1 = %li gyroBias2 = %li \n", gyro_bias[0], gyro_bias[1], gyro_bias[2]);
+	printf("    gyroBias0 = %li  gyroBias1 = %li gyroBias2 = %li \n", gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
 	gBias.b_x = gyro_bias[0];
 	gBias.b_y = gyro_bias[1];
@@ -1021,7 +1021,7 @@ void calibrate_accelerometer(void)
 // Старая Функция калибровки акселерометра с записью bias в датчик
 void icm20948_accel_calibration()
 {
-	DEBUG_PRINTF("+++ icm20948_accel_calibration \n");
+	printf("+++ icm20948_accel_calibration \n");
 	axises temp;
 	uint8_t *temp2;
 	uint8_t *temp3;
@@ -1040,7 +1040,7 @@ void icm20948_accel_calibration()
 	for (int i = 0; i < count; i++)
 	{
 		icm20948_accel_read(&temp);
-		// DEBUG_PRINTF("    tempX = %.3f  tempY = %.3f  tempZ = %.3f \n", temp.x, temp.y, temp.z);
+		// printf("    tempX = %.3f  tempY = %.3f  tempZ = %.3f \n", temp.x, temp.y, temp.z);
 		accel_bias[0] += temp.x;
 		accel_bias[1] += temp.y;
 		accel_bias[2] += (temp.z - accel_scale_factor); // Отнимаем чтобы получить bias без гравитации
@@ -1079,14 +1079,14 @@ void icm20948_accel_calibration()
 	for (int i = 0; i < 3; i++)
 	{
 		accel_bias_razbros[i] = accel_max[i] - accel_min[i];
-		DEBUG_PRINTF("    accel_max[%d] = %li  accel_min[%d] = %li  razbros = %li diapazon = %+8.3f \n", i, accel_max[i], i, accel_min[i], accel_bias_razbros[i], accel_bias_razbros[i] / accel_scale_factor);
+		printf("    accel_max[%d] = %li  accel_min[%d] = %li  razbros = %li diapazon = %+8.3f \n", i, accel_max[i], i, accel_min[i], accel_bias_razbros[i], accel_bias_razbros[i] / accel_scale_factor);
 	}
 
-	DEBUG_PRINTF("    SUM accel_bias0 = %li  accel_bias1 = %li  accel_bias2 = %li \n", accel_bias[0], accel_bias[1], accel_bias[2]);
+	printf("    SUM accel_bias0 = %li  accel_bias1 = %li  accel_bias2 = %li \n", accel_bias[0], accel_bias[1], accel_bias[2]);
 	accel_bias[0] /= count;
 	accel_bias[1] /= count;
 	accel_bias[2] /= count;
-	DEBUG_PRINTF("    accel_bias0 = %li  accel_bias1 = %li accel_bias2 = %li \n", accel_bias[0], accel_bias[1], accel_bias[2]);
+	printf("    accel_bias0 = %li  accel_bias1 = %li accel_bias2 = %li \n", accel_bias[0], accel_bias[1], accel_bias[2]);
 
 	uint8_t mask_bit[3] = {0, 0, 0};
 
@@ -1126,12 +1126,12 @@ void icm20948_accel_calibration()
 
 void icm20948_gyro_full_scale_select(gyro_full_scale full_scale)
 {
-	DEBUG_PRINTF("+++ icm20948_gyro_full_scale_select \n");
+	printf("+++ icm20948_gyro_full_scale_select \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1);
-	DEBUG_PRINTF("    IN  B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	printf("    IN  B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
 
-	DEBUG_PRINTF("    Full scale = %d ", full_scale);
+	printf("    Full scale = %d ", full_scale);
 	print_binary(new_val);
 
 	switch (full_scale)
@@ -1153,27 +1153,27 @@ void icm20948_gyro_full_scale_select(gyro_full_scale full_scale)
 		gyro_scale_factor = 16.4;
 		break;
 	}
-	DEBUG_PRINTF("    OUT  B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	printf("    OUT  B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
 
 	write_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1, new_val);
 	HAL_Delay(100);
 
 	new_val = read_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1);	  // Считываем значение регистра B2_GYRO_CONFIG_1 после записи
-	DEBUG_PRINTF("    ITOG  B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	printf("    ITOG  B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
-	DEBUG_PRINTF("    End icm20948_gyro_full_scale_select ****************************************************** \n");
+	printf("    End icm20948_gyro_full_scale_select ****************************************************** \n");
 }
 
 void icm20948_accel_full_scale_select(accel_full_scale full_scale)
 {
 
-	DEBUG_PRINTF("+++ icm20948_accel_full_scale_select \n");
+	printf("+++ icm20948_accel_full_scale_select \n");
 	uint8_t new_val = read_single_icm20948_reg(ub_2, B2_ACCEL_CONFIG);
-	DEBUG_PRINTF("    IN  B2_ACCEL_CONFIG: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	printf("    IN  B2_ACCEL_CONFIG: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
 
-	DEBUG_PRINTF("    Full scale = %d ", full_scale);
+	printf("    Full scale = %d ", full_scale);
 	print_binary(new_val);
 
 	switch (full_scale)
@@ -1195,16 +1195,16 @@ void icm20948_accel_full_scale_select(accel_full_scale full_scale)
 		accel_scale_factor = 2048;
 		break;
 	}
-	DEBUG_PRINTF("    OUT  B2_ACCEL_CONFIG: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	printf("    OUT  B2_ACCEL_CONFIG: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
 
 	write_single_icm20948_reg(ub_2, B2_ACCEL_CONFIG, new_val);
 	HAL_Delay(100);
 
 	new_val = read_single_icm20948_reg(ub_2, B2_ACCEL_CONFIG);	 // Считываем значение регистра B2_GYRO_CONFIG_1 после записи
-	DEBUG_PRINTF("    ITOG  B2_ACCEL_CONFIG: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	printf("    ITOG  B2_ACCEL_CONFIG: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
-	DEBUG_PRINTF("    End icm20948_accel_full_scale_select ****************************************************** \n");
+	printf("    End icm20948_accel_full_scale_select ****************************************************** \n");
 }
 
 /* Static Functions */
@@ -1225,11 +1225,11 @@ static void select_user_bank(userbank ub)
 	// Проверка, что банк 0 выбран
 	// data = 0xFF; // Сбрасываем переменную для чтения
 	// status = HAL_I2C_Mem_Read(ICM20948_I2C, ICM20948_I2C_ADDRESS, REG_BANK_SEL, 1, &data, 1, 100);
-	// DEBUG_PRINTF("    bank: 0x%02X \n", data); // Вывод выбранного банка
+	// printf("    bank: 0x%02X \n", data); // Вывод выбранного банка
 
 	if (status != HAL_OK || data != ub)
 	{
-		DEBUG_PRINTF("    bank: ERROR !!!! 0x%02X \n", data); // Вывод выбранного банка
+		printf("    bank: ERROR !!!! 0x%02X \n", data); // Вывод выбранного банка
 															  // return HAL_ERROR;									  // Ошибка, если банк не 0
 	}
 
@@ -1249,7 +1249,7 @@ static void select_user_bank(userbank ub)
 	// if (status != HAL_OK)
 	// {
 	// 	// Для отладки можно вывести сообщение об ошибке через UART
-	// 	DEBUG_PRINTF("I2C select_user_bank error: %d\n", status);
+	// 	printf("I2C select_user_bank error: %d\n", status);
 	// }
 }
 
@@ -1311,7 +1311,7 @@ static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val)
 	if (status != HAL_OK) // Проверка статуса передачи для отладки	// Если передача не удалась (например, устройство не отвечает), можно добавить обработку ошибки
 	{
 		// Для отладки можно вывести ошибку через UART или зажечь светодиод
-		DEBUG_PRINTF("I2C read_single_icm20948_reg write error: %d\n", status);
+		printf("I2C read_single_icm20948_reg write error: %d\n", status);
 	}
 }
 static void write_single_icm20948_reg2(uint8_t reg, uint8_t val)
@@ -1325,7 +1325,7 @@ static void write_single_icm20948_reg2(uint8_t reg, uint8_t val)
 	HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(ICM20948_I2C, ICM20948_I2C_ADDRESS, data, 2, 100);
 
 	if (status != HAL_OK) // Проверка статуса передачи для отладки 	// Если передача не удалась (например, устройство не отвечает), можно добавить обработку ошибки
-		DEBUG_PRINTF("I2C read_single_icm20948_reg write error: %d\n", status);
+		printf("I2C read_single_icm20948_reg write error: %d\n", status);
 }
 
 static uint8_t read_single_icm20948_reg(userbank ub, uint8_t reg)
@@ -1346,7 +1346,7 @@ static uint8_t read_single_icm20948_reg(userbank ub, uint8_t reg)
 	// Если чтение не удалось, возвращаем 0 или можно добавить обработку ошибки
 	if (status != HAL_OK)
 	{
-		DEBUG_PRINTF("I2C read_single_icm20948_reg read error: %d\n", status);
+		printf("I2C read_single_icm20948_reg read error: %d\n", status);
 		return 0; // Возвращаем 0 в случае ошибки (можно изменить на другой подход)
 	}
 
@@ -1374,7 +1374,7 @@ static uint8_t *read_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t len
 	// Проверка статуса чтения для отладки
 	if (status != HAL_OK)
 	{
-		DEBUG_PRINTF("I2C read_multiple_icm20948_reg error: %d\n", status);
+		printf("I2C read_multiple_icm20948_reg error: %d\n", status);
 		// Возвращаем указатель на пустой буфер в случае ошибки
 		return reg_val;
 	}
@@ -1400,7 +1400,7 @@ static void write_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t *val, 
 	// Проверка статуса передачи для отладки
 	if (status != HAL_OK)
 	{
-		DEBUG_PRINTF("I2C write_multiple_icm20948_reg error: %d\n", status);
+		printf("I2C write_multiple_icm20948_reg error: %d\n", status);
 	}
 }
 

@@ -292,33 +292,33 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
     if (hi2c->Instance == I2C1)
     { // Проверяем, что ошибка относится к I2C1
         // Лог ошибок
-        DEBUG_PRINTF("I2C Error: 0x%02lX\n", hi2c->ErrorCode);
+        printf("I2C Error: 0x%02lX\n", hi2c->ErrorCode);
 
         // Обработка ошибок
         if (hi2c->ErrorCode & HAL_I2C_ERROR_BERR)
         {
-            DEBUG_PRINTF("Bus Error\n");
+            printf("Bus Error\n");
         }
         if (hi2c->ErrorCode & HAL_I2C_ERROR_ARLO)
         {
-            DEBUG_PRINTF("Arbitration Lost\n");
+            printf("Arbitration Lost\n");
         }
         if (hi2c->ErrorCode & HAL_I2C_ERROR_AF)
         {
             __HAL_I2C_CLEAR_FLAG(&hi2c1, I2C_FLAG_AF); // Очистка ошибки
-            DEBUG_PRINTF("Acknowledge Failure\n");
+            printf("Acknowledge Failure\n");
         }
         if (hi2c->ErrorCode & HAL_I2C_ERROR_OVR)
         {
-            DEBUG_PRINTF("Overrun/Underrun\n");
+            printf("Overrun/Underrun\n");
         }
         if (hi2c->ErrorCode & HAL_I2C_ERROR_TIMEOUT)
         {
-            DEBUG_PRINTF("Timeout Error\n");
+            printf("Timeout Error\n");
         }
         if (hi2c->ErrorCode & HAL_I2C_ERROR_DMA)
         {
-            DEBUG_PRINTF("DMA Transfer Error\n");
+            printf("DMA Transfer Error\n");
         }
 
         // while (1)
@@ -327,14 +327,14 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
         // }
 
         // Попытка повторной инициализации или сброс шины I2C
-        DEBUG_PRINTF("I2C HAL_I2C_DeInit\n");
+        printf("I2C HAL_I2C_DeInit\n");
         HAL_I2C_DeInit(hi2c); // Деинициализация I2C
         // HAL_Delay(3);       // Короткая задержка
-        DEBUG_PRINTF("I2C HAL_I2C_Init\n");
+        printf("I2C HAL_I2C_Init\n");
         HAL_I2C_Init(hi2c); // Повторная инициализация
 
         // Возможно, добавить пользовательскую логику, например, уведомление системы
-        DEBUG_PRINTF("I2C reinitialized\n");
+        printf("I2C reinitialized\n");
     }
 }
 //*****************************************************************************************************
@@ -376,14 +376,15 @@ void BNO055_Init()
         }
 
         // BNO055_ReadData(); // Разовое считывание данных
-        DEBUG_PRINTF("--- BNO055_Init End. \n");
+        printf("--- BNO055_Init End. \n");
         HAL_Delay(2000);
     }
     else
     {
-        DEBUG_PRINTF("BNO055 not found!\n");
-        while (1)
-            ;
+        printf("BNO055 not found!\n");
+        // while (1)
+        //     ;
+        
     }
 }
 // Перезапуск датчика

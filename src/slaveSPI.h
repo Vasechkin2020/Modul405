@@ -132,19 +132,19 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
-    DEBUG_PRINTF("Ошибка SPI, код: 0x%08lx\n", hspi->ErrorCode);
+    printf("Ошибка SPI, код: 0x%08lx\n", hspi->ErrorCode);
 
     if (hspi->ErrorCode & HAL_SPI_ERROR_MODF)
     {
-        DEBUG_PRINTF("Ошибка: Mode Fault (MODF).\n");
+        printf("Ошибка: Mode Fault (MODF).\n");
     }
     if (hspi->ErrorCode & HAL_SPI_ERROR_CRC)
     {
-        DEBUG_PRINTF("Ошибка: CRC Error.\n");
+        printf("Ошибка: CRC Error.\n");
     }
     if (hspi->ErrorCode & HAL_SPI_ERROR_OVR)
     {
-        DEBUG_PRINTF("Ошибка: Overrun.\n");
+        printf("Ошибка: Overrun.\n");
         // Сброс OVR: прочитать DR и SR
         volatile uint32_t temp = hspi->Instance->DR;
         temp = hspi->Instance->SR;
@@ -152,18 +152,18 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
     }
     if (hspi->ErrorCode & HAL_SPI_ERROR_DMA)
     {
-        DEBUG_PRINTF("Ошибка: DMA Error.\n");
+        printf("Ошибка: DMA Error.\n");
     }
     if (hspi->ErrorCode & HAL_SPI_ERROR_FLAG)
     {
-        DEBUG_PRINTF("Ошибка: Общая ошибка флагов.\n");
+        printf("Ошибка: Общая ошибка флагов.\n");
         // Сброс MODF: повторное включение SPI
         __HAL_SPI_DISABLE(hspi);
         __HAL_SPI_ENABLE(hspi);
     }
     if (hspi->ErrorCode == HAL_SPI_ERROR_NONE)
     {
-        DEBUG_PRINTF("Ошибок нет.\n");
+        printf("Ошибок нет.\n");
     }
 }
 

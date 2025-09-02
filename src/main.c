@@ -43,6 +43,12 @@ int main(void)
   HAL_Delay(3000);
   printf("\r\n *** Modul ver 1.6 01-09-25 *** printBIM.ru *** 2025 *** \r\n");
 
+#if MDEBUG == 1
+  printf("debug.\n");
+#else
+  printf("non-debug !!!\n");
+#endif
+
   initFirmware(); // Заполнение данными Прошивки
   EnableFPU();    // Включение FPU (CP10 и CP11: полный доступ) Работа с плавающей точкой
 
@@ -104,15 +110,15 @@ int main(void)
 
   // initLaser(); // Инициализация лазеров в зависимости от типа датчкика. определяем переменные буфер приема для каждого UART
 
-  DEBUG_PRINTF("%lli LOOP !!!!!!!!!!!!!!!!!!!!!!!!!!! \r\n", timeSpi);
+  printf("%lli LOOP !!!!!!!!!!!!!!!!!!!!!!!!!!! \r\n", timeSpi);
 
   while (1)
   {
-    workingSPI(); // Отработка действий по обмену по шине SPI
-    workingLaser();  // Отработка действий по лазерным датчикам
+    workingSPI();   // Отработка действий по обмену по шине SPI
+    workingLaser(); // Отработка действий по лазерным датчикам
     workingFlag();  // Обработка флагов
     workingMotor(); // Отработка действий по шаговым моторам
-    workingI2C(); // Отработка по датчикам I2C
+    workingI2C();   // Отработка по датчикам I2C
 
     workingTimer(); // Отработка действий по таймеру в 1, 50, 60 милисекунд
   }
