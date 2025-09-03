@@ -710,7 +710,7 @@ void calcBufferBNO(uint8_t *buffer)
 
     /* Shift values to create properly formed integer (low byte first) */ /* 1 degree = 16 LSB  1 radian = 900 LSB   */
     eulerAngles.x = -(int16_t)(cLow | (cHigh << 8)) / 16.;
-    eulerAngles.y = (int16_t)(bLow | (bHigh << 8)) / 16.;
+    eulerAngles.y = -(int16_t)(bLow | (bHigh << 8)) / 16.;
     eulerAngles.z = (int16_t)(aLow | (aHigh << 8)) / 16.;
 
     // DEBUG_PRINTF(" eulerAngles x= %+8.3f y= %+8.3f z= %+8.3f | ", eulerAngles.x, eulerAngles.y, eulerAngles.z);

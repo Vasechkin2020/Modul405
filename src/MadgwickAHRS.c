@@ -24,7 +24,7 @@
 //---------------------------------------------------------------------------------------------------
 // Definitions
 
-#define sampleFreq 100.0f // sample frequency in Hz Я использую 100 HZ
+#define sampleFreq 20.0f // sample frequency in Hz Я использую 100 HZ
 #define betaDef 0.15f	  // 2 * proportional gain
 
 //---------------------------------------------------------------------------------------------------
@@ -32,8 +32,6 @@
 
 volatile float beta = betaDef;							   // 2 * proportional gain (Kp)
 volatile float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f; // quaternion of sensor frame relative to auxiliary frame
-
-
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
@@ -165,8 +163,8 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 */
 //---------------------------------------------------------------------------------------------------
 // IMU algorithm update
-volatile float roll_Mad = 0.0f, pitch_Mad = 0.0f, yaw_Mad = 0.0f;		   // Углы считаем каждый раз из кватерниона.
-float gravity_x, gravity_y, gravity_z;									   // Гравитация в кватернионе
+volatile float roll_Mad = 0.0f, pitch_Mad = 0.0f, yaw_Mad = 0.0f; // Углы считаем каждый раз из кватерниона.
+float gravity_x, gravity_y, gravity_z;							  // Гравитация в кватернионе
 
 void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az)
 {
@@ -174,6 +172,15 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 	float s0, s1, s2, s3;
 	float qDot1, qDot2, qDot3, qDot4;
 	float _2q0, _2q1, _2q2, _2q3, _4q0, _4q1, _4q2, _8q1, _8q2, q0q0, q1q1, q2q2, q3q3;
+	
+	// Нормализация для Маджвика аксельрометра. Да, данные акселерометра для фильтра Маджвика необходимо нормализовать. Нормализация означает, что вектор ускорения должен быть приведён к единичной длине (магнитуда вектора равна 1).
+	float norm = sqrt(ax * ax + ay * ay + az * az); 
+	if (norm > 0)
+	{
+		ax = ax / norm;
+		ay = ay / norm;
+		az = az / norm;
+	}
 
 	// Convert gyroscope degrees/sec to radians/sec
 	gx *= 0.0174533f;
@@ -259,8 +266,8 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 	gravity_z = q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3;
 	// DEBUG_PRINTF(" | gravity_x= %+6.3f gravity_y= %+6.3f gravity_z= %+6.3f | ", gravity_x, gravity_y, gravity_z);
 
-	const float g = 9.81f;				// Ускорение свободного падения в м/с²
-										// 1. Вычитаем гравитацию (оба значения в g)
+	const float g = 9.81f;				   // Ускорение свободного падения в м/с²
+										   // 1. Вычитаем гравитацию (оба значения в g)
 	Madgw.linAcc.x = (ax - gravity_x) * g; // Вычитаем гравитацию из акселерометра b Переводим в м/с²
 	Madgw.linAcc.y = (ay - gravity_y) * g;
 	Madgw.linAcc.z = (az - gravity_z) * g;

@@ -33,15 +33,13 @@ StructScale mScale; // для магнетрометра масштабные к
 
 static void select_user_bank(userbank ub);
 
-
-
-static uint8_t read_single_icm20948_reg(userbank ub, uint8_t reg); // Чтение одного регистра ICM20948
-static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val); // Запись одного регистра ICM20948
-static void write_single_icm20948_reg2(uint8_t reg, uint8_t val); // Запись одного регистра ICM20948 без указания userbank
-static uint8_t *read_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t len); // Чтение нескольких регистров ICM20948
+static uint8_t read_single_icm20948_reg(userbank ub, uint8_t reg);							  // Чтение одного регистра ICM20948
+static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val);				  // Запись одного регистра ICM20948
+static void write_single_icm20948_reg2(uint8_t reg, uint8_t val);							  // Запись одного регистра ICM20948 без указания userbank
+static uint8_t *read_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t len);			  // Чтение нескольких регистров ICM20948
 static void write_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t *val, uint8_t len); // Запись нескольких регистров ICM20948
 
-static uint8_t read_single_ak09916_reg(uint8_t reg); // Чтение одного регистра AK09916
+static uint8_t read_single_ak09916_reg(uint8_t reg);			// Чтение одного регистра AK09916
 static void write_single_ak09916_reg(uint8_t reg, uint8_t val); //	 Запись одного регистра AK09916
 // static uint8_t *read_multiple_ak09916_reg(uint8_t reg, uint8_t len);
 
@@ -148,14 +146,18 @@ void icm20948_init()
 
 	// icm20948_accel_calibration(); // Старая версия калибровки акселерометра, которая не учитывает смещение и масштабирование
 
-	// icm20948_gyro_calibration();
-	// calibrate_accelerometer();
+	printf("    readFloatFromFile icm20948.cfg \n");
+	readFloatFromFile(icm20948OffSet, 9, "icm20948.cfg");
+	
+	icm20948_gyro_calibration();
 
-	// printf("    writeFloatToFile icm20948.cfg \n");
-	// icm20948OffSet[0] = gBias.b_x;
-	// icm20948OffSet[1] = gBias.b_y;
-	// icm20948OffSet[2] = gBias.b_z;
-	// printf("gBias.b_x= %.3f gBias.b_y= %.3f gBias.b_z= %.3f | ", gBias.b_x, gBias.b_y, gBias.b_z);
+	printf("    writeFloatToFile icm20948.cfg \n");
+	icm20948OffSet[0] = gBias.b_x;
+	icm20948OffSet[1] = gBias.b_y;
+	icm20948OffSet[2] = gBias.b_z;
+	printf("gBias.b_x= %.3f gBias.b_y= %.3f gBias.b_z= %.3f | ", gBias.b_x, gBias.b_y, gBias.b_z);
+
+	// calibrate_accelerometer();
 
 	// icm20948OffSet[3] = aBias.b_x;
 	// icm20948OffSet[4] = aBias.b_y;
@@ -167,13 +169,11 @@ void icm20948_init()
 	// icm20948OffSet[8] = aScale.s_z;
 	// printf("aScale.b_x= %.3f aScale.b_y= %.3f aScale.b_z= %.3f \n", aScale.s_x, aScale.s_y, aScale.s_z);
 
-	// writeFloatToFile(icm20948OffSet, 9, "icm20948.cfg");
+	writeFloatToFile(icm20948OffSet, 9, "icm20948.cfg");
 	// while (1)
 	// {
 	// }
 
-	printf("    readFloatFromFile icm20948.cfg \n");
-	readFloatFromFile(icm20948OffSet, 9, "icm20948.cfg");
 	gBias.b_x = icm20948OffSet[0];
 	gBias.b_y = icm20948OffSet[1];
 	gBias.b_z = icm20948OffSet[2];
@@ -441,18 +441,11 @@ void icm20948_gyro_read_dps(axises *data)
 void icm20948_accel_read_g(axises *data)
 {
 	icm20948_accel_read(data); // Считывание необработанных данных акселерометра
+	static float g = 9.80665;		 // Ускорение свободного падения в м/с²
 
-	data->x = ((data->x - aBias.b_x) * aScale.s_x) / accel_scale_factor; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
-	data->y = ((data->y - aBias.b_y) * aScale.s_y) / accel_scale_factor; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
-	data->z = ((data->z - aBias.b_z) * aScale.s_z) / accel_scale_factor; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
-
-	float norm = sqrt(data->x * data->x + data->y * data->y + data->z * data->z); // Нормализация для Маджвика
-	if (norm > 0)
-	{
-		data->x = data->x / norm;
-		data->y = data->y / norm;
-		data->z = data->z / norm;
-	}
+	data->x = ((data->x - aBias.b_x) * aScale.s_x) / accel_scale_factor * g; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
+	data->y = ((data->y - aBias.b_y) * aScale.s_y) / accel_scale_factor * g; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
+	data->z = ((data->z - aBias.b_z) * aScale.s_z) / accel_scale_factor * g; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
 
 	static axises smoothed_data = {0, 0, 1}; // Начальные значения
 	float const ALPHA = 0.5;
@@ -675,13 +668,13 @@ HAL_StatusTypeDef ICM20948_DisableLPMMode()
 	status = HAL_I2C_Mem_Read(ICM20948_I2C, ICM20948_I2C_ADDRESS, B0_PWR_MGMT_1, 1, &data, 1, 100);
 
 	printf("B0_PWR_MGMT_1 registr: 0x%02X ", data); // Вывод регистра
-	print_binary(data);									  // Вывод
+	print_binary(data);								// Вывод
 
 	if (status != HAL_OK || data != 0x01)
 	{
 		printf("    B0_PWR_MGMT_1 registr ERROR !!!! 0x%02X ", data); // Вывод выбранного банка
-		print_binary(data);													// Вывод выбранного банка в бинарном виде
-		return HAL_ERROR;													// Ошибка, если значение не 0x01
+		print_binary(data);											  // Вывод выбранного банка в бинарном виде
+		return HAL_ERROR;											  // Ошибка, если значение не 0x01
 	}
 
 	return HAL_OK; // Успех
@@ -880,6 +873,15 @@ void ak09916_operation_mode_setting(operation_mode mode)
 void icm20948_gyro_calibration()
 {
 	printf("+++ icm20948_gyro_calibration \n");
+	for (int j = 0; j < 5; j++)
+	{
+		printf("%d ", 5 - j); // Отсчет времени
+		fflush(stdout);		   // Принудительный сброс буфера
+		HAL_Delay(1000);	   // Задержка 1 секунда
+	}
+	printf("Start... | ");
+	fflush(stdout);		   // Принудительный сброс буфера
+
 	axises temp;
 	int32_t gyro_bias[3] = {0};
 	int32_t gyro_max[3] = {0};
@@ -1159,8 +1161,8 @@ void icm20948_gyro_full_scale_select(gyro_full_scale full_scale)
 	write_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1, new_val);
 	HAL_Delay(100);
 
-	new_val = read_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1);	  // Считываем значение регистра B2_GYRO_CONFIG_1 после записи
-	printf("    ITOG  B2_GYRO_CONFIG_1: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	new_val = read_single_icm20948_reg(ub_2, B2_GYRO_CONFIG_1); // Считываем значение регистра B2_GYRO_CONFIG_1 после записи
+	printf("    ITOG  B2_GYRO_CONFIG_1: 0x%02X ", new_val);		// Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
 	printf("    End icm20948_gyro_full_scale_select ****************************************************** \n");
 }
@@ -1201,8 +1203,8 @@ void icm20948_accel_full_scale_select(accel_full_scale full_scale)
 	write_single_icm20948_reg(ub_2, B2_ACCEL_CONFIG, new_val);
 	HAL_Delay(100);
 
-	new_val = read_single_icm20948_reg(ub_2, B2_ACCEL_CONFIG);	 // Считываем значение регистра B2_GYRO_CONFIG_1 после записи
-	printf("    ITOG  B2_ACCEL_CONFIG: 0x%02X ", new_val); // Вывод B2_GYRO_CONFIG_1
+	new_val = read_single_icm20948_reg(ub_2, B2_ACCEL_CONFIG); // Считываем значение регистра B2_GYRO_CONFIG_1 после записи
+	printf("    ITOG  B2_ACCEL_CONFIG: 0x%02X ", new_val);	   // Вывод B2_GYRO_CONFIG_1
 	print_binary(new_val);
 	printf("    End icm20948_accel_full_scale_select ****************************************************** \n");
 }
@@ -1230,7 +1232,7 @@ static void select_user_bank(userbank ub)
 	if (status != HAL_OK || data != ub)
 	{
 		printf("    bank: ERROR !!!! 0x%02X \n", data); // Вывод выбранного банка
-															  // return HAL_ERROR;									  // Ошибка, если банк не 0
+														// return HAL_ERROR;									  // Ошибка, если банк не 0
 	}
 
 	// // Создание буфера для передачи: первый байт — адрес регистра REG_BANK_SEL, второй — значение банка
@@ -1261,10 +1263,10 @@ extern volatile uint8_t i2cReceiveComplete;	 // Флаг завершения о
 void ICM20948_Transmit_IT(uint8_t _reg)
 {
 	i2cTransferComplete = 0;
-	static uint8_t reg = B0_ACCEL_XOUT_H; // Статическая переменная для хранения регистра
+	static uint8_t reg = B0_ACCEL_XOUT_H;							   // Статическая переменная для хранения регистра
 	HAL_I2C_Master_Transmit_IT(&hi2c1, ICM20948_I2C_ADDRESS, &reg, 1); // Отправляем адрес регистра
-	// HAL_Delay(1);													   // Ждем завершения передачи.Обязательно!!! Нельзя выходитьт из функции пока поманда не передастся.
-	// DEBUG_PRINTF("ICM20948_Transmit_IT \n");
+																	   // HAL_Delay(1);													   // Ждем завершения передачи.Обязательно!!! Нельзя выходитьт из функции пока поманда не передастся.
+																	   // DEBUG_PRINTF("ICM20948_Transmit_IT \n");
 }
 
 // Функция для чтения данных из ICM20948 используя прерывание
@@ -1273,8 +1275,8 @@ void ICM20948_Receive_IT(uint8_t *buffer, uint16_t size)
 	i2cReceiveComplete = 0;
 	HAL_I2C_Master_Receive_IT(&hi2c1, ICM20948_I2C_ADDRESS, buffer, size); // Запускаем чтение данных из регистра
 }
- // Функция для расчета буфера ICM20948
-void calcBufferICM(uint8_t *buffer, axises* dataAccel, axises* dataGyro)
+// Функция для расчета буфера ICM20948
+void calcBufferICM(uint8_t *buffer, axises *dataAccel, axises *dataGyro)
 {
 	// DEBUG_PRINTF("ICM20948 buffer");
 	dataAccel->x = (int16_t)(buffer[0] << 8 | buffer[1]);

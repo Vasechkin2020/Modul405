@@ -215,7 +215,7 @@ void workingTimer() // Отработка действий по таймеру �
     if (flag_timer_50millisec)
     {
         flag_timer_50millisec = false;
-        // flag_readBNO055 = true; // Флаг что можно читать данные с BNO055
+        flag_readBNO055 = true; // Флаг что можно читать данные с BNO055
 
         // DEBUG_PRINTF("50msec %li \r\n", millis());
         //  flag_data = true; // Есть новые данные по шине // РУчной вариант имитации пришедших данных с частотой 20Гц
@@ -234,6 +234,8 @@ void workingTimer() // Отработка действий по таймеру �
     if (flag_timer_1sec) // Вызывается каждую секунду
     {
         flag_timer_1sec = false;
+        // printf("%li \r\n", millis());
+
         // statusGetState = HAL_SPI_GetState(&hspi1);
         // if (statusGetState == HAL_SPI_STATE_READY)
         // {
@@ -247,7 +249,6 @@ void workingTimer() // Отработка действий по таймеру �
         //     // DEBUG_PRINTF("Timer HAL_SPI_STATE_BUSY_TX_RX %u \n", statusGetState);
         // }
         // HAL_GPIO_TogglePin(Led1_GPIO_Port, Led1_Pin); // Инвертирование состояния выхода.
-        printf("%li \r\n", millis());
         //  uint8_t UART1_rxBuffer[4] = {0xAA,0xFF,0xAA,0xFF};
         //   uint8_t UART1_rxBuffer[1] = {0x56}; //Запрос версии "V"
         //   uint8_t UART1_rxBuffer[1] = {0x4F}; // Включить лазер "O"
@@ -715,13 +716,25 @@ void workingI2C()
         if (i2cReceiveComplete) // Обработка буфера после считывания данных по шине
         {
             i2cReceiveComplete = 0;
-            calcBufferICM(bufferICM20948, &icm20948_accel, &icm20948_gyro);                                                                 // Обработка буфера после считывания данных по шине
-            icm20948_gyro_read_dps(&icm20948_gyro);                                                                                         // Преобразуем, фильтруем данные гироскопа
-            icm20948_accel_read_g(&icm20948_accel);                                                                                         // Преобразуем, фильтруем данные акселерометра
+            calcBufferICM(bufferICM20948, &icm20948_accel, &icm20948_gyro); // Обработка буфера после считывания данных по шине
+            icm20948_gyro_read_dps(&icm20948_gyro);                         // Преобразуем, фильтруем данные гироскопа
+            icm20948_accel_read_g(&icm20948_accel);                         // Преобразуем, фильтруем данные акселерометра
+
+            float roll_A = 0.0f, pitch_A = 0.0f;               // Углы считаем из Акселерометра только roll pitch. yaw не может быть посчитан
+
+            roll_A = atan2f(icm20948_accel.y, sqrtf(icm20948_accel.x * icm20948_accel.x + icm20948_accel.z * icm20948_accel.z));   // Вычисление крена (Roll)
+            pitch_A = atan2f(-icm20948_accel.x, sqrtf(icm20948_accel.y * icm20948_accel.y + icm20948_accel.z * icm20948_accel.z)); // Вычисление тангажа (Pitch)
+
+            roll_A = roll_A * 180.0f / M_PI; // Перевод в градусы
+            pitch_A = pitch_A * 180.0f / M_PI;
+
+            // DEBUG_PRINTF("icm20948_accel %+8.3f %+8.3f %+8.3f | ", icm20948_accel.x, icm20948_accel.y, icm20948_accel.z);
+            // DEBUG_PRINTF("bno055.accel %+8.3f %+8.3f %+8.3f \n| ", bno055.accel.x, bno055.accel.y, bno055.accel.z);
+
             MadgwickAHRSupdateIMU(icm20948_gyro.x, icm20948_gyro.y, icm20948_gyro.z, icm20948_accel.x, icm20948_accel.y, icm20948_accel.z); // Обновление фильтра Madgwick
 
             icm20948.status = 0;
-                                                   // Статус все хорошо
+            // Статус все хорошо
             icm20948.gyro.x = icm20948_gyro.x; // Записываем гироскоп в структуру для отправки
             icm20948.gyro.y = icm20948_gyro.y;
             icm20948.gyro.z = icm20948_gyro.z;
@@ -743,7 +756,7 @@ void workingI2C()
                 timeICM20948 = millis(); // Инициализация первого раза
 
             icm20948.rate = (float)1000.0 / (millis() - timeICM20948); // Считаем частоту
-            timeICM20948 = millis(); // Запоминаем время
+            timeICM20948 = millis();                                   // Запоминаем время
 
             // DEBUG_PRINTF("   - %lu\n", millis());
             // DEBUG_PRINTF("    calcBuffer ICM %lu\n", millis());
@@ -752,6 +765,7 @@ void workingI2C()
             flag_sendRequestICM20948 = true; // Взводим флаг что можно снова запрос к BNO055
 
             DEBUG_PRINTF("BNO %+8.3f %+8.3f %+8.3f |", bno055.angleEuler.x, bno055.angleEuler.y, bno055.angleEuler.z);
+            DEBUG_PRINTF("ICM20948.Accel %+8.3f %+8.3f |", roll_A, pitch_A);
             DEBUG_PRINTF("Madgwick %+8.3f %+8.3f %+8.3f || \n ", Madgw.roll, Madgw.pitch, Madgw.yaw);
         }
     }
