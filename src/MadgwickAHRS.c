@@ -24,7 +24,7 @@
 //---------------------------------------------------------------------------------------------------
 // Definitions
 
-#define sampleFreq 20.0f // sample frequency in Hz Я использую 100 HZ
+#define sampleFreq 100.0f // sample frequency in Hz Я использую 100 HZ
 #define betaDef 0.15f	  // 2 * proportional gain
 
 //---------------------------------------------------------------------------------------------------
@@ -166,15 +166,70 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 volatile float roll_Mad = 0.0f, pitch_Mad = 0.0f, yaw_Mad = 0.0f; // Углы считаем каждый раз из кватерниона.
 float gravity_x, gravity_y, gravity_z;							  // Гравитация в кватернионе
 
+//*******************
+// Глобальные переменные для фильтра
+static double x_f = 1.0;
+static double y_f = 0.0;
+static int initialized = 0;
+
+// Функция сглаживания yaw
+double smoothYaw(double yaw_rad, double alpha)
+{
+	if (!initialized)
+	{
+		x_f = cos(yaw_rad);
+		y_f = sin(yaw_rad);
+		initialized = 1;
+		return yaw_rad;
+	}
+
+	double x = cos(yaw_rad);
+	double y = sin(yaw_rad);
+
+	// EMA по векторам
+	x_f = (1.0 - alpha) * x_f + alpha * x;
+	y_f = (1.0 - alpha) * y_f + alpha * y;
+
+	// Нормализация
+	double norm = sqrt(x_f * x_f + y_f * y_f);
+	if (norm > 1e-9)
+	{
+		x_f /= norm;
+		y_f /= norm;
+	}
+
+	// Восстановление угла
+	return atan2(y_f, x_f);
+}
+
+double to360(double angle)
+{
+	angle = fmod(angle, 360.0);
+	if (angle < 0.0)
+		angle += 360.0;
+	return angle;
+}
+double to360_cw(double angle)
+{
+	// для по часовой стрелке используем обратный знак
+	angle = -angle;
+	angle = fmod(angle, 360.0);
+	if (angle < 0.0)
+		angle += 360.0;
+	return angle;
+}
+
+///****************
+
 void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az)
 {
 	float recipNorm;
 	float s0, s1, s2, s3;
 	float qDot1, qDot2, qDot3, qDot4;
 	float _2q0, _2q1, _2q2, _2q3, _4q0, _4q1, _4q2, _8q1, _8q2, q0q0, q1q1, q2q2, q3q3;
-	
+
 	// Нормализация для Маджвика аксельрометра. Да, данные акселерометра для фильтра Маджвика необходимо нормализовать. Нормализация означает, что вектор ускорения должен быть приведён к единичной длине (магнитуда вектора равна 1).
-	float norm = sqrt(ax * ax + ay * ay + az * az); 
+	float norm = sqrt(ax * ax + ay * ay + az * az);
 	if (norm > 0)
 	{
 		ax = ax / norm;
@@ -255,9 +310,25 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 	pitch_Mad = asinf(-2.0f * (q1 * q3 - q0 * q2));
 	yaw_Mad = atan2f(q1 * q2 + q0 * q3, 0.5f - q2 * q2 - q3 * q3);
 
-	Madgw.roll = RAD2DEG(roll_Mad);
-	Madgw.pitch = RAD2DEG(pitch_Mad);
-	Madgw.yaw = RAD2DEG(yaw_Mad);
+	// Фильтруем значения после Маджика
+	float const ALPHA = 0.33;				 //
+	static axises smoothed_data = {0, 0, 0}; // Начальные значения
+
+	// smoothed_data.x = roll_Mad; //
+	// smoothed_data.y = pitch_Mad; //
+	smoothed_data.x = ALPHA * roll_Mad + (1 - ALPHA) * smoothed_data.x; // Экспоненциальное сглаживание везде по всем осям используем один коефициент
+	smoothed_data.y = ALPHA * pitch_Mad + (1 - ALPHA) * smoothed_data.y;
+	// smoothed_data.z = ALPHA * yaw_Mad + (1 - ALPHA) * smoothed_data.z;
+
+	yaw_Mad = smoothYaw(yaw_Mad, ALPHA); // тут сглаживание по yaw, но чтобы избежать проблем +-180 то через углы
+
+	// DEBUG_PRINTF("Norm (g): %.3f",norm);
+
+	// DEBUG_PRINTF("Madgw raw = %+8.4f %+8.4f %+8.4f smoothed= %+8.4f %+8.4f %+8.4f | ",roll_Mad, pitch_Mad, yaw_Mad, smoothed_data.x, smoothed_data.y, yaw_Mad);
+
+	Madgw.roll = RAD2DEG(smoothed_data.x);
+	Madgw.pitch = RAD2DEG(smoothed_data.y);
+	Madgw.yaw = to360_cw(RAD2DEG(yaw_Mad));
 
 	//************** ГРАВИТАЦИЯ ****************
 

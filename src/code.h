@@ -215,7 +215,7 @@ void workingTimer() // Отработка действий по таймеру �
     if (flag_timer_50millisec)
     {
         flag_timer_50millisec = false;
-        flag_readBNO055 = true; // Флаг что можно читать данные с BNO055
+        // flag_readBNO055 = true; // Флаг что можно читать данные с BNO055
 
         // DEBUG_PRINTF("50msec %li \r\n", millis());
         //  flag_data = true; // Есть новые данные по шине // РУчной вариант имитации пришедших данных с частотой 20Гц
@@ -234,7 +234,7 @@ void workingTimer() // Отработка действий по таймеру �
     if (flag_timer_1sec) // Вызывается каждую секунду
     {
         flag_timer_1sec = false;
-        // printf("%li \r\n", millis());
+        printf("%li \r\n", millis());
 
         // statusGetState = HAL_SPI_GetState(&hspi1);
         // if (statusGetState == HAL_SPI_STATE_READY)
@@ -765,7 +765,7 @@ void workingI2C()
             flag_sendRequestICM20948 = true; // Взводим флаг что можно снова запрос к BNO055
 
             DEBUG_PRINTF("BNO %+8.3f %+8.3f %+8.3f |", bno055.angleEuler.x, bno055.angleEuler.y, bno055.angleEuler.z);
-            DEBUG_PRINTF("ICM20948.Accel %+8.3f %+8.3f |", roll_A, pitch_A);
+            // DEBUG_PRINTF("ICM20948.Accel %+8.3f %+8.3f |", roll_A, pitch_A);
             DEBUG_PRINTF("Madgwick %+8.3f %+8.3f %+8.3f || \n ", Madgw.roll, Madgw.pitch, Madgw.yaw);
         }
     }

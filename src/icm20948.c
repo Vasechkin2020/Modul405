@@ -149,13 +149,13 @@ void icm20948_init()
 	printf("    readFloatFromFile icm20948.cfg \n");
 	readFloatFromFile(icm20948OffSet, 9, "icm20948.cfg");
 	
-	icm20948_gyro_calibration();
+	// icm20948_gyro_calibration();
 
-	printf("    writeFloatToFile icm20948.cfg \n");
-	icm20948OffSet[0] = gBias.b_x;
-	icm20948OffSet[1] = gBias.b_y;
-	icm20948OffSet[2] = gBias.b_z;
-	printf("gBias.b_x= %.3f gBias.b_y= %.3f gBias.b_z= %.3f | ", gBias.b_x, gBias.b_y, gBias.b_z);
+	// printf("    writeFloatToFile icm20948.cfg \n");
+	// icm20948OffSet[0] = gBias.b_x;
+	// icm20948OffSet[1] = gBias.b_y;
+	// icm20948OffSet[2] = gBias.b_z;
+	// printf("gBias.b_x= %.3f gBias.b_y= %.3f gBias.b_z= %.3f | ", gBias.b_x, gBias.b_y, gBias.b_z);
 
 	// calibrate_accelerometer();
 
@@ -169,7 +169,7 @@ void icm20948_init()
 	// icm20948OffSet[8] = aScale.s_z;
 	// printf("aScale.b_x= %.3f aScale.b_y= %.3f aScale.b_z= %.3f \n", aScale.s_x, aScale.s_y, aScale.s_z);
 
-	writeFloatToFile(icm20948OffSet, 9, "icm20948.cfg");
+	// writeFloatToFile(icm20948OffSet, 9, "icm20948.cfg");
 	// while (1)
 	// {
 	// }
