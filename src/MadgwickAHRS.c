@@ -337,11 +337,20 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 	gravity_z = q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3;
 	// DEBUG_PRINTF(" | gravity_x= %+6.3f gravity_y= %+6.3f gravity_z= %+6.3f | ", gravity_x, gravity_y, gravity_z);
 
-	const float g = 9.81f;				   // Ускорение свободного падения в м/с²
-										   // 1. Вычитаем гравитацию (оба значения в g)
+	const float g = 9.81f;					   // Ускорение свободного падения в м/с²
+											   // 1. Вычитаем гравитацию (оба значения в g)
+	static axises smoothed_linAcc = {0, 0, 0}; // Начальные значения
+
 	Madgw.linAcc.x = (ax - gravity_x) * g; // Вычитаем гравитацию из акселерометра b Переводим в м/с²
 	Madgw.linAcc.y = (ay - gravity_y) * g;
-	Madgw.linAcc.z = (az - gravity_z) * g;
+	Madgw.linAcc.z = (az - gravity_z) * g; // Вычитаем гравитацию из акселерометра b Переводим в м/с²
+
+	smoothed_linAcc.x = ALPHA * Madgw.linAcc.x + (1 - ALPHA) * smoothed_linAcc.x; // Экспоненциальное сглаживание везде по всем осям используем один коефициент
+	smoothed_linAcc.y = ALPHA * Madgw.linAcc.y + (1 - ALPHA) * smoothed_linAcc.y; // Экспоненциальное сглаживание везде по всем осям используем один коефициент
+	smoothed_linAcc.z = ALPHA * Madgw.linAcc.z + (1 - ALPHA) * smoothed_linAcc.z; // Экспоненциальное сглаживание везде по всем осям используем один коефициент
+
+	Madgw.linAcc = smoothed_linAcc;
+
 	// DEBUG_PRINTF("lin_x= %+6.3f m/s² lin_y= %+6.3f m/s² lin_z= %+6.3f m/s² \n", linearAcc_x, linearAcc_y, linearAcc_z);
 }
 

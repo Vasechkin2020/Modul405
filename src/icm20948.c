@@ -148,7 +148,7 @@ void icm20948_init()
 
 	printf("    readFloatFromFile icm20948.cfg \n");
 	readFloatFromFile(icm20948OffSet, 9, "icm20948.cfg");
-	
+
 	// icm20948_gyro_calibration();
 
 	// printf("    writeFloatToFile icm20948.cfg \n");
@@ -169,7 +169,12 @@ void icm20948_init()
 	// icm20948OffSet[8] = aScale.s_z;
 	// printf("aScale.b_x= %.3f aScale.b_y= %.3f aScale.b_z= %.3f \n", aScale.s_x, aScale.s_y, aScale.s_z);
 
-	// writeFloatToFile(icm20948OffSet, 9, "icm20948.cfg");
+	//Ручной подбор для гироскопа глядя на плотджагер
+	icm20948OffSet[0] = 8; //15
+	icm20948OffSet[1] = 235; //245
+	icm20948OffSet[2] = 60; //66
+
+	writeFloatToFile(icm20948OffSet, 9, "icm20948.cfg");
 	// while (1)
 	// {
 	// }
@@ -441,7 +446,7 @@ void icm20948_gyro_read_dps(axises *data)
 void icm20948_accel_read_g(axises *data)
 {
 	icm20948_accel_read(data); // Считывание необработанных данных акселерометра
-	static float g = 9.80665;		 // Ускорение свободного падения в м/с²
+	static float g = 9.80665;  // Ускорение свободного падения в м/с²
 
 	data->x = ((data->x - aBias.b_x) * aScale.s_x) / accel_scale_factor * g; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
 	data->y = ((data->y - aBias.b_y) * aScale.s_y) / accel_scale_factor * g; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
@@ -876,11 +881,11 @@ void icm20948_gyro_calibration()
 	for (int j = 0; j < 5; j++)
 	{
 		printf("%d ", 5 - j); // Отсчет времени
-		fflush(stdout);		   // Принудительный сброс буфера
-		HAL_Delay(1000);	   // Задержка 1 секунда
+		fflush(stdout);		  // Принудительный сброс буфера
+		HAL_Delay(1000);	  // Задержка 1 секунда
 	}
 	printf("Start... | ");
-	fflush(stdout);		   // Принудительный сброс буфера
+	fflush(stdout); // Принудительный сброс буфера
 
 	axises temp;
 	int32_t gyro_bias[3] = {0};

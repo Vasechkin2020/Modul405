@@ -776,7 +776,7 @@ void workingFlag()
 {
     if (flagCollectDataForSPI) // Сбор данных для обмена по флагу и таймеру
     {
-        if (millis() - timeSpi > 7) // Если прошло больше 7 м секунд с момента обмена по  SPI
+        if (millis() - timeSpi > 6) // Если прошло больше 7 м секунд с момента обмена по  SPI
         {
             flagCollectDataForSPI = false;
             // DEBUG_PRINTF("    flagCollectData %lu\n", millis());
