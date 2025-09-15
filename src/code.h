@@ -215,6 +215,7 @@ void workingTimer() // Отработка действий по таймеру �
     if (flag_timer_50millisec)
     {
         flag_timer_50millisec = false;
+        // disableMotor(); // Отключаем моторы если они не используются чтобы не грелись
         // flag_readBNO055 = true; // Флаг что можно читать данные с BNO055
 
         // DEBUG_PRINTF("50msec %li \r\n", millis());
@@ -365,18 +366,19 @@ void executeDataReceive()
         for (int i = 0; i < 4; i++)
         {
             setMotorAngle(i, Data2Modul_receive.controlMotor.angle[i]);
-            float speed = calcSpeedMotor(i); // Расчет скорости для мотора в rps
-            setMotorSpeed(i, speed);         // Установка скорости
+            // float speed = calcSpeedMotor(i); // Расчет скорости для мотора в rps
+            // setMotorSpeed(i, speed);                                                   // Установка скорости
             // DEBUG_PRINTF("status = %i \r\n", motor[i].status);
         }
     }
     // Команда КОЛИБРОВКИ И УСТАНОВКИ В 0
     if (Data2Modul_receive.controlMotor.mode == 9 && modeControlMotor != 9) // Если пришла команда 9 Колибровки и предыдущая была другая
     {
+        DEBUG_PRINTF("Start colibrovka \n");
         modeControlMotor = 9;  // Запоминаем в каком режиме Motor
-        setMotor10();          // Отводим мотор на 10 градусов
         timerMode9 = millis(); // Запоминаем время начал
         flagMode9 = true;      // что мы начали режим колибровки
+        rotationRight();          // Отводим мотор на 10 градусов
     }
     // Команда ВКЛЮЧЕНИЯ ЛАЗЕРНЫХ ДАТЧИКОВ
     if (Data2Modul_receive.controlLaser.mode == 1 && modeControlLaser != 1) // Если пришла команда и предыдущая была другая
@@ -720,7 +722,7 @@ void workingI2C()
             icm20948_gyro_read_dps(&icm20948_gyro);                         // Преобразуем, фильтруем данные гироскопа
             icm20948_accel_read_g(&icm20948_accel);                         // Преобразуем, фильтруем данные акселерометра
 
-            float roll_A = 0.0f, pitch_A = 0.0f;               // Углы считаем из Акселерометра только roll pitch. yaw не может быть посчитан
+            float roll_A = 0.0f, pitch_A = 0.0f; // Углы считаем из Акселерометра только roll pitch. yaw не может быть посчитан
 
             roll_A = atan2f(icm20948_accel.y, sqrtf(icm20948_accel.x * icm20948_accel.x + icm20948_accel.z * icm20948_accel.z));   // Вычисление крена (Roll)
             pitch_A = atan2f(-icm20948_accel.x, sqrtf(icm20948_accel.y * icm20948_accel.y + icm20948_accel.z * icm20948_accel.z)); // Вычисление тангажа (Pitch)
@@ -789,7 +791,7 @@ void workingFlag()
         if (millis() - timeSpi > 15000) // Если обмена нет больше 5 секунд то отключаем все
         {
             flagTimeOut = false;
-            DEBUG_PRINTF("    workingStopTimeOut\n");
+            DEBUG_PRINTF("    workingStopTimeOut ! \n");
             HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_SET); // Отключаем драйвера моторы// Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
             modeControlMotor = 0;
             modeControlLaser = 0;
