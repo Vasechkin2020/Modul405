@@ -379,7 +379,7 @@ void executeDataReceive()
         modeControlMotor = 9;  // Запоминаем в каком режиме Motor
         timerMode9 = millis(); // Запоминаем время начал
         flagMode9 = true;      // что мы начали режим колибровки
-        rotationRight();          // Отводим мотор на 10 градусов
+        rotationRight();       // Отводим мотор на 10 градусов
     }
     // Команда ВКЛЮЧЕНИЯ ЛАЗЕРНЫХ ДАТЧИКОВ
     if (Data2Modul_receive.controlLaser.mode == 1 && modeControlLaser != 1) // Если пришла команда и предыдущая была другая
@@ -792,10 +792,14 @@ void workingFlag()
         if (millis() - timeSpi > 15000) // Если обмена нет больше 5 секунд то отключаем все
         {
             flagTimeOut = false;
-            DEBUG_PRINTF("    workingStopTimeOut ! \n");
+            printf("    workingStopTimeOut ! \n");
             HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_SET); // Отключаем драйвера моторы// Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
             modeControlMotor = 0;
             modeControlLaser = 0;
+            HAL_I2C_DeInit(&hi2c1);        // Деинициализация I2C
+            HAL_I2C_Init(&hi2c1);          // Повторная инициализация I2C
+            flag_sendRequestBNO055 = true; // Взводим флаг что можно снова запрос к BNO055
+            flag_sendRequestBNO055 = true; // Взводим флаг что можно снова запрос
 
 #ifdef LASER80
             laser80_stopMeasurement(0);
