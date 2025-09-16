@@ -169,10 +169,10 @@ void icm20948_init()
 	// icm20948OffSet[8] = aScale.s_z;
 	// printf("aScale.b_x= %.3f aScale.b_y= %.3f aScale.b_z= %.3f \n", aScale.s_x, aScale.s_y, aScale.s_z);
 
-	//Ручной подбор для гироскопа глядя на плотджагер
-	icm20948OffSet[0] = 8; //15
-	icm20948OffSet[1] = 235; //245
-	icm20948OffSet[2] = 60; //66
+	// Ручной подбор для гироскопа глядя на плотджагер
+	icm20948OffSet[0] = 8;	 // 15
+	icm20948OffSet[1] = 235; // 245
+	icm20948OffSet[2] = 60;	 // 66
 
 	writeFloatToFile(icm20948OffSet, 9, "icm20948.cfg");
 	// while (1)
@@ -1268,17 +1268,73 @@ extern volatile uint8_t i2cReceiveComplete;	 // Флаг завершения о
 void ICM20948_Transmit_IT(uint8_t _reg)
 {
 	i2cTransferComplete = 0;
-	static uint8_t reg = B0_ACCEL_XOUT_H;							   // Статическая переменная для хранения регистра
-	HAL_I2C_Master_Transmit_IT(&hi2c1, ICM20948_I2C_ADDRESS, &reg, 1); // Отправляем адрес регистра
-																	   // HAL_Delay(1);													   // Ждем завершения передачи.Обязательно!!! Нельзя выходитьт из функции пока поманда не передастся.
-																	   // DEBUG_PRINTF("ICM20948_Transmit_IT \n");
+    if (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY) // Проверяем, готов ли I2C
+    {
+        printf("ICM20948_Transmit_IT I2C not ready, resetting...\n");
+        HAL_I2C_DeInit(&hi2c1); // Деинициализация I2C
+        HAL_I2C_Init(&hi2c1);   // Повторная инициализация I2C
+    }
+
+	static uint8_t reg = B0_ACCEL_XOUT_H;														  // Статическая переменная для хранения регистра
+	HAL_StatusTypeDef status = HAL_I2C_Master_Transmit_IT(&hi2c1, ICM20948_I2C_ADDRESS, &reg, 1); // Отправляем адрес регистра
+	if (status != HAL_OK)
+	{
+		printf("ICM20948_Transmit_IT ERROR\n");
+		switch (status) // Обработка ошибки
+		{
+		case HAL_OK:
+			printf("I2C transmission started successfully\n");
+			break;
+		case HAL_ERROR:
+			printf("I2C HAL_ERROR: %lu\n", HAL_I2C_GetError(&hi2c1));
+			break;
+		case HAL_BUSY:
+			printf("I2C HAL_BUSY: Previous operation not completed\n");
+			break;
+		case HAL_TIMEOUT:
+			printf("I2C HAL_TIMEOUT: Transmission timeout\n");
+			break;
+		default:
+			printf("I2C Unknown error: %lu\n", HAL_I2C_GetError(&hi2c1));
+			break;
+		}
+	}
+
+	// HAL_Delay(1);													   // Ждем завершения передачи.Обязательно!!! Нельзя выходитьт из функции пока поманда не передастся.
+	// DEBUG_PRINTF("ICM20948_Transmit_IT \n");
 }
 
 // Функция для чтения данных из ICM20948 используя прерывание
 void ICM20948_Receive_IT(uint8_t *buffer, uint16_t size)
 {
 	i2cReceiveComplete = 0;
-	HAL_I2C_Master_Receive_IT(&hi2c1, ICM20948_I2C_ADDRESS, buffer, size); // Запускаем чтение данных из регистра
+	if (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY) // Проверяем, готов ли I2C
+		printf("ICM20948_Receive_IT I2C not ready, resetting...\n");
+
+	HAL_StatusTypeDef status = HAL_I2C_Master_Receive_IT(&hi2c1, ICM20948_I2C_ADDRESS, buffer, size); // Запускаем чтение данных из регистра
+	if (status != HAL_OK)
+	{
+		printf("ICM20948_Transmit_IT ERROR\n");
+		switch (status) // Обработка ошибки
+		{
+		case HAL_OK:
+			printf("I2C transmission started successfully\n");
+			break;
+		case HAL_ERROR:
+			printf("I2C HAL_ERROR: %lu\n", HAL_I2C_GetError(&hi2c1));
+			break;
+		case HAL_BUSY:
+			printf("I2C HAL_BUSY: Previous operation not completed\n");
+			break;
+		case HAL_TIMEOUT:
+			printf("I2C HAL_TIMEOUT: Transmission timeout\n");
+			break;
+		default:
+			printf("I2C Unknown error: %lu\n", HAL_I2C_GetError(&hi2c1));
+			break;
+		}
+	}
+
 }
 // Функция для расчета буфера ICM20948
 void calcBufferICM(uint8_t *buffer, axises *dataAccel, axises *dataGyro)

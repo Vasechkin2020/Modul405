@@ -244,8 +244,39 @@ HAL_StatusTypeDef BNO055_Mem_Write(uint8_t reg, uint8_t *data_, uint16_t size_)
 void BNO055_Transmit_IT(uint8_t _reg)
 {
     i2cTransferComplete = 0;
-    static uint8_t reg = eBNO055_REGISTER_ACC_DATA_X_LSB;        // Статическая переменная для хранения регистра Передаём адрес переменной reg, который сохранится после выхода из функции
-    HAL_I2C_Master_Transmit_IT(&hi2c1, BNO055_ADDRESS, &reg, 1); // Отправляем адрес регистра
+
+    if (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY) // Проверяем, готов ли I2C
+    {
+        printf("BNO055_Transmit_IT I2C not ready, resetting...\n");
+        HAL_I2C_DeInit(&hi2c1); // Деинициализация I2C
+        HAL_I2C_Init(&hi2c1);   // Повторная инициализация I2C
+    }
+
+    static uint8_t reg = eBNO055_REGISTER_ACC_DATA_X_LSB;                                   // Статическая переменная для хранения регистра Передаём адрес переменной reg, который сохранится после выхода из функции
+    HAL_StatusTypeDef status = HAL_I2C_Master_Transmit_IT(&hi2c1, BNO055_ADDRESS, &reg, 1); // Отправляем адрес регистра
+    if (status != HAL_OK)
+    {
+        printf("BNO055_Transmit_IT ERROR -> ");
+        switch (status) // Обработка ошибки
+        {
+        case HAL_OK:
+            printf("I2C transmission started successfully\n");
+            break;
+        case HAL_ERROR:
+            printf("I2C HAL_ERROR: %lu\n", HAL_I2C_GetError(&hi2c1));
+            break;
+        case HAL_BUSY:
+            printf("I2C HAL_BUSY: Previous operation not completed\n");
+            break;
+        case HAL_TIMEOUT:
+            printf("I2C HAL_TIMEOUT: Transmission timeout\n");
+            break;
+        default:
+            printf("I2C Unknown error: %lu\n", HAL_I2C_GetError(&hi2c1));
+            break;
+        }
+    }
+
     // uint64_t startTime = micros(); // Запоминаем время начала передачи
     // while (startTime + 500 > micros() ) // Ждем завершения передачи
     // {
@@ -257,7 +288,31 @@ void BNO055_Transmit_IT(uint8_t _reg)
 void BNO055_Receive_IT(uint8_t *buffer, uint16_t size)
 {
     i2cReceiveComplete = 0;
-    HAL_I2C_Master_Receive_IT(&hi2c1, BNO055_ADDRESS, buffer, size); // Запускаем чтение данных из регистра
+    if (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY) // Проверяем, готов ли I2C
+        printf("BNO055_Receive_IT I2C not ready, resetting...\n");
+    HAL_StatusTypeDef status = HAL_I2C_Master_Receive_IT(&hi2c1, BNO055_ADDRESS, buffer, size); // Запускаем чтение данных из регистра
+    if (status != HAL_OK)
+    {
+        printf("BNO055_Receive_IT ERROR\n");
+        switch (status) // Обработка ошибки
+        {
+        case HAL_OK:
+            printf("I2C transmission started successfully\n");
+            break;
+        case HAL_ERROR:
+            printf("I2C HAL_ERROR: %lu\n", HAL_I2C_GetError(&hi2c1));
+            break;
+        case HAL_BUSY:
+            printf("I2C HAL_BUSY: Previous operation not completed\n");
+            break;
+        case HAL_TIMEOUT:
+            printf("I2C HAL_TIMEOUT: Transmission timeout\n");
+            break;
+        default:
+            printf("I2C Unknown error: %lu\n", HAL_I2C_GetError(&hi2c1));
+            break;
+        }
+    }
 }
 
 // Функция для записи данных в BNO055 используя прерывание
@@ -321,20 +376,13 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
             printf("DMA Transfer Error\n");
         }
 
-        // while (1)
-        // {
-        //     ;
-        // }
-
         // Попытка повторной инициализации или сброс шины I2C
-        printf("I2C HAL_I2C_DeInit\n");
+        printf("I2C HAL_I2C_DeInit... -> ");
         HAL_I2C_DeInit(hi2c); // Деинициализация I2C
         // HAL_Delay(3);       // Короткая задержка
-        printf("I2C HAL_I2C_Init\n");
+        printf("I2C HAL_I2C_Init. -> ");
         HAL_I2C_Init(hi2c); // Повторная инициализация
-
-        // Возможно, добавить пользовательскую логику, например, уведомление системы
-        printf("I2C reinitialized\n");
+        printf("I2C reinitialized\n"); // Возможно, добавить пользовательскую логику, например, уведомление системы
     }
 }
 //*****************************************************************************************************
@@ -384,7 +432,6 @@ void BNO055_Init()
         printf("BNO055 not found!\n");
         // while (1)
         //     ;
-        
     }
 }
 // Перезапуск датчика

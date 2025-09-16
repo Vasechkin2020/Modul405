@@ -57,11 +57,11 @@ int main(void)
   MX_FATFS_Init();   // Инициализация файловой системы FATFS
   mountFilesystem(); // Функция для монтирования файловой системы
 
-  // MX_I2C1_Init(); // Инициализация I2C1
+  MX_I2C1_Init(); // Инициализация I2C1
 
-  // I2C_ScanDevices(&hi2c1); // Сканирование I2C шины
-  // BNO055_Init();
-  // icm20948_init(); // Инициализация ICM-20948
+  I2C_ScanDevices(&hi2c1); // Сканирование I2C шины
+  BNO055_Init();
+  icm20948_init(); // Инициализация ICM-20948
 
   float laserOffSet[4] = {1.23f, 4.56f, 7.89f, 3.1415f}; // Массив с 4 значениями калибровки лазеров
   writeFloatToFile(laserOffSet, 4, "laser.cfg");
@@ -109,7 +109,7 @@ int main(void)
   //   ;
   // testMotorRun();
   
-  setZeroMotor(); // Установка в ноль
+  // setZeroMotor(); // Установка в ноль
 
   // initLaser(); // Инициализация лазеров в зависимости от типа датчкика. определяем переменные буфер приема для каждого UART
 
