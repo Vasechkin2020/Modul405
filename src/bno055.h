@@ -244,24 +244,24 @@ HAL_StatusTypeDef BNO055_Mem_Write(uint8_t reg, uint8_t *data_, uint16_t size_)
 void BNO055_Transmit_IT(uint8_t _reg)
 {
     i2cTransferComplete = 0;
-    // if (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY) // Проверяем, готов ли I2C
-    // {
-    //     HAL_Delay(1); // Ждем 1 милисекунду в надежде что шина освободиться
-    //     printf("BNO055_Transmit_IT I2C not ready, HAL_Delay 1 msec \n");
-    // }
-
-    uint32_t start_time = HAL_GetTick(); // Вариант 1 : С блокирующим ожиданием(но не более 1 мс)
-    while (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY)
+    if (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY) // Проверяем, готов ли I2C
     {
-        if (HAL_GetTick() - start_time >= 1)
-        { // Проверяем, не прошло ли уже 1 мс
-            printf("BNO055_Transmit_IT I2C timeout after 1 ms\n");
-            break; // Выходим из цикла по таймауту
-        }
-        __NOP();
-        __NOP();
-        __NOP(); // 3 такта паузы
+        HAL_Delay(1); // Ждем 1 милисекунду в надежде что шина освободиться
+        printf("BNO055_Transmit_IT I2C not ready, HAL_Delay 1 msec \n");
     }
+
+    // uint32_t start_time = HAL_GetTick(); // Вариант 1 : С блокирующим ожиданием(но не более 1 мс)
+    // while (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY)
+    // {
+    //     if (HAL_GetTick() - start_time >= 1)
+    //     { // Проверяем, не прошло ли уже 1 мс
+    //         printf("BNO055_Transmit_IT I2C timeout after 1 ms\n");
+    //         break; // Выходим из цикла по таймауту
+    //     }
+    //     __NOP();
+    //     __NOP();
+    //     __NOP(); // 3 такта паузы
+    // }
 
     if (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY) // Проверяем второй раз, готов ли I2C
     {

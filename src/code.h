@@ -724,9 +724,9 @@ void workingI2C()
             icm20948_accel_read_g(&icm20948_accel);                         // Преобразуем, фильтруем данные акселерометра
 
             float roll_A = 0.0f, pitch_A = 0.0f; // Углы считаем из Акселерометра только roll pitch. yaw не может быть посчитан
-
-            roll_A = atan2f(icm20948_accel.y, sqrtf(icm20948_accel.x * icm20948_accel.x + icm20948_accel.z * icm20948_accel.z));   // Вычисление крена (Roll)
-            pitch_A = atan2f(-icm20948_accel.x, sqrtf(icm20948_accel.y * icm20948_accel.y + icm20948_accel.z * icm20948_accel.z)); // Вычисление тангажа (Pitch)
+            
+            roll_A = atan2f(icm20948_accel.y, sqrtf(icm20948_accel.x * icm20948_accel.x + icm20948_accel.z * icm20948_accel.z));   // Вычисление крена (Roll) //Такой расчет подходит только для статичного положения. В движении аксель будет врать
+            pitch_A = atan2f(-icm20948_accel.x, sqrtf(icm20948_accel.y * icm20948_accel.y + icm20948_accel.z * icm20948_accel.z)); // Вычисление тангажа (Pitch) //Такой расчет подходит только для статичного положения. В движении аксель будет врать
 
             roll_A = roll_A * 180.0f / M_PI; // Перевод в градусы
             pitch_A = pitch_A * 180.0f / M_PI;
