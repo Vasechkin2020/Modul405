@@ -399,9 +399,17 @@ void executeDataReceive()
         sk60plus_startContinuousSlow(3);
 #endif
     }
+
     if (Data2Modul_receive.controlLaser.mode == 2 && modeControlLaser != 2) // Если пришла команда и находимся не в этом режиме
     {
         modeControlLaser = 2; // Запоминаем в каком режиме Лазер
+#ifdef LASER80
+        // Непрерывное измерение тут нет варианта выбора скорости, поэтому одинаково с командой 1 
+        laser80_continuousMeasurement(0); // Данные пойдут только через 500 милисекунд
+        laser80_continuousMeasurement(1); // Данные пойдут только через 500 милисекунд
+        laser80_continuousMeasurement(2); // Данные пойдут только через 500 милисекунд
+        laser80_continuousMeasurement(3); // Данные пойдут только через 500 милисекунд
+#endif
 #ifdef LASER60
         sk60plus_startContinuousAuto(0);
         sk60plus_startContinuousAuto(1);
@@ -409,6 +417,7 @@ void executeDataReceive()
         sk60plus_startContinuousAuto(3);
 #endif
     }
+
     // Команда ВЫЛЮЧЕНИЯ ЛАЗЕРНЫХ ДАТЧИКОВ
     if (Data2Modul_receive.controlLaser.mode == 0 && modeControlLaser != 0) // Если пришла команда и предыдущая была другая
     {
@@ -702,6 +711,7 @@ void workingI2C()
         }
     }
 
+#ifdef ICM20948
     if (flag_readICM20948) // Если взведен флаг что можно работать с ICM20948
     {
         if (flag_sendRequestICM20948) // Если взведен флаг что нужно отправить запрос к ICM20948
@@ -724,7 +734,7 @@ void workingI2C()
             icm20948_accel_read_g(&icm20948_accel);                         // Преобразуем, фильтруем данные акселерометра
 
             float roll_A = 0.0f, pitch_A = 0.0f; // Углы считаем из Акселерометра только roll pitch. yaw не может быть посчитан
-            
+
             roll_A = atan2f(icm20948_accel.y, sqrtf(icm20948_accel.x * icm20948_accel.x + icm20948_accel.z * icm20948_accel.z));   // Вычисление крена (Roll) //Такой расчет подходит только для статичного положения. В движении аксель будет врать
             pitch_A = atan2f(-icm20948_accel.x, sqrtf(icm20948_accel.y * icm20948_accel.y + icm20948_accel.z * icm20948_accel.z)); // Вычисление тангажа (Pitch) //Такой расчет подходит только для статичного положения. В движении аксель будет врать
 
@@ -765,13 +775,14 @@ void workingI2C()
             // DEBUG_PRINTF("    calcBuffer ICM %lu\n", millis());
 
             flag_readICM20948 = false;
-            flag_sendRequestICM20948 = true; // Взводим флаг что можно снова запрос к BNO055
+            flag_sendRequestICM20948 = true; // Взводим флаг что можно снова запрос к ICM20948
 
             DEBUG_PRINTF("BNO %+8.3f %+8.3f %+8.3f |", bno055.angleEuler.x, bno055.angleEuler.y, bno055.angleEuler.z);
             // DEBUG_PRINTF("ICM20948.Accel %+8.3f %+8.3f |", roll_A, pitch_A);
             DEBUG_PRINTF("Madgwick %+8.3f %+8.3f %+8.3f || \n ", Madgw.roll, Madgw.pitch, Madgw.yaw);
         }
     }
+#endif
 }
 
 // Остановка лазеров и моторов при обрыве связи

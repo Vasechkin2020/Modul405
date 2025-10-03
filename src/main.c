@@ -61,7 +61,10 @@ int main(void)
 
   I2C_ScanDevices(&hi2c1); // Сканирование I2C шины
   BNO055_Init();
+
+#ifdef ICM20948
   icm20948_init(); // Инициализация ICM-20948
+#endif
 
   float laserOffSet[4] = {1.23f, 4.56f, 7.89f, 3.1415f}; // Массив с 4 значениями калибровки лазеров
   writeFloatToFile(laserOffSet, 4, "laser.cfg");
@@ -108,8 +111,8 @@ int main(void)
   // while (1)
   //   ;
   // testMotorRun();
-  
-  // setZeroMotor(); // Установка в ноль
+
+  setZeroMotor(); // Установка в ноль
 
   initLaser(); // Инициализация лазеров в зависимости от типа датчкика. определяем переменные буфер приема для каждого UART
 

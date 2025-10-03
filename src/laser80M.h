@@ -78,7 +78,7 @@ void laser80_stopMeasurement(uint8_t port_)
 // Непрерывное измерение
 void laser80_continuousMeasurement(uint16_t port_)
 {
-    printf("continuousMeasurement ");
+    printf("start laser80_continuousMeasurement port = %i \n", port_);
     static uint8_t buf[4] = {0x80, 0x06, 0x03, 0x00};
     buf[3] = lazer80_calcCs(buf, 4);
     HAL_UART_Transmit(dataUART[port_].huart, buf, sizeof(buf), 100);

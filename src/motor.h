@@ -498,7 +498,7 @@ void workingMotor() // Отработка действий по флагам и 
 // Функция установки в ноль всех моторов
 void setZeroMotor()
 {
-
+    flagMicric = true;                                                // Включаем микрики
     rotationRight(); // Вращение по часовой вправо
     uint32_t timeStart = millis();
     while (timeStart + 500 > millis()) // Ждем
