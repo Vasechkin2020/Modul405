@@ -352,6 +352,14 @@ void collect_Data_for_Send()
 // Отработка пришедших команд. Изменение скорости, траектории и прочее
 void executeDataReceive()
 {
+    uint64_t timeNow = micros();
+    static uint64_t predTime = 0;
+    float deltaTime = (timeNow - predTime) / 1000000.0; // Находим разницу по времени от прыдыдущего расчета
+    predTime = timeNow;
+    if (deltaTime <= 0.005)
+        deltaTime = 0.005; // Защита от деления на ноль
+    DEBUG_PRINTF("deltaTime SPI = %f ", deltaTime);
+
     // DEBUG_PRINTF("executeDataReceive... motor= %u laser= %u ", modeControlMotor, modeControlLaser);
     // DEBUG_PRINTF("in... motor= %lu laser= %lu \r\n", Data2Modul_receive.controlMotor.mode, Data2Modul_receive.controlLaser.mode);
     // Команда УПРАВЛЕНИЯ УГЛАМИ
@@ -366,6 +374,7 @@ void executeDataReceive()
         DEBUG_PRINTF("executeDataReceive mode= %lu status = %i %i %i %i \r\n", Data2Modul_receive.controlMotor.mode, motor[0].status, motor[1].status, motor[2].status, motor[3].status);
         for (int i = 0; i < 4; i++)
         {
+            motor[i].angleSpeed = calcAngleSpeedMotor(i,Data2Modul_receive.controlMotor.angle[i], deltaTime); // Расчет скорости для мотора в градусах в секунду
             setMotorAngle(i, Data2Modul_receive.controlMotor.angle[i]);
             // float speed = calcSpeedMotor(i); // Расчет скорости для мотора в rps
             // setMotorSpeed(i, speed);                                                   // Установка скорости
@@ -730,6 +739,7 @@ void workingI2C()
         {
             i2cReceiveComplete = 0;
             calcBufferICM(bufferICM20948, &icm20948_accel, &icm20948_gyro); // Обработка буфера после считывания данных по шине
+// !!!!!!!!!!!!!!!!!! ЗАЧЕМ Я ТУТ ДВАЖДЫ СЧИТЫВАЮ? СНАЧАЛА ЧЕРЕЗ ПРЕРЫВАНИЕ А ПОТОМ ПРОСТО ПО ЗАПРОСУ????
             icm20948_gyro_read_dps(&icm20948_gyro);                         // Преобразуем, фильтруем данные гироскопа
             icm20948_accel_read_g(&icm20948_accel);                         // Преобразуем, фильтруем данные акселерометра
 
