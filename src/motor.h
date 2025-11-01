@@ -26,22 +26,23 @@ uint32_t timerMode9 = 0;
 extern uint32_t millis(); // Длинна полученных данных в буфере
 extern uint64_t micros(void);
 
-void setMotorSpeed(int num_, float _speed);   // Функция устанавлявающая скорость вращения на ВСЕХ моторах, задается в оборотах за секунду rps
-float calcSpeedMotor(int num);                // Расчет скорости для мотора.
-void setPeriod(int num_);                     // Установка периода следующего срабатывания таймера
-void initMotor();                             // Функция инциализации моторов
-void timerMotor(int i);                       // Обработчик прерывания таймера TIM7
-void Set_Timer7_Period(uint32_t new_period);  // Функция для изменения периода таймера TIM7
-void Set_Timer10_Period(uint32_t new_period); // Функция для изменения периода таймера TIM7
-void Set_Timer11_Period(uint32_t new_period); // Функция для изменения периода таймера TIM7
-void Set_Timer13_Period(uint32_t new_period); // Функция для изменения периода таймера TIM7
-void testMotorRun();                          // Запуск моторов на тест
-void testMotorStop();                         // Остановка моторов после теста
-void disableMotor();                          // Отключение моторов в простое
-int32_t getPulse(float angle_);               // Пересчет градусов в импульсы
-float getAngle(int32_t _pulse);               // Пересчет импульсов в градусы
-void setMotorAngle(int num, float _angle);    // Установка мотора в нужное положение в градусах локальной системы
-void setZeroMotor();                          // Функция установки в ноль всех моторов
+void setMotorSpeed(int num_, float _speed);                  // Функция устанавлявающая скорость вращения на ВСЕХ моторах, задается в оборотах за секунду rps
+float calcSpeedMotor(int num);                               // Расчет скорости для мотора.
+float calcAngleSpeedMotor(int num, float angle_, float dt_); // Расчет угловой скорости для мотора в градусах в секунду dps
+void setPeriod(int num_);                                    // Установка периода следующего срабатывания таймера
+void initMotor();                                            // Функция инциализации моторов
+void timerMotor(int i);                                      // Обработчик прерывания таймера TIM7
+void Set_Timer7_Period(uint32_t new_period);                 // Функция для изменения периода таймера TIM7
+void Set_Timer10_Period(uint32_t new_period);                // Функция для изменения периода таймера TIM7
+void Set_Timer11_Period(uint32_t new_period);                // Функция для изменения периода таймера TIM7
+void Set_Timer13_Period(uint32_t new_period);                // Функция для изменения периода таймера TIM7
+void testMotorRun();                                         // Запуск моторов на тест
+void testMotorStop();                                        // Остановка моторов после теста
+void disableMotor();                                         // Отключение моторов в простое
+int32_t getPulse(float angle_);                              // Пересчет градусов в импульсы
+float getAngle(int32_t _pulse);                              // Пересчет импульсов в градусы
+void setMotorAngle(int num, float _angle);                   // Установка мотора в нужное положение в градусах локальной системы
+void setZeroMotor();                                         // Функция установки в ноль всех моторов
 
 void isrMicMotor0(); // Обработка прерывания по микрику на пине для мотора0
 void isrMicMotor1(); // Обработка прерывания по микрику на пине для мотора1
@@ -105,13 +106,16 @@ float calcSpeedMotor(int num) // Расчет скорости для мотор
 
     DEBUG_PRINTF("pidSpeed = %.4f dps (gradus/sec) \n", pidSpeed);
 
-    return pidSpeed;
+    float sumSpeed = motor[num].angleSpeed + pidSpeed; // к скорости мотора угловой прибавляем ошибку по положению
+    DEBUG_PRINTF("sumSpeed = %.4f dps (gradus/sec) \n", sumSpeed);
+
+    return sumSpeed;
 }
 
 // Функция устанавлявающая скорость вращения на ВСЕХ моторах, задается в градусах за секунду dps
 void setMotorSpeed(int num_, float speed_)
 {
-    if (speed_ < 15 && speed_ > 0)
+    if (speed_ < 15 && speed_ > 0) // Минимальная скорость вращения???
         speed_ = 15;
     else if (speed_ > -15 && speed_ < 0)
         speed_ = -15;
@@ -371,11 +375,16 @@ void setMotorAngle(int num, float angle_)
     DEBUG_PRINTF(" dest= %i \n", motor[num].destination);
     if (motor[num].position == motor[num].destination) // Если текущая позиция и так равна цели то ничего не делаем и выходим из функции
         return;
-    motor[num].flagCalc = 1;                   // Включаем расчеты
-
-    // float deltaAngle = angle_ - motor[num].predAngle; // Находим разницу углов
-    // motor[num].predAngle = angle_;                    // Запоминаем
-    // DEBUG_PRINTF("deltaAngle = %.2f ", deltaAngle);
+    motor[num].flagCalc = 1; // Включаем расчеты
+}
+// Расчет угловой скорости для мотора в градусах в секунду dps
+float calcAngleSpeedMotor(int num, float angle_, float dt_) // num - номер мотора, angle_ - текущий угол в градусах, dt_ - время прошедшее с прошлого расчета в секундах
+{
+    float deltaAngle = angle_ - motor[num].predAngle; // Находим разницу углов
+    float angleSpeed = deltaAngle / dt_;              // Считаем угловую скорость в градусах в секунду
+    DEBUG_PRINTF("num = %i anangle_ = %f predAngle = %f deltaAngle = %f dt= %f angleSpeed = %f  ", num, angle_, motor[num].predAngle, deltaAngle, dt_, angleSpeed);
+    motor[num].predAngle = angle_; // Запоминаем текущий угол для следующего расчета
+    return angleSpeed;             // Возвращаем угловую скорость
 }
 
 // Обработка прерывания по микрику на пине для мотора0
@@ -439,7 +448,7 @@ void rotationRight()
     for (int i = 0; i < 4; i++)                                          // Сначала отводим немного на случай если уже в нуле
     {
         motor[i].flagCalc = 0; // Выключаем расчеты для этого варианта. тут сами один раз скорость определяем
-        setMotorSpeed(i, 90); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
+        setMotorSpeed(i, 90);  // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
     }
 }
 
@@ -488,9 +497,9 @@ void workingMotor() // Отработка действий по флагам и 
         HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_SET); // Выключаем драйвер. Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
         for (int i = 0; i < 4; i++)
         {
-            motor[i].status = false; // Отключаем все 
-            motor[i].flagCalc = false; //  
-            motor[i].position = 0;    // Устанавливаем начальную позицию
+            motor[i].status = false;   // Отключаем все
+            motor[i].flagCalc = false; //
+            motor[i].position = 0;     // Устанавливаем начальную позицию
         }
     }
 }
@@ -498,8 +507,8 @@ void workingMotor() // Отработка действий по флагам и 
 // Функция установки в ноль всех моторов
 void setZeroMotor()
 {
-    flagMicric = true;                                                // Включаем микрики
-    rotationRight(); // Вращение по часовой вправо
+    flagMicric = true; // Включаем микрики
+    rotationRight();   // Вращение по часовой вправо
     uint32_t timeStart = millis();
     while (timeStart + 500 > millis()) // Ждем
     {

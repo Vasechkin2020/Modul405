@@ -192,6 +192,7 @@ void icm20948_init()
 	aScale.s_x = icm20948OffSet[6];
 	aScale.s_y = icm20948OffSet[7];
 	aScale.s_z = icm20948OffSet[8];
+	
 	printf("aScale.b_x= %.3f aScale.b_y= %.3f aScale.b_z= %.3f \n", aScale.s_x, aScale.s_y, aScale.s_z);
 
 	printf("    End icm20948_init \n");
