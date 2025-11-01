@@ -374,7 +374,7 @@ void executeDataReceive()
         DEBUG_PRINTF("executeDataReceive mode= %lu status = %i %i %i %i \r\n", Data2Modul_receive.controlMotor.mode, motor[0].status, motor[1].status, motor[2].status, motor[3].status);
         for (int i = 0; i < 4; i++)
         {
-            motor[i].angleSpeed = calcAngleSpeedMotor(i,Data2Modul_receive.controlMotor.angle[i], deltaTime); // Расчет скорости для мотора в градусах в секунду
+            motor[i].angleSpeed = calcAngleSpeedMotor(i, Data2Modul_receive.controlMotor.angle[i], deltaTime); // Расчет скорости для мотора в градусах в секунду
             setMotorAngle(i, Data2Modul_receive.controlMotor.angle[i]);
             // float speed = calcSpeedMotor(i); // Расчет скорости для мотора в rps
             // setMotorSpeed(i, speed);                                                   // Установка скорости
@@ -413,7 +413,7 @@ void executeDataReceive()
     {
         modeControlLaser = 2; // Запоминаем в каком режиме Лазер
 #ifdef LASER80
-        // Непрерывное измерение тут нет варианта выбора скорости, поэтому одинаково с командой 1 
+        // Непрерывное измерение тут нет варианта выбора скорости, поэтому одинаково с командой 1
         laser80_continuousMeasurement(0); // Данные пойдут только через 500 милисекунд
         laser80_continuousMeasurement(1); // Данные пойдут только через 500 милисекунд
         laser80_continuousMeasurement(2); // Данные пойдут только через 500 милисекунд
@@ -689,8 +689,7 @@ void workingSPI()
 // Опрос датчиков на I2C по флагам на прерываниях
 void workingI2C()
 {
-    uint8_t static bufferBNO055[38] = {0};   // было 20 без гиро и акселя
-    uint8_t static bufferICM20948[12] = {0}; // буфер для ICM20948
+    uint8_t static bufferBNO055[38] = {0}; // было 20 без гиро и акселя
 
     if (flag_readBNO055) // Если взведен флаг после обмена по SPI что можно теперь работать по I2C с BNO055
     {
@@ -721,76 +720,79 @@ void workingI2C()
     }
 
 #ifdef ICM20948
-    if (flag_readICM20948) // Если взведен флаг что можно работать с ICM20948
+    // uint8_t static bufferICM20948[12] = {0}; // буфер для ICM20948
+    if (flag_readICM20948)                   // Если взведен флаг что можно работать с ICM20948
     {
-        if (flag_sendRequestICM20948) // Если взведен флаг что нужно отправить запрос к ICM20948
-        {
-            flag_sendRequestICM20948 = false;      // Сбрасываем флаг отправки запроса к ICM20948
-            ICM20948_Transmit_IT(B0_ACCEL_XOUT_H); // Отправка запроса к датчику.Указываем с какого регистра будем читать
-            // DEBUG_PRINTF("    ICM20948_Transmit_IT %lu \n", millis());
-        }
-        if (i2cTransferComplete) // Запрос на считывание заданного числа байт с датчика в буфер
-        {
-            i2cTransferComplete = 0;
-            ICM20948_Receive_IT(bufferICM20948, 12); // посылаем запрос на чтение 12 байт из ICM20948
-            // DEBUG_PRINTF("    ICM20948_Receive_IT %lu \n", millis());
-        }
-        if (i2cReceiveComplete) // Обработка буфера после считывания данных по шине
-        {
-            i2cReceiveComplete = 0;
-            calcBufferICM(bufferICM20948, &icm20948_accel, &icm20948_gyro); // Обработка буфера после считывания данных по шине
-// !!!!!!!!!!!!!!!!!! ЗАЧЕМ Я ТУТ ДВАЖДЫ СЧИТЫВАЮ? СНАЧАЛА ЧЕРЕЗ ПРЕРЫВАНИЕ А ПОТОМ ПРОСТО ПО ЗАПРОСУ????
-            icm20948_gyro_read_dps(&icm20948_gyro);                         // Преобразуем, фильтруем данные гироскопа
-            icm20948_accel_read_g(&icm20948_accel);                         // Преобразуем, фильтруем данные акселерометра
+        // if (flag_sendRequestICM20948) // Если взведен флаг что нужно отправить запрос к ICM20948
+        // {
+        //     flag_sendRequestICM20948 = false;      // Сбрасываем флаг отправки запроса к ICM20948
+        //     ICM20948_Transmit_IT(B0_ACCEL_XOUT_H); // Отправка запроса к датчику.Указываем с какого регистра будем читать
+        //     // DEBUG_PRINTF("    ICM20948_Transmit_IT %lu \n", millis());
+        // }
+        // if (i2cTransferComplete) // Запрос на считывание заданного числа байт с датчика в буфер
+        // {
+        //     i2cTransferComplete = 0;
+        //     ICM20948_Receive_IT(bufferICM20948, 12); // посылаем запрос на чтение 12 байт из ICM20948
+        //     // DEBUG_PRINTF("    ICM20948_Receive_IT %lu \n", millis());
+        // }
+        // if (i2cReceiveComplete) // Обработка буфера после считывания данных по шине
+        // {
+        //     i2cReceiveComplete = 0;
+        //     calcBufferICM(bufferICM20948, &icm20948_accel, &icm20948_gyro); // Обработка буфера после считывания данных по шине
+    
+        // !!!!!!!!!!!!!!!!!! ЗАЧЕМ Я ТУТ ДВАЖДЫ СЧИТЫВАЮ? СНАЧАЛА ЧЕРЕЗ ПРЕРЫВАНИЕ А ПОТОМ ПРОСТО ПО ЗАПРОСУ????
+        // HAL_Delay(1);
+        icm20948_gyro_read_dps(&icm20948_gyro); // Преобразуем, фильтруем данные гироскопа
+        icm20948_accel_read_g(&icm20948_accel); // Преобразуем, фильтруем данные акселерометра
 
-            float roll_A = 0.0f, pitch_A = 0.0f; // Углы считаем из Акселерометра только roll pitch. yaw не может быть посчитан
+        float roll_A = 0.0f, pitch_A = 0.0f; // Углы считаем из Акселерометра только roll pitch. yaw не может быть посчитан
 
-            roll_A = atan2f(icm20948_accel.y, sqrtf(icm20948_accel.x * icm20948_accel.x + icm20948_accel.z * icm20948_accel.z));   // Вычисление крена (Roll) //Такой расчет подходит только для статичного положения. В движении аксель будет врать
-            pitch_A = atan2f(-icm20948_accel.x, sqrtf(icm20948_accel.y * icm20948_accel.y + icm20948_accel.z * icm20948_accel.z)); // Вычисление тангажа (Pitch) //Такой расчет подходит только для статичного положения. В движении аксель будет врать
+        roll_A = atan2f(icm20948_accel.y, sqrtf(icm20948_accel.x * icm20948_accel.x + icm20948_accel.z * icm20948_accel.z));   // Вычисление крена (Roll) //Такой расчет подходит только для статичного положения. В движении аксель будет врать
+        pitch_A = atan2f(-icm20948_accel.x, sqrtf(icm20948_accel.y * icm20948_accel.y + icm20948_accel.z * icm20948_accel.z)); // Вычисление тангажа (Pitch) //Такой расчет подходит только для статичного положения. В движении аксель будет врать
 
-            roll_A = roll_A * 180.0f / M_PI; // Перевод в градусы
-            pitch_A = pitch_A * 180.0f / M_PI;
+        roll_A = roll_A * 180.0f / M_PI; // Перевод в градусы
+        pitch_A = pitch_A * 180.0f / M_PI;
 
-            // DEBUG_PRINTF("icm20948_accel %+8.3f %+8.3f %+8.3f | ", icm20948_accel.x, icm20948_accel.y, icm20948_accel.z);
-            // DEBUG_PRINTF("bno055.accel %+8.3f %+8.3f %+8.3f \n| ", bno055.accel.x, bno055.accel.y, bno055.accel.z);
+        // DEBUG_PRINTF("icm20948_accel %+8.3f %+8.3f %+8.3f | ", icm20948_accel.x, icm20948_accel.y, icm20948_accel.z);
+        // DEBUG_PRINTF("bno055.accel %+8.3f %+8.3f %+8.3f \n| ", bno055.accel.x, bno055.accel.y, bno055.accel.z);
 
-            MadgwickAHRSupdateIMU(icm20948_gyro.x, icm20948_gyro.y, icm20948_gyro.z, icm20948_accel.x, icm20948_accel.y, icm20948_accel.z); // Обновление фильтра Madgwick
+        MadgwickAHRSupdateIMU(icm20948_gyro.x, icm20948_gyro.y, icm20948_gyro.z, icm20948_accel.x, icm20948_accel.y, icm20948_accel.z); // Обновление фильтра Madgwick
 
-            icm20948.status = 0;
-            // Статус все хорошо
-            icm20948.gyro.x = icm20948_gyro.x; // Записываем гироскоп в структуру для отправки
-            icm20948.gyro.y = icm20948_gyro.y;
-            icm20948.gyro.z = icm20948_gyro.z;
+        icm20948.status = 0;
+        // Статус все хорошо
+        icm20948.gyro.x = icm20948_gyro.x; // Записываем гироскоп в структуру для отправки
+        icm20948.gyro.y = icm20948_gyro.y;
+        icm20948.gyro.z = icm20948_gyro.z;
 
-            icm20948.accel.x = icm20948_accel.x; // Записываем акселерометр в структуру для отправки
-            icm20948.accel.y = icm20948_accel.y;
-            icm20948.accel.z = icm20948_accel.z;
+        icm20948.accel.x = icm20948_accel.x; // Записываем акселерометр в структуру для отправки
+        icm20948.accel.y = icm20948_accel.y;
+        icm20948.accel.z = icm20948_accel.z;
 
-            icm20948.angleEuler.x = Madgw.roll; // Записываем углы Эйлера в структуру для отправки
-            icm20948.angleEuler.y = Madgw.pitch;
-            icm20948.angleEuler.z = Madgw.yaw;
+        icm20948.angleEuler.x = Madgw.roll; // Записываем углы Эйлера в структуру для отправки
+        icm20948.angleEuler.y = Madgw.pitch;
+        icm20948.angleEuler.z = Madgw.yaw;
 
-            icm20948.linear.x = Madgw.linAcc.x; // Записываем линейное ускорение в структуру для отправки
-            icm20948.linear.y = Madgw.linAcc.y;
-            icm20948.linear.z = Madgw.linAcc.z;
+        icm20948.linear.x = Madgw.linAcc.x; // Записываем линейное ускорение в структуру для отправки
+        icm20948.linear.y = Madgw.linAcc.y;
+        icm20948.linear.z = Madgw.linAcc.z;
 
-            static uint32_t timeICM20948 = 0; // Время для подсчета частоты опроса
-            if (timeICM20948 == 0)
-                timeICM20948 = millis(); // Инициализация первого раза
+        static uint32_t timeICM20948 = 0; // Время для подсчета частоты опроса
+        if (timeICM20948 == 0)
+            timeICM20948 = millis(); // Инициализация первого раза
 
-            icm20948.rate = (float)1000.0 / (millis() - timeICM20948); // Считаем частоту
-            timeICM20948 = millis();                                   // Запоминаем время
+        icm20948.rate = (float)1000.0 / (millis() - timeICM20948); // Считаем частоту
+        timeICM20948 = millis();                                   // Запоминаем время
 
-            // DEBUG_PRINTF("   - %lu\n", millis());
-            // DEBUG_PRINTF("    calcBuffer ICM %lu\n", millis());
+        // DEBUG_PRINTF("   - %lu\n", millis());
+        // DEBUG_PRINTF("    calcBuffer ICM %lu\n", millis());
 
-            flag_readICM20948 = false;
-            flag_sendRequestICM20948 = true; // Взводим флаг что можно снова запрос к ICM20948
+        flag_readICM20948 = false;
+        flag_sendRequestICM20948 = true; // Взводим флаг что можно снова запрос к ICM20948
 
-            DEBUG_PRINTF("BNO %+8.3f %+8.3f %+8.3f |", bno055.angleEuler.x, bno055.angleEuler.y, bno055.angleEuler.z);
-            // DEBUG_PRINTF("ICM20948.Accel %+8.3f %+8.3f |", roll_A, pitch_A);
-            DEBUG_PRINTF("Madgwick %+8.3f %+8.3f %+8.3f || \n ", Madgw.roll, Madgw.pitch, Madgw.yaw);
-        }
+        DEBUG_PRINTF("BNO %+8.3f %+8.3f %+8.3f |", bno055.angleEuler.x, bno055.angleEuler.y, bno055.angleEuler.z);
+        // DEBUG_PRINTF("ICM20948.Accel %+8.3f %+8.3f |", roll_A, pitch_A);
+        DEBUG_PRINTF("Madgwick %+8.3f %+8.3f %+8.3f || \n ", Madgw.roll, Madgw.pitch, Madgw.yaw);
+        // }
     }
 #endif
 }

@@ -53,9 +53,9 @@ int main(void)
   EnableFPU();    // Включение FPU (CP10 и CP11: полный доступ) Работа с плавающей точкой
 
   //******************** CD Card start ********************
-  MX_SDIO_SD_Init(); // Инициализация SDIO для работы с SD картой
-  MX_FATFS_Init();   // Инициализация файловой системы FATFS
-  mountFilesystem(); // Функция для монтирования файловой системы
+  // MX_SDIO_SD_Init(); // Инициализация SDIO для работы с SD картой
+  // MX_FATFS_Init();   // Инициализация файловой системы FATFS
+  // mountFilesystem(); // Функция для монтирования файловой системы
 
   MX_I2C1_Init(); // Инициализация I2C1
 
@@ -66,12 +66,12 @@ int main(void)
   icm20948_init(); // Инициализация ICM-20948
 #endif
 
-  float laserOffSet[4] = {1.23f, 4.56f, 7.89f, 3.1415f}; // Массив с 4 значениями калибровки лазеров
-  writeFloatToFile(laserOffSet, 4, "laser.cfg");
-  readFloatFromFile(laserOffSet, 4, "laser.cfg");
+  // float laserOffSet[4] = {1.23f, 4.56f, 7.89f, 3.1415f}; // Массив с 4 значениями калибровки лазеров
+  // writeFloatToFile(laserOffSet, 4, "laser.cfg");
+  // readFloatFromFile(laserOffSet, 4, "laser.cfg");
 
-  unmountFilesystem();    // Функция для демонтирования файловой системы
-  HAL_SD_MspDeInit(&hsd); // SDIO MSP De-Initialization Function
+  // unmountFilesystem();    // Функция для демонтирования файловой системы
+  // HAL_SD_MspDeInit(&hsd); // SDIO MSP De-Initialization Function
   // while (1)
   //   ;
   // HAL_Delay(999999);

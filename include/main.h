@@ -13,7 +13,7 @@ extern "C"
 #define LASER80 yes
 // #define LASER60 yes
 // #define LASER50 yes
-#define ICM20948 yes
+// #define ICM20948 yes
 
     struct dataUART
     {

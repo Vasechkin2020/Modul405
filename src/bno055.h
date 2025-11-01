@@ -424,8 +424,8 @@ void BNO055_Init()
         BNO055_RevInfo();
         BNO055_GetOffset_from_BNO055(BNO055_Offset_Array);
         // writeUint8ToFile(BNO055_Offset_Array_dafault2025, 22, "bno055.cfg");  // Вызов функции для целых чисел
-        readUint8FromFile(BNO055_Offset_Array, 22, "bno055.cfg"); // Вызов функции для целых чисел
-        BNO055_SetOffset_to_BNO055(BNO055_Offset_Array);
+        // readUint8FromFile(BNO055_Offset_Array, 22, "bno055.cfg"); // Вызов функции для целых чисел
+        BNO055_SetOffset_to_BNO055(BNO055_Offset_Array_dafault2025);
         BNO055_GetOffset_from_BNO055(BNO055_Offset_Array);
         BNO055_SetOrientation(); // Установка ориентации датчика.
         BNO055_StatusInfo();

@@ -147,7 +147,7 @@ void icm20948_init()
 	// icm20948_accel_calibration(); // Старая версия калибровки акселерометра, которая не учитывает смещение и масштабирование
 
 	printf("    readFloatFromFile icm20948.cfg \n");
-	readFloatFromFile(icm20948OffSet, 9, "icm20948.cfg");
+	// readFloatFromFile(icm20948OffSet, 9, "icm20948.cfg");
 
 	// icm20948_gyro_calibration();
 
@@ -173,8 +173,14 @@ void icm20948_init()
 	icm20948OffSet[0] = 8;	 // 15
 	icm20948OffSet[1] = 235; // 245
 	icm20948OffSet[2] = 60;	 // 66
+	icm20948OffSet[3] = 0;	 // 15
+	icm20948OffSet[4] = 0; // 245
+	icm20948OffSet[5] = 0;	 // 66
+	icm20948OffSet[6] = 1;	 // 1
+	icm20948OffSet[7] = 1;	 // 1
+	icm20948OffSet[8] = 1;	 // 1
 
-	writeFloatToFile(icm20948OffSet, 9, "icm20948.cfg");
+	// writeFloatToFile(icm20948OffSet, 9, "icm20948.cfg");
 	// while (1)
 	// {
 	// }
@@ -192,7 +198,7 @@ void icm20948_init()
 	aScale.s_x = icm20948OffSet[6];
 	aScale.s_y = icm20948OffSet[7];
 	aScale.s_z = icm20948OffSet[8];
-	
+
 	printf("aScale.b_x= %.3f aScale.b_y= %.3f aScale.b_z= %.3f \n", aScale.s_x, aScale.s_y, aScale.s_z);
 
 	printf("    End icm20948_init \n");
@@ -1269,12 +1275,12 @@ extern volatile uint8_t i2cReceiveComplete;	 // Флаг завершения о
 void ICM20948_Transmit_IT(uint8_t _reg)
 {
 	i2cTransferComplete = 0;
-    if (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY) // Проверяем, готов ли I2C
-    {
-        printf("ICM20948_Transmit_IT I2C not ready, resetting...\n");
-        HAL_I2C_DeInit(&hi2c1); // Деинициализация I2C
-        HAL_I2C_Init(&hi2c1);   // Повторная инициализация I2C
-    }
+	if (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY) // Проверяем, готов ли I2C
+	{
+		printf("ICM20948_Transmit_IT I2C not ready, resetting...\n");
+		HAL_I2C_DeInit(&hi2c1); // Деинициализация I2C
+		HAL_I2C_Init(&hi2c1);	// Повторная инициализация I2C
+	}
 
 	static uint8_t reg = B0_ACCEL_XOUT_H;														  // Статическая переменная для хранения регистра
 	HAL_StatusTypeDef status = HAL_I2C_Master_Transmit_IT(&hi2c1, ICM20948_I2C_ADDRESS, &reg, 1); // Отправляем адрес регистра
@@ -1335,7 +1341,6 @@ void ICM20948_Receive_IT(uint8_t *buffer, uint16_t size)
 			break;
 		}
 	}
-
 }
 // Функция для расчета буфера ICM20948
 void calcBufferICM(uint8_t *buffer, axises *dataAccel, axises *dataGyro)
