@@ -165,6 +165,25 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
     {
         printf("Ошибок нет.\n");
     }
+
+    // 1. Сбрасываем флаг переполнения (самая частая ошибка Slave)    // Если мастер прислал данные, а мы не успели их прочитать, возникает OVR
+    if (__HAL_SPI_GET_FLAG(hspi, SPI_FLAG_OVR)) {
+        __HAL_SPI_CLEAR_OVRFLAG(hspi);
+        DEBUG_PRINTF("SPI Error: OVR (Overrun) cleared\n");
+    } else {
+        DEBUG_PRINTF("SPI Error, Code: 0x%08lx\n", hspi->ErrorCode);
+    }
+
+    // 2. На всякий случай останавливаем DMA, если оно зависло
+    HAL_SPI_DMAStop(hspi);
+
+    // 3. Обновляем данные для отправки (берем из нашей глобальной переменной)
+    struct Struct_Modul2Data *copy_txBuffer = (struct Struct_Modul2Data *)txBuffer;
+    *copy_txBuffer = DataForSPI;
+
+    // 4. ГЛАВНОЕ: Перезапускаем обмен! Без этого SPI больше не заработает до резета
+    HAL_SPI_TransmitReceive_DMA(hspi, txBuffer, rxBuffer, BUFFER_SIZE);
+
 }
 
 extern void collect_Data_for_Send();
@@ -176,6 +195,8 @@ void initSPI_slave()
     collect_Data_for_Send(); // Собираем данные для начальной отправки
 
     // HAL_SPI_DMAStop(&hspi1);
+    
+    __HAL_SPI_CLEAR_OVRFLAG(&hspi1); // Добавляем очистку флагов перед стартом, чтобы убрать мусор
     HAL_SPI_TransmitReceive_DMA(&hspi1, txBuffer, rxBuffer, BUFFER_SIZE); // Указываем какие данные отправлять и куда записывать полученные
 }
 

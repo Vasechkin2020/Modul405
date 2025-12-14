@@ -120,7 +120,6 @@ void setMotorSpeed(int num_, float speed_)
     else if (speed_ > -15 && speed_ < 0)
         speed_ = -15;
 
-    float MIN_SPEED = 1000; // Интервал скорости в микросекундах. Чем больше интревал тем медленне вращение
     DEBUG_PRINTF("num %i  speed dps = %.2f | ", num_, speed_);
 
     if (speed_ == 0) // Теперь все наши действия зависят от скорости если скорость 0 то и мотор не крутится и не нужно ничего делать
@@ -153,6 +152,9 @@ void setMotorSpeed(int num_, float speed_)
         int timeingStep = (float)1000000.0 / step_za_sec; // Таймер по 1 микросекунде // Число тактов для таймера через которое нужно дать новый имульс мотору
         // printf("timeingStep= %i |", timeingStep);
         motor[num_].speedNeed = timeingStep; // Запоминаем скорость какую надо достичь
+        
+        float MIN_SPEED = 1000; // Интервал скорости в микросекундах. Чем больше интревал тем медленне вращение
+        
         if (motor[num_].status == 0)         // Если мотор стоит без движения
         {
             motor[num_].speedNow = MIN_SPEED; // Устанавливаем Минимальную скорость чтобы тронуться
@@ -364,8 +366,8 @@ float getAngle(int32_t _pulse)
 // Установка мотора в нужное положение в градусах локальной системы
 void setMotorAngle(int num, float angle_)
 {
-    if (angle_ < 0)
-        angle_ = 0;   // Защита от отрицательного градуса угла
+    if (angle_ < 1)
+        angle_ = 1;   // Защита от отрицательного градуса угла
     if (angle_ > 179) // Защита от отклонения больше предела
         angle_ = 179;
 

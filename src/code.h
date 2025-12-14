@@ -10,6 +10,9 @@
 #include <stdint.h>
 #include <limits.h> // для CHAR_BIT
 
+
+#include "gpio.h" // Добавьте в начало файла, где будете использовать
+
 #include "config.h"
 #include "motor.h"
 #include "laser80M.h"
@@ -39,6 +42,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);                   // К
 void initLaser();                                                          // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
 void initFirmware();                                                       // Заполнение данными Прошивки
 uint64_t micros(void);                                                     // Возвращает микросекунды с момента начала работы
+
+float normalizeAngle(float angle) ; // Приведение угла к диапазону -180...+180
 
 struct dataUART dataUART[4];
 uint8_t lenDataLaser; // Длинна полученных данных в буфере
@@ -345,8 +350,12 @@ void collect_Data_for_Send()
     {
         cheksum_send += adr_structura[i]; // Побайтно складываем все байты структуры кроме последних 4 в которых переменная в которую запишем результат
     }
+
     Modul2Data_send.cheksum = cheksum_send; // Записываем контрольную сумму в структуру
-    DataForSPI = Modul2Data_send;           // Копируем в специальную переменную.
+    
+    __disable_irq();             // 1. Выключаем прерывания (тишина!)
+    DataForSPI = Modul2Data_send;           // Копируем в специальную переменную. Копируем данные (теперь никто не помешает)
+    __enable_irq();              // 3. Включаем прерывания обратно
 }
 
 // Отработка пришедших команд. Изменение скорости, траектории и прочее
@@ -358,7 +367,7 @@ void executeDataReceive()
     predTime = timeNow;
     if (deltaTime <= 0.005)
         deltaTime = 0.005; // Защита от деления на ноль
-    DEBUG_PRINTF("deltaTime SPI = %f ", deltaTime);
+    // DEBUG_PRINTF("deltaTime SPI = %f ", deltaTime);
 
     // DEBUG_PRINTF("executeDataReceive... motor= %u laser= %u ", modeControlMotor, modeControlLaser);
     // DEBUG_PRINTF("in... motor= %lu laser= %lu \r\n", Data2Modul_receive.controlMotor.mode, Data2Modul_receive.controlLaser.mode);
@@ -374,8 +383,8 @@ void executeDataReceive()
         DEBUG_PRINTF("executeDataReceive mode= %lu status = %i %i %i %i \r\n", Data2Modul_receive.controlMotor.mode, motor[0].status, motor[1].status, motor[2].status, motor[3].status);
         for (int i = 0; i < 4; i++)
         {
+            setMotorAngle(i, Data2Modul_receive.controlMotor.angle[i]); // Устанавливаю motor[num].destination и поднимаю флаг
             motor[i].angleSpeed = calcAngleSpeedMotor(i, Data2Modul_receive.controlMotor.angle[i], deltaTime); // Расчет скорости для мотора в градусах в секунду
-            setMotorAngle(i, Data2Modul_receive.controlMotor.angle[i]);
             // float speed = calcSpeedMotor(i); // Расчет скорости для мотора в rps
             // setMotorSpeed(i, speed);                                                   // Установка скорости
             // DEBUG_PRINTF("status = %i \r\n", motor[i].status);
@@ -855,4 +864,33 @@ void initFirmware()
     Modul2Data_send.firmware.motor = STEPMOTOR;
     printf("Firmware gen %hu ver %hu laser %hu motor %.1f debug %hu\n", Modul2Data_send.firmware.gen, Modul2Data_send.firmware.ver, Modul2Data_send.firmware.laser, Modul2Data_send.firmware.motor, Modul2Data_send.firmware.debug);
 }
+
+// Приведение угла к диапазону -180...+180
+float normalizeAngle(float angle) 
+{
+    while (angle > 180.0f) angle -= 360.0f;
+    while (angle <= -180.0f) angle += 360.0f;
+    return angle;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #endif /*CODE_H*/

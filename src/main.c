@@ -38,6 +38,8 @@ int main(void)
   HAL_Init();           // Инициализация HAL библиотеки
   SystemClock_Config(); // Настройка системного тактирования
 
+  HAL_NVIC_SetPriority(SysTick_IRQn, 15, 0); // Принудительно ставим SysTick самый низкий приоритет (15)
+
   MX_GPIO_Init_Only_Clock(); // Инициализация ТОЛЬКО тактирования GPIO
   MX_USART1_UART_Init();     // Инициализация USART1
   HAL_Delay(3000);
@@ -58,7 +60,7 @@ int main(void)
   // mountFilesystem(); // Функция для монтирования файловой системы
 
   MX_I2C1_Init(); // Инициализация I2C1
-
+  I2C1_ClearBusyFlagErratum(); // Восстановление шины I2C при зависании
   I2C_ScanDevices(&hi2c1); // Сканирование I2C шины
   BNO055_Init();
 
