@@ -68,6 +68,10 @@ extern volatile uint32_t overflow_count; // Счётчик переполнен�
 u_int8_t modeControlMotor = 0; // Режим в котором находиттся мотор после последней команды управления
 u_int8_t modeControlLaser = 0; // Режим в котором находиттся лазер после последней команды управления
 
+
+// Время предсказания в секундах.  Начни с 0.01 (10 мс - один цикл SPI). Если мотор все равно чуть отстает, увеличь до 0.015 или 0.02.
+#define PREDICTION_TIME 0.01f
+
 // typedef struct SDataLaser
 // {
 //     uint32_t distance;
@@ -363,11 +367,11 @@ void executeDataReceive()
 {
     uint64_t timeNow = micros();
     static uint64_t predTime = 0;
-    float deltaTime = (timeNow - predTime) / 1000000.0; // Находим разницу по времени от прыдыдущего расчета
+    float dt = (timeNow - predTime) / 1000000.0; // Находим разницу по времени от прыдыдущего расчета
     predTime = timeNow;
-    if (deltaTime <= 0.005)
-        deltaTime = 0.005; // Защита от деления на ноль
-    // DEBUG_PRINTF("deltaTime SPI = %f ", deltaTime);
+    if (dt <= 0.005)
+        dt = 0.005; // Защита от деления на ноль
+    // DEBUG_PRINTF("dt SPI = %f ", dt);
 
     // DEBUG_PRINTF("executeDataReceive... motor= %u laser= %u ", modeControlMotor, modeControlLaser);
     // DEBUG_PRINTF("in... motor= %lu laser= %lu \r\n", Data2Modul_receive.controlMotor.mode, Data2Modul_receive.controlLaser.mode);
@@ -383,13 +387,38 @@ void executeDataReceive()
         DEBUG_PRINTF("executeDataReceive mode= %lu status = %i %i %i %i \r\n", Data2Modul_receive.controlMotor.mode, motor[0].status, motor[1].status, motor[2].status, motor[3].status);
         for (int i = 0; i < 4; i++)
         {
-            setMotorAngle(i, Data2Modul_receive.controlMotor.angle[i]); // Устанавливаю motor[num].destination и поднимаю флаг
-            motor[i].angleSpeed = calcAngleSpeedMotor(i, Data2Modul_receive.controlMotor.angle[i], deltaTime); // Расчет скорости для мотора в градусах в секунду
-            // float speed = calcSpeedMotor(i); // Расчет скорости для мотора в rps
-            // setMotorSpeed(i, speed);                                                   // Установка скорости
+            // 1. Получаем "сырой" угол от Мастера
+            float targetAngle = Data2Modul_receive.controlMotor.angle[i]; 
+
+            // 2. Сначала считаем скорость (Feed-Forward) и фильтруем её
+            // Функция calcAngleSpeedMotor вернет 0, если это резкий скачок (смена столба), или реальную скорость, если это плавное слежение.
+            motor[i].angleSpeed = calcAngleSpeedMotor(i, targetAngle, dt); // Расчет скорости для мотора в градусах в секунду
+
+            // 3. ПРЕДСКАЗАНИЕ (ЭКСТРАПОЛЯЦИЯ)
+            // Если скорость не 0 (значит мы в режиме слежения), добавляем прогноз
+            float predictedAngle = targetAngle;
+            
+            if (motor[i].angleSpeed != 0.0f) 
+            {
+                // Угол = Текущий + (Скорость * Время_Предсказания)
+                predictedAngle = targetAngle + (motor[i].angleSpeed * PREDICTION_TIME);
+                
+                // DEBUG: Можно посмотреть, насколько предсказание отличается от реальности
+                DEBUG_PRINTF("Target: %.2f | Pred: %.2f \n", targetAngle, predictedAngle);
+            }
+
+            // 4. Ставим  мотору СКОРРЕКТИРОВАННЫЙ угол
+            setMotorAngle(i, predictedAngle); // Устанавливаю motor[num].destination Функция setMotorAngle сама ограничит угол диапазоном 1..179, если прогноз вылетел за пределы
+            
+            // 5. Считаем итоговую скорость для мотора (P-регулятор + FeedForward)
+            float speed = calcSpeedMotor(i, dt); // Расчет скорости для мотора  Внутри calcSpeedMotor используется motor[i].destination, который мы только что обновили (predictedAngle)
+            
+            // 6. Применяем скорость
+            setMotorSpeed(i, speed);                                                   // Установка скорости
             // DEBUG_PRINTF("status = %i \r\n", motor[i].status);
         }
     }
+    
     // Команда КОЛИБРОВКИ И УСТАНОВКИ В 0
     if (Data2Modul_receive.controlMotor.mode == 9 && modeControlMotor != 9) // Если пришла команда 9 Колибровки и предыдущая была другая
     {
