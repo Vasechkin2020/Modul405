@@ -12,10 +12,10 @@
 volatile u_int64_t timeSpi = 0; // Время когда пришла команда по SPI
 
 extern SPI_HandleTypeDef hspi1;
-volatile bool flag_data = false;    // Флаг что данные передались
-volatile bool flag_readBNO055 = false; // Флаг что можно отправлять запрос по I2C
-volatile bool flag_sendRequestBNO055 = true; // Флаг что отправили запрос по I2C для BNO055
-volatile bool flag_readICM20948 = false; // Флаг что можно отправлять запрос по I2C
+volatile bool flag_data = false;               // Флаг что данные передались
+volatile bool flag_readBNO055 = false;         // Флаг что можно отправлять запрос по I2C
+volatile bool flag_sendRequestBNO055 = true;   // Флаг что отправили запрос по I2C для BNO055
+volatile bool flag_readICM20948 = false;       // Флаг что можно отправлять запрос по I2C
 volatile bool flag_sendRequestICM20948 = true; // Флаг что можно отправили запрос по I2C для ICM20948
 
 // #define BUFFER_SIZE 10 // Размер буфера который передаем. Следить что-бы структуры не превышали этот размер Кратно 32 делать
@@ -30,7 +30,7 @@ uint8_t rxBuffer[BUFFER_SIZE];       // Принимающий буфер
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi); // Обработчик прерывания при завершении обмена данных по DMA
 void initSPI_slave();                                   // Начальная инициализция для SPI
 void spi_slave_queue_Send();                            // Функция в которой чистим буфер и закладываем данные на передачу в буфер
-void processingDataReceive();                           // Обработка по флагу в main пришедших данных после срабатывания прерывания что обмен состоялся
+bool processingDataReceive();                           // Обработка по флагу в main пришедших данных после срабатывания прерывания что обмен состоялся
 
 //********************** РЕАЛИЗАЦИЯ ФУНКЦИЙ ================================
 
@@ -167,10 +167,13 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
     }
 
     // 1. Сбрасываем флаг переполнения (самая частая ошибка Slave)    // Если мастер прислал данные, а мы не успели их прочитать, возникает OVR
-    if (__HAL_SPI_GET_FLAG(hspi, SPI_FLAG_OVR)) {
+    if (__HAL_SPI_GET_FLAG(hspi, SPI_FLAG_OVR))
+    {
         __HAL_SPI_CLEAR_OVRFLAG(hspi);
         DEBUG_PRINTF("SPI Error: OVR (Overrun) cleared\n");
-    } else {
+    }
+    else
+    {
         DEBUG_PRINTF("SPI Error, Code: 0x%08lx\n", hspi->ErrorCode);
     }
 
@@ -183,7 +186,6 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 
     // 4. ГЛАВНОЕ: Перезапускаем обмен! Без этого SPI больше не заработает до резета
     HAL_SPI_TransmitReceive_DMA(hspi, txBuffer, rxBuffer, BUFFER_SIZE);
-
 }
 
 extern void collect_Data_for_Send();
@@ -195,13 +197,13 @@ void initSPI_slave()
     collect_Data_for_Send(); // Собираем данные для начальной отправки
 
     // HAL_SPI_DMAStop(&hspi1);
-    
-    __HAL_SPI_CLEAR_OVRFLAG(&hspi1); // Добавляем очистку флагов перед стартом, чтобы убрать мусор
+
+    __HAL_SPI_CLEAR_OVRFLAG(&hspi1);                                      // Добавляем очистку флагов перед стартом, чтобы убрать мусор
     HAL_SPI_TransmitReceive_DMA(&hspi1, txBuffer, rxBuffer, BUFFER_SIZE); // Указываем какие данные отправлять и куда записывать полученные
 }
 
 // Обработка по флагу в main пришедших данных после срабатывания прерывания что обмен состоялся
-void processingDataReceive()
+bool processingDataReceive()
 {
     // struct STest
     // {
@@ -218,9 +220,12 @@ void processingDataReceive()
     // struct STest *copy_rxBuffer = (struct STest *)rxBuffer; // Создаем переменную в которую пишем адрес буфера в нужном формате
     // StructTestPSpi_temp = *copy_rxBuffer;                   // Копируем из этой перемнной данные в мою структуру
 
-    struct Struct_Data2Modul Data2Modul_receive_temp;                               // Экземпляр структуры получаемых данных временный, пока не посчитаем контроьную сумму и убедимся что данные хорошие
+    struct Struct_Data2Modul Data2Modul_receive_temp; // Экземпляр структуры получаемых данных временный, пока не посчитаем контроьную сумму и убедимся что данные хорошие
+    // Блокируем прерывания, чтобы DMA не испортил данные пока мы копируем
+    __disable_irq();
     struct Struct_Data2Modul *copy_rxBuffer = (struct Struct_Data2Modul *)rxBuffer; // Создаем переменную в которую пишем адрес буфера в нужном формате
     Data2Modul_receive_temp = *copy_rxBuffer;                                       // Копируем из этой перемнной данные в мою структуру
+    __enable_irq();
 
     uint32_t cheksum_receive = 0; // = measureCheksum(Data2Modul_receive_temp);             // Считаем контрольную сумму пришедшей структуры
 
@@ -236,11 +241,15 @@ void processingDataReceive()
     {
         spi.bed++; // Плохие данные
         DEBUG_PRINTF("Data Err. %lu \n", spi.bed);
+        memset(rxBuffer, 0, sizeof(rxBuffer)); 
+        return false; // <--- ВОЗВРАЩАЕМ FALSE (ОШИБКА)
     }
     else
     {
         Data2Modul_receive = Data2Modul_receive_temp; // Хорошие данные копируем
         // DEBUG_PRINTF("Data OK. ");
+        memset(rxBuffer, 0, sizeof(rxBuffer)); 
+        return true; // <--- ВОЗВРАЩАЕМ TRUE (ОК)
     }
     // DEBUG_PRINTF(" All= %lu bed= %lu \r\n", spi.all, spi.bed);
     // DEBUG_PRINTF("b1 = %#X b2 = %#X b3 = %#X b4 = %#X %.4f = ", StructTestPSpi_temp.byte0, StructTestPSpi_temp.byte1, StructTestPSpi_temp.byte2, StructTestPSpi_temp.byte3, StructTestPSpi_temp.fff);
@@ -248,6 +257,6 @@ void processingDataReceive()
     //  {
     //      DEBUG_PRINTF("%#X ", adr_structura[i]);
     //  }
-    memset(rxBuffer, 0, sizeof(rxBuffer)); // Чистим буфер
+    // memset(rxBuffer, 0, sizeof(rxBuffer)); // ЧистимworkingSPI буфер
 }
 #endif /* __SPI_H__ */

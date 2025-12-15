@@ -363,7 +363,7 @@ void collect_Data_for_Send()
 }
 
 // Отработка пришедших команд. Изменение скорости, траектории и прочее
-void executeDataReceive()
+void executeDataReceive(bool isNewData)
 {
     uint64_t timeNow = micros();
     static uint64_t predTime = 0;
@@ -384,27 +384,50 @@ void executeDataReceive()
     if (Data2Modul_receive.controlMotor.mode == 1) // Если пришла команда 1 Управления
     {
         modeControlMotor = 1; // Запоминаем в каком режиме Motor
-        DEBUG_PRINTF("executeDataReceive mode= %lu status = %i %i %i %i \r\n", Data2Modul_receive.controlMotor.mode, motor[0].status, motor[1].status, motor[2].status, motor[3].status);
+        DEBUG_PRINTF("+++ executeDataReceive mode= %lu motor status = %i %i %i %i \n", Data2Modul_receive.controlMotor.mode, motor[0].status, motor[1].status, motor[2].status, motor[3].status);
         for (int i = 0; i < 4; i++)
         {
+            
+            /*
+            
             // 1. Получаем "сырой" угол от Мастера
             float targetAngle = Data2Modul_receive.controlMotor.angle[i]; 
 
             // 2. Сначала считаем скорость (Feed-Forward) и фильтруем её
             // Функция calcAngleSpeedMotor вернет 0, если это резкий скачок (смена столба), или реальную скорость, если это плавное слежение.
             motor[i].angleSpeed = calcAngleSpeedMotor(i, targetAngle, dt); // Расчет скорости для мотора в градусах в секунду
+            */
+
+            float targetAngle;
+            // float speed;
+
+            if (isNewData)  // === ВАРИАНТ 1: ДАННЫЕ ХОРОШИЕ ===
+            {
+                targetAngle = Data2Modul_receive.controlMotor.angle[i];   // 1. Получаем "сырой" угол от Мастера
+                motor[i].angleSpeed = calcAngleSpeedMotor(i, targetAngle, dt);// Считаем скорость и обновляем фильтр Функция calcAngleSpeedMotor вернет 0, если это резкий скачок (смена столба), или реальную скорость, если это плавное слежение.
+            }
+            else  // === ВАРИАНТ 2: ОШИБКА СВЯЗИ (ПРОГНОЗ) === // Мы не получили новый угол. Но мы знаем прошлую скорость (filteredSpeed). Предполагаем, что платформа продолжает вращаться.
+            {
+                targetAngle = motor[i].predAngle + (motor[i].filteredSpeed * dt); // Прогнозируемый угол = Прошлый_Целевой + (Скорость * dt)
+                targetAngle = normalizeAngle(targetAngle);  // Нормализуем, если перешли границу 180 (твоя функция)
+                motor[i].predAngle = targetAngle;  // Обновляем "предыдущий угол" в структуре, чтобы в следующем цикле (когда связь вернется) разница считалась от этого прогнозного значения, а не от старого. Это предотвратит рывок!
+                motor[i].angleSpeed = motor[i].filteredSpeed;// Скорость оставляем прежней (по инерции)
+                
+                DEBUG_PRINTF("    SPI Error! Coasting i=%d to %.2f\n", i, targetAngle);
+            }
+
 
             // 3. ПРЕДСКАЗАНИЕ (ЭКСТРАПОЛЯЦИЯ)
             // Если скорость не 0 (значит мы в режиме слежения), добавляем прогноз
             float predictedAngle = targetAngle;
             
-            if (motor[i].angleSpeed != 0.0f) 
+            if (motor[i].angleSpeed >= 5.0f) // Если скорость маленькая (затухающий хвост), не предсказываем.
             {
                 // Угол = Текущий + (Скорость * Время_Предсказания)
                 predictedAngle = targetAngle + (motor[i].angleSpeed * PREDICTION_TIME);
                 
                 // DEBUG: Можно посмотреть, насколько предсказание отличается от реальности
-                DEBUG_PRINTF("Target: %.2f | Pred: %.2f \n", targetAngle, predictedAngle);
+                DEBUG_PRINTF("    targetAngle: %.2f | predictedAngle: %.2f \n", targetAngle, predictedAngle);
             }
 
             // 4. Ставим  мотору СКОРРЕКТИРОВАННЫЙ угол
@@ -418,7 +441,7 @@ void executeDataReceive()
             // DEBUG_PRINTF("status = %i \r\n", motor[i].status);
         }
     }
-    
+
     // Команда КОЛИБРОВКИ И УСТАНОВКИ В 0
     if (Data2Modul_receive.controlMotor.mode == 9 && modeControlMotor != 9) // Если пришла команда 9 Колибровки и предыдущая была другая
     {
@@ -696,9 +719,15 @@ void workingSPI()
         // DEBUG_PRINTF("In = %#x %#x %#x %#x | ", rxBuffer[0], rxBuffer[1], rxBuffer[2], rxBuffer[3]);
         // DEBUG_PRINTF("Out = %#x %#x %#x %#x \r\n", txBuffer[0], txBuffer[1], txBuffer[2], txBuffer[3]);
         // DEBUG_PRINTF("+\n");
-        processingDataReceive(); // Обработка пришедших данных после состоявшегося обмена  !!! Подумать почему меняю данные даже если они с ошибкой, потом по факту когда будет все работать
+        // processingDataReceive(); // Обработка пришедших данных после состоявшегося обмена  !!! Подумать почему меняю данные даже если они с ошибкой, потом по факту когда будет все работать
+
+        // 1. Узнаем, пришли ли свежие данные
+        bool isNewData = processingDataReceive(); 
+
         // DEBUG_PRINTF(" mode= %i \n",Data2Modul_receive.controlMotor.mode);
-        executeDataReceive(); // Выполнение пришедших команд
+
+        // 2. Передаем этот статус в функцию исполнения
+        executeDataReceive(isNewData); // Выполнение пришедших команд
 
         // DEBUG_PRINTF(" Receive id= %i cheksum= %i command= %i ", Data2Modul_receive.id, Data2Modul_receive.cheksum,Data2Modul_receive.command );
         // DEBUG_PRINTF("start = ");
