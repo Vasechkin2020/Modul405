@@ -385,7 +385,7 @@ void executeDataReceive(bool isNewData)
     {
         modeControlMotor = 1; // Запоминаем в каком режиме Motor
         DEBUG_PRINTF("+++ executeDataReceive mode= %lu motor status = %i %i %i %i \n", Data2Modul_receive.controlMotor.mode, motor[0].status, motor[1].status, motor[2].status, motor[3].status);
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 1; i++)
         {
             
             /*
@@ -432,12 +432,13 @@ void executeDataReceive(bool isNewData)
 
             // 4. Ставим  мотору СКОРРЕКТИРОВАННЫЙ угол
             setMotorAngle(i, predictedAngle); // Устанавливаю motor[num].destination Функция setMotorAngle сама ограничит угол диапазоном 1..179, если прогноз вылетел за пределы
-            
+            /*
             // 5. Считаем итоговую скорость для мотора (P-регулятор + FeedForward)
             float speed = calcSpeedMotor(i, dt); // Расчет скорости для мотора  Внутри calcSpeedMotor используется motor[i].destination, который мы только что обновили (predictedAngle)
             
             // 6. Применяем скорость
             setMotorSpeed(i, speed);                                                   // Установка скорости
+            */
             // DEBUG_PRINTF("status = %i \r\n", motor[i].status);
         }
     }
