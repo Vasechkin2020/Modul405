@@ -70,7 +70,7 @@ u_int8_t modeControlLaser = 0; // Режим в котором находитт�
 
 
 // Время предсказания в секундах.  Начни с 0.01 (10 мс - один цикл SPI). Если мотор все равно чуть отстает, увеличь до 0.015 или 0.02.
-#define PREDICTION_TIME 0.01f
+#define PREDICTION_TIME 0.005f
 
 // typedef struct SDataLaser
 // {
@@ -384,9 +384,10 @@ void executeDataReceive(bool isNewData)
     if (Data2Modul_receive.controlMotor.mode == 1) // Если пришла команда 1 Управления
     {
         modeControlMotor = 1; // Запоминаем в каком режиме Motor
-        DEBUG_PRINTF("+++ executeDataReceive mode= %lu motor status = %i %i %i %i \n", Data2Modul_receive.controlMotor.mode, motor[0].status, motor[1].status, motor[2].status, motor[3].status);
-        for (int i = 0; i < 1; i++)
+        for (int i = 0; i < 4; i++)
         {
+            if (i == numPrintMotorDebug)
+                DEBUG_PRINTF("+++ executeDataReceive mode= %lu motor status = %i %i %i %i \n", Data2Modul_receive.controlMotor.mode, motor[0].status, motor[1].status, motor[2].status, motor[3].status);
             
             /*
             
@@ -427,7 +428,8 @@ void executeDataReceive(bool isNewData)
                 predictedAngle = targetAngle + (motor[i].angleSpeed * PREDICTION_TIME);
                 
                 // DEBUG: Можно посмотреть, насколько предсказание отличается от реальности
-                DEBUG_PRINTF("    targetAngle: %.2f | predictedAngle: %.2f \n", targetAngle, predictedAngle);
+                if (i == numPrintMotorDebug)
+                    DEBUG_PRINTF("    targetAngle: %.2f | predictedAngle: %.2f \n", targetAngle, predictedAngle);
             }
 
             // 4. Ставим  мотору СКОРРЕКТИРОВАННЫЙ угол
@@ -449,7 +451,7 @@ void executeDataReceive(bool isNewData)
         DEBUG_PRINTF("Start colibrovka \n");
         modeControlMotor = 9;  // Запоминаем в каком режиме Motor
         timerMode9 = millis(); // Запоминаем время начал
-        flagMode9 = true;      // что мы начали режим колибровки
+        flagModeCalibrStart = true;      // что мы начали режим колибровки
         rotationRight();       // Отводим мотор на 10 градусов
     }
     // Команда ВКЛЮЧЕНИЯ ЛАЗЕРНЫХ ДАТЧИКОВ

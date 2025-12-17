@@ -20,6 +20,8 @@
 #include "myfat.h"
 #include "..\lib\FATFS\fatfs.h"
 
+int numPrintMotorDebug = 3; // Номер мотора для печати в отладку
+
 #include "code.h"
 #include "motor.h"
 #include "laser80M.h"

@@ -24,8 +24,8 @@ extern float normalizeAngle(float angle);
 
 extern u_int8_t modeControlMotor; // Режим в котором находиттся мотор после последней команды управления
 
-bool flagMode9 = false;
-bool flagMode91 = false;
+bool flagModeCalibrStart = false;
+bool flagModeCalibrEnd = false;
 bool flagMicric = false;
 uint32_t timerMode9 = 0;
 extern uint32_t millis(); // Длинна полученных данных в буфере
@@ -71,7 +71,7 @@ void isrMicMotor3(); // Обработка прерывания по микри�
 
 float calcSpeedMotor(int num, float dt_) // Расчет скорости для мотора. в градусах в секунду dps
 {
-    float P = 20.0; // Коефициент Р ПИД регулятора
+    float P = 15.0; // Коефициент Р ПИД регулятора
     float I = 0.0;  // Коефициент I ПИД регулятора
     float D = 0.0;  // Коефициент D ПИД регулятора
     float PError, IError, DError;
@@ -79,7 +79,7 @@ float calcSpeedMotor(int num, float dt_) // Расчет скорости для
     PError = getAngle(motor[num].destination - motor[num].position); // Считаем ошибку по положению
 
     float sector_step = 0.05625f; // Размер одного микрошага (0.9/16)
-    if (fabs(PError) <= 0.057)
+    if (fabs(PError) <= 0.06)
         PError = 0.0f; // Если ошибка меньше одного микрошага, то считаем что ошибки нет
 
     IError = motor[num].IError + PError; // Интегральная ошибка. Суммируем ошибки.
@@ -108,7 +108,8 @@ float calcSpeedMotor(int num, float dt_) // Расчет скорости для
     // DEBUG_PRINTF("pidSpeed = %+8.3f (gradus/sec) |", pidSpeed);
 
     float sumSpeed = motor[num].angleSpeed + pidSpeed; // к скорости мотора угловой прибавляем ошибку по положению
-    DEBUG_PRINTF("    i= %i | PError= %+8.3f angleSpeed= %+8.3f pidSpeed= %+8.3f sumSpeed= %.4f (gradus/sec) \n", num, PError, motor[num].angleSpeed, pidSpeed, sumSpeed);
+    if (num == numPrintMotorDebug)
+        DEBUG_PRINTF("    calcSpeedMotor i= %i | PError= %+8.3f angleSpeed= %+8.3f pidSpeed= %+8.3f sumSpeed= %.4f (gradus/sec) \n", num, PError, motor[num].angleSpeed, pidSpeed, sumSpeed);
 
     return sumSpeed;
 }
@@ -116,12 +117,12 @@ float calcSpeedMotor(int num, float dt_) // Расчет скорости для
 // Функция устанавлявающая скорость вращения на ВСЕХ моторах, задается в градусах за секунду dps
 void setMotorSpeed(int num_, float speed_)
 {
-    DEBUG_PRINTF("    i= %i | speed dps = %.2f | ", num_, speed_);
+    // DEBUG_PRINTF("    i= %i | speed dps = %.2f | ", num_, speed_);
 
     if (speed_ == 0) // Теперь все наши действия зависят от скорости если скорость 0 то и мотор не крутится и не нужно ничего делать
     {
         motor[num_].status = 0; // Выключаем действия в прерывании, не делаем шаги больше
-        DEBUG_PRINTF("rps = 0.");
+        // DEBUG_PRINTF("rps = 0.");
     }
     else // Если скорость не ноль то
     {
@@ -138,7 +139,7 @@ void setMotorSpeed(int num_, float speed_)
         }
 
         speed_ = speed_ / 360.0; // Переводим из градусов в секунду в оборотs за секунду
-        DEBUG_PRINTF(" rps = %.2f |", speed_);
+        // DEBUG_PRINTF(" rps = %.2f |", speed_);
         // Скорость в оборотах их умножаем на градусы и делим на градус на 1 шаг получаем нужное число полных шагов для такой скорости за секунду
         float step_za_sec = abs(speed_ * 100) / 100.0 * (360.0 / STEPMOTOR) * MICROSTEP; // Умножаем и делим на 100 чтобы учесть знаки после запятой при округлении?
         // printf("step_za_sec= %.1f | ", (float)step_za_sec);
@@ -148,22 +149,37 @@ void setMotorSpeed(int num_, float speed_)
         // printf("timeingStep= %i |", timeingStep);
         motor[num_].speedNeed = timeingStep; // Запоминаем скорость какую надо достичь
 
-        if (motor[num_].status == 0 || motor[num_].speedNow > 100000) // Если мотор стоит без движения или там безумная малая скорость
+        // if (motor[num_].status == 0 || motor[num_].speedNow > 25000) // Если мотор стоит без движения или там безумная малая скорость
+        // {
+        //     int MIN_SPEED = 5000;             // Интервал скорости в микросекундах. Чем больше интервал тем медленнее вращение
+        //     motor[num_].speedNow = MIN_SPEED; // Устанавливаем Минимальную скорость чтобы тронуться
+        //     if (motor[num_].speedNeed > MIN_SPEED && motor[num_].speedNeed < 25000)
+        //         motor[num_].speedNow = motor[num_].speedNeed; // Стартуем сразу с нужной (медленной) скорости
+
+        //     if (num_ == numPrintMotorDebug)
+        //         DEBUG_PRINTF("    Start from min speed %i \n", motor[num_].speedNow);
+        // }
+    
+        if (motor[num_].status == 0 || (motor[num_].speedNow > 25000 && motor[num_].speedNeed < 25000))  // Если мотор стоит без движения или там безумная малая скорость
         {
-            int MIN_SPEED = 2500;           // Интервал скорости в микросекундах. Чем больше интервал тем медленнее вращение
+            int MIN_SPEED = 5000;             // Интервал скорости в микросекундах. Чем больше интервал тем медленнее вращение
             motor[num_].speedNow = MIN_SPEED; // Устанавливаем Минимальную скорость чтобы тронуться
-            if (motor[num_].speedNeed > MIN_SPEED)
+            
+            // Если требуемая скорость медленнее стартовой, но быстрее порога "стояния"
+            if (motor[num_].speedNeed > MIN_SPEED && motor[num_].speedNeed < 25000)
                 motor[num_].speedNow = motor[num_].speedNeed; // Стартуем сразу с нужной (медленной) скорости
-            DEBUG_PRINTF(" Start from min speed %i | ", motor[num_].speedNow);
+
+            if (num_ == numPrintMotorDebug)
+                DEBUG_PRINTF("    Start from min speed %i \n", motor[num_].speedNow);
         }
-        // else
-        // motor[num_].speedNow = timeingStep; // Устанавливаем сразу нужную скорость
+
         motor[num_].status = 1;                                              // Включаем действия в прерывании, делаем шаги
         HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_RESET); // Включаем драйвер. Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
         setPeriod(num_);                                                     //
-        DEBUG_PRINTF(" speedNow = %i speedNeed = %i microsecond ", motor[num_].speedNow, motor[num_].speedNeed);
+        if (num_ == numPrintMotorDebug)
+            DEBUG_PRINTF("    setMotorSpeed i= %i speedNow = %i speedNeed = %i microsecond \n", num_, motor[num_].speedNow, motor[num_].speedNeed);
     }
-    DEBUG_PRINTF("\n");
+    // DEBUG_PRINTF("\n");
 }
 
 // Установка периода следующего срабатывания таймера
@@ -296,7 +312,7 @@ void timerMotor(int i) // Обработчик прерывания всех 4 �
             // }
 
             // УСКОРЕНИЕ. Тут управление интервалом. Поэтому чем интервал меньше тем быстрее вращение
-            const int accel_speed = 1000;                              // Ускорение в микросекундах
+            const int accel_speed = 500;                              // Ускорение в микросекундах
             if (motor[i].speedNeed < motor[i].speedNow - accel_speed) // Если скорость получается быстре чем (текущая + ускорение) то используем минимальную
                 motor[i].speedNow = motor[i].speedNow - accel_speed;
             else
@@ -370,8 +386,9 @@ void setMotorAngle(int num, float angle_)
         angle_ = 179;
 
     motor[num].destination = getPulse(angle_); // Получаем в какую позицию должен встать мотор наиболее близкую к требуемому градусу
-    DEBUG_PRINTF("    i= %i | position= %6i  destination= %6i | (in gradus position= %+8.3f  destination= %+8.3f ) Error delta= %+8.3f \n",
-                 num, motor[num].position, motor[num].destination, getAngle(motor[num].position), getAngle(motor[num].destination), getAngle(motor[num].destination - motor[num].position));
+    if (num == numPrintMotorDebug)
+        DEBUG_PRINTF("    setMotorAngle i= %i | position= %6i  destination= %6i | (in gradus position= %+8.3f  destination= %+8.3f ) Error delta= %+8.3f \n",
+                     num, motor[num].position, motor[num].destination, getAngle(motor[num].position), getAngle(motor[num].destination), getAngle(motor[num].destination - motor[num].position));
     // if (motor[num].position == motor[num].destination) // Если текущая позиция и так равна цели то ничего не делаем и выходим из функции
     return;
 }
@@ -403,18 +420,18 @@ float calcAngleSpeedMotor(int num, float angle_, float dt_) // num - номер 
     {
         // НЕ ОБНУЛЯЕМ СРАЗУ! Делаем плавное затухание.
         // motor[num].filteredSpeed = 0.0f; // deltaAngle == 0. Цель стоит. обнуляем фильтр
-       
+
         // Умножаем на 0.9. Это сохранит 90% скорости на этом шаге. Если пропуск одиночный - мотор проедет плавно. Если остановка реальная - скорость упадет в ноль за ~10 циклов (100 мс).
-        motor[num].filteredSpeed = motor[num].filteredSpeed * 0.5f; 
-        
+        motor[num].filteredSpeed = motor[num].filteredSpeed * 0.5f;
+
         // Если скорость стала совсем маленькой - тогда уже 0
-        if (fabs(motor[num].filteredSpeed) < 5.0f) motor[num].filteredSpeed = 0.0f;
-        
+        if (fabs(motor[num].filteredSpeed) < 5.0f)
+            motor[num].filteredSpeed = 0.0f;
+
         angleSpeed = motor[num].filteredSpeed;
-
     }
-
-    DEBUG_PRINTF("    i= %i | NEW angle_ = %+8.3f predAngle = %+8.3f deltaAngle = %+8.3f | dt= %+8.3f | angleSpeed = %+8.3f  \n", num, angle_, motor[num].predAngle, deltaAngle, dt_, angleSpeed);
+    if (num == numPrintMotorDebug)
+        DEBUG_PRINTF("    i= %i | NEW angle_ = %+8.3f predAngle = %+8.3f deltaAngle = %+8.3f | dt= %+8.3f | angleSpeed = %+8.3f  \n", num, angle_, motor[num].predAngle, deltaAngle, dt_, angleSpeed);
     motor[num].predAngle = angle_; // Запоминаем текущий угол для следующего расчета
     return angleSpeed;             // Возвращаем угловую скорость
 }
@@ -493,18 +510,18 @@ void rotationLeft()
 
 void workingMotor() // Отработка действий по флагам и таймерам для моторов
 {
-    if (timerMode9 + 500 < millis() && flagMode9) // Ждем пока на 10 градусов отьедет и запускаем калибровку к нулю включив микрики
+    if (timerMode9 + 500 < millis() && flagModeCalibrStart) // Ждем пока на отьедет и запускаем калибровку к нулю включив микрики
     {
-        flagMode9 = false;
-        flagMode91 = true;
+        flagModeCalibrStart = false;
+        flagModeCalibrEnd = true;
         timerMode9 = millis(); // Снова запоминаем время
         flagMicric = true;     // Микрики включаем реакцию
         rotationLeft();        // Вращаем пока микрики не сработают и это будет нулевой позицией
     }
-    if (timerMode9 + 5000 < millis() && flagMode91) // Закончили колибровку
+    if (timerMode9 + 5000 < millis() && flagModeCalibrEnd) // Закончили колибровку
     {
         DEBUG_PRINTF("End colibrovka \n");
-        flagMode91 = false;
+        flagModeCalibrEnd = false;
         flagMicric = false;                                                // Микрики выключаем реакцию
         HAL_GPIO_WritePin(En_Motor_GPIO_Port, En_Motor_Pin, GPIO_PIN_SET); // Выключаем драйвер. Установить пин HGH GPIO_PIN_SET — установить HIGH,  GPIO_PIN_RESET — установить LOW.
         for (int i = 0; i < 4; i++)
@@ -519,9 +536,9 @@ void workingMotor() // Отработка действий по флагам и 
     {
         timeLoop = millis();
 
-        if (modeControlMotor == 1) 
+        if (modeControlMotor == 1)
         {
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < 4; i++)
             {
                 float speed = calcSpeedMotor(i, 0.01f); // Эта функция посмотрит на текущую позицию, на цель и выдаст новую скорость. Если мы приехали - выдаст 0.// Для P-регулятора dt не важен (так как D=0), ставим фиктивный 0.01
                 setMotorSpeed(i, speed);
