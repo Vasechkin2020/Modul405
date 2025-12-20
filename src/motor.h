@@ -263,30 +263,31 @@ void initMotor()
 // Функция для изменения периода таймера TIM7
 void Set_Timer7_Period(uint32_t new_period)
 {
-    HAL_TIM_Base_Stop_IT(&htim7);                 // Останавливаем таймер перед изменением
+    // HAL_TIM_Base_Stop_IT(&htim7);                 // Останавливаем таймер перед изменением
     __HAL_TIM_SET_AUTORELOAD(&htim7, new_period); // Задаем новый период таймера (в пересчете на такты таймера)
-    HAL_TIM_Base_Start_IT(&htim7);                // Запускаем таймер с новым периодом
+    // __HAL_TIM_SET_COUNTER(&htim7, 0); // Сбрасываем счетчик в 0, чтобы шаг произошел сейчас и начался новый цикл
+    // HAL_TIM_Base_Start_IT(&htim7);                // Запускаем таймер с новым периодом
 }
 // Функция для изменения периода таймера TIM10
 void Set_Timer10_Period(uint32_t new_period)
 {
-    HAL_TIM_Base_Stop_IT(&htim10);                 // Останавливаем таймер перед изменением
+    // HAL_TIM_Base_Stop_IT(&htim10);                 // Останавливаем таймер перед изменением
     __HAL_TIM_SET_AUTORELOAD(&htim10, new_period); // Задаем новый период таймера (в пересчете на такты таймера)
-    HAL_TIM_Base_Start_IT(&htim10);                // Запускаем таймер с новым периодом
+    // HAL_TIM_Base_Start_IT(&htim10);                // Запускаем таймер с новым периодом
 }
 // Функция для изменения периода таймера TIM11
 void Set_Timer11_Period(uint32_t new_period)
 {
-    HAL_TIM_Base_Stop_IT(&htim11);                 // Останавливаем таймер перед изменением
+    // HAL_TIM_Base_Stop_IT(&htim11);                 // Останавливаем таймер перед изменением
     __HAL_TIM_SET_AUTORELOAD(&htim11, new_period); // Задаем новый период таймера (в пересчете на такты таймера)
-    HAL_TIM_Base_Start_IT(&htim11);                // Запускаем таймер с новым периодом
+    // HAL_TIM_Base_Start_IT(&htim11);                // Запускаем таймер с новым периодом
 }
 // Функция для изменения периода таймера TIM13
 void Set_Timer13_Period(uint32_t new_period)
 {
-    HAL_TIM_Base_Stop_IT(&htim13);                 // Останавливаем таймер перед изменением
+    // HAL_TIM_Base_Stop_IT(&htim13);                 // Останавливаем таймер перед изменением
     __HAL_TIM_SET_AUTORELOAD(&htim13, new_period); // Задаем новый период таймера (в пересчете на такты таймера)
-    HAL_TIM_Base_Start_IT(&htim13);                // Запускаем таймер с новым периодом
+    // HAL_TIM_Base_Start_IT(&htim13);                // Запускаем таймер с новым периодом
 }
 
 void timerMotor(int i) // Обработчик прерывания всех 4 таймеров. В зависимости от таймера приходит номер мотора
