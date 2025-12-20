@@ -328,7 +328,7 @@ void collect_Data_for_Send()
             Modul2Data_send.laser[i].distance = (float)dataUART[i].distance * 0.001;           // Считываем измерение растояния и пересчитываем в метры !!!
             Modul2Data_send.laser[i].signalQuality = dataUART[i].quality;                      // Считываем качество сигнала измерение
             Modul2Data_send.laser[i].angle = (float)dataUART[i].angle;                         // Считываем угол в котором произвели измерение
-            Modul2Data_send.laser[i].time = dataUART[i].time;                                  // Считываем время в котором произвели измерение
+            Modul2Data_send.laser[i].time = millis() - dataUART[i].time;                       // Пишем время прошедшее с момента измерения до момента формирования пакета в милисекундах
             Modul2Data_send.laser[i].numPillar = Data2Modul_receive.controlMotor.numPillar[i]; // Переписываем номер столба на который измеряли расстояние
             Modul2Data_send.laser[i].rate = dataUART[i].rate;
         }
