@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <inttypes.h>
 //----
 #include "main.h"
 #include "dma.h"
@@ -14,73 +15,122 @@
 
 #include "tim.h"
 #include "usart.h"
+#include "sdio.h"
 #include "gpio.h"
+#include "myfat.h"
+#include "..\lib\FATFS\fatfs.h"
+
+int numPrintMotorDebug = 3; // Номер мотора для печати в отладку
 
 #include "code.h"
 #include "motor.h"
 #include "laser80M.h"
 #include "slaveSPI.h"
 #include "bno055.h"
+#include "icm20948.h"
+#include "MadgwickAHRS.h"
 
 void SystemClock_Config(void);
 volatile uint32_t millisCounter = 0;
 volatile uint64_t microsCounter = 0;
+volatile uint32_t overflow_count = 0; // Счётчик переполнений
+
+
 
 int main(void)
 {
-  HAL_Init();
-  SystemClock_Config();
+  HAL_Init();           // Инициализация HAL библиотеки
+  SystemClock_Config(); // Настройка системного тактирования
+
+  HAL_NVIC_SetPriority(SysTick_IRQn, 15, 0); // Принудительно ставим SysTick самый низкий приоритет (15)
+
+  MX_GPIO_Init_Only_Clock(); // Инициализация ТОЛЬКО тактирования GPIO
+  MX_USART1_UART_Init();     // Инициализация USART1
+  HAL_Delay(3000);
+  printf("\r\n *** Modul ver 1.6 22-01-26 *** printBIM.ru *** 2025 *** \r\n");
+
+#if MDEBUG == 1
+  printf("debug.\n");
+#else
+  printf("non-debug !!!\n");
+#endif
+
+  initFirmware(); // Заполнение данными Прошивки
+  EnableFPU();    // Включение FPU (CP10 и CP11: полный доступ) Работа с плавающей точкой
+
+  //******************** CD Card start ********************
+  // MX_SDIO_SD_Init(); // Инициализация SDIO для работы с SD картой
+  // MX_FATFS_Init();   // Инициализация файловой системы FATFS
+  // mountFilesystem(); // Функция для монтирования файловой системы
+
+  MX_I2C1_Init(); // Инициализация I2C1
+  I2C1_ClearBusyFlagErratum(); // Восстановление шины I2C при зависании
+  I2C_ScanDevices(&hi2c1); // Сканирование I2C шины
+  BNO055_Init();
+
+#ifdef ICM20948
+  icm20948_init(); // Инициализация ICM-20948
+#endif
+
+  // float laserOffSet[4] = {1.23f, 4.56f, 7.89f, 3.1415f}; // Массив с 4 значениями калибровки лазеров
+  // writeFloatToFile(laserOffSet, 4, "laser.cfg");
+  // readFloatFromFile(laserOffSet, 4, "laser.cfg");
+
+  // unmountFilesystem();    // Функция для демонтирования файловой системы
+  // HAL_SD_MspDeInit(&hsd); // SDIO MSP De-Initialization Function
+  // while (1)
+  //   ;
+  // HAL_Delay(999999);
+  //******************** CD Card end ********************
 
   MX_GPIO_Init();
 
   MX_DMA_Init();
 
-  MX_I2C1_Init();
-
   MX_SPI1_Init();
 
   MX_UART4_Init();
   MX_UART5_Init();
-  MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_USART6_UART_Init();
 
-  // for (int i = 0; i < 10; i++)
-  // {
-  //   HAL_GPIO_TogglePin(Dir_Motor3_GPIO_Port, Dir_Motor3_Pin);
-  //   HAL_GPIO_TogglePin(Step_Motor3_GPIO_Port, Step_Motor3_Pin);
-  //   HAL_Delay(100);
-  // }
+  //-------------------- Таймеры --------------------------------------
+  MX_TIM2_Init(); // Таймер на микросекунды
+  MX_TIM6_Init(); // Таймер на милисекунды
+  MX_TIM7_Init(); // Таймеры на моторы
+  MX_TIM10_Init();
+  MX_TIM11_Init();
+  MX_TIM13_Init();
 
-  MX_TIM6_Init();
-  MX_TIM7_Init();
+  HAL_TIM_Base_Start_IT(&htim2);  // Таймер для общего цикла
+  HAL_TIM_Base_Start_IT(&htim6);  // Таймер для общего цикла
+  HAL_TIM_Base_Start_IT(&htim7);  // Таймер для моторов шаговых для датчиков
+  HAL_TIM_Base_Start_IT(&htim10); // Таймер для моторов шаговых для датчиков
+  HAL_TIM_Base_Start_IT(&htim11); // Таймер для моторов шаговых для датчиков
+  HAL_TIM_Base_Start_IT(&htim13); // Таймер для моторов шаговых для датчиков
 
-  HAL_TIM_Base_Start_IT(&htim6); // Таймер для общего цикла
-  HAL_TIM_Base_Start_IT(&htim7); // Таймер для моторов шаговых для датчиков
-
-  printf("\r\n *** Modul *** printBIM.ru *** 2025 *** \r\n");
-  initFirmware();
+  //-------------------- Таймеры --------------------------------------
 
   initSPI_slave(); // Закладываем начальноы значения и инициализируем буфер DMA //  // Запуск обмена данными по SPI с использованием DMA
 
-  initMotor();     // Начальная инициализация и настройка шаговых моторов
+  initMotor(); // Начальная инициализация и настройка шаговых моторов
+  // while (1)
+  //   ;
   // testMotorRun();
+
   setZeroMotor(); // Установка в ноль
 
+  initLaser(); // Инициализация лазеров в зависимости от типа датчкика. определяем переменные буфер приема для каждого UART
 
-  initLaser(); // Инициализация лазеров зависимоти от типа датчкика. определяем переменные буфер приема для каждого UART
-
-  // BNO055_Init(); // Инициализация датчика на шине I2C
-
-  DEBUG_PRINTF("%lli LOOP !!!!!!!!!!!!!!!!!!!!!!!!!!! \r\n", timeSpi);
+  printf("%lli LOOP !!!!!!!!!!!!!!!!!!!!!!!!!!! \r\n", timeSpi);
 
   while (1)
   {
-    workingSPI(); // Отработка действий по обмену по шине SPI
-    workingLaser();       // Отработка действий по лазерным датчикам
-    workingStopTimeOut(); // Остановка драйверов и моторов при обрыве связи
-    workingMotor();       // Отработка действий по таймеру в 1, 50, 60 милисекунд
-    // workingBNO055();      // Отработака по датчику BNO055
+    workingSPI();   // Отработка действий по обмену по шине SPI
+    workingLaser(); // Отработка действий по лазерным датчикам
+    workingFlag();  // Обработка флагов
+    workingMotor(); // Отработка действий по шаговым моторам
+    workingI2C();   // Отработка по датчикам I2C
 
     workingTimer(); // Отработка действий по таймеру в 1, 50, 60 милисекунд
   }
@@ -98,7 +148,7 @@ int __io_putchar(int ch)
 
 void SystemClock_Config(void)
 {
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0}; // Настройка осцилляторов
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
   /** Configure the main internal regulator output voltage
@@ -117,7 +167,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLM = 8;
   RCC_OscInitStruct.PLL.PLLN = 168;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();

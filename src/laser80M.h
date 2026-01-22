@@ -56,29 +56,29 @@ void laser80_setResolution(u_int16_t port_, uint8_t reso_);   // Установ�
 // void laser80_stopMeasurement(UART_HandleTypeDef *huart, uint8_t *rx_bufferUART_)
 void laser80_stopMeasurement(uint8_t port_)
 {
-    DEBUG_PRINTF("stopMeasurement ");
+    printf("stopMeasurement ");
     static uint8_t buf[4] = {0x80, 0x04, 0x02, 0x7A};
     buf[3] = lazer80_calcCs(buf, 4);
     HAL_UART_Transmit(dataUART[port_].huart, buf, sizeof(buf), 100);
     HAL_Delay(10); // Задержка
 
-    DEBUG_PRINTF(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
+    printf(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
     if (dataUART[port_].adr[0] == 0x80 && dataUART[port_].adr[1] == 0x04 && dataUART[port_].adr[2] == 0x82 && dataUART[port_].adr[3] == 0xFA)
     {
-        DEBUG_PRINTF(" ok \r\n");
+        printf(" ok \r\n");
     }
     else
     {
-        DEBUG_PRINTF(" ERROR \r\n");
+        printf(" ERROR \r\n");
     }
     memset(dataUART[port_].adr, 0, RX_BUFFER_SIZE); // Очистка буфера
-    // DEBUG_PRINTF("\r\n");
+    // printf("\r\n");
 }
 
 // Непрерывное измерение
 void laser80_continuousMeasurement(uint16_t port_)
 {
-    DEBUG_PRINTF("continuousMeasurement ");
+    printf("start laser80_continuousMeasurement port = %i \n", port_);
     static uint8_t buf[4] = {0x80, 0x06, 0x03, 0x00};
     buf[3] = lazer80_calcCs(buf, 4);
     HAL_UART_Transmit(dataUART[port_].huart, buf, sizeof(buf), 100);
@@ -93,15 +93,15 @@ void laser80_setAddress(UART_HandleTypeDef *huart, uint8_t addr_)
     buf[4] = lazer80_calcCs(buf, 5);
     HAL_UART_Transmit(huart, buf, sizeof(buf), 100);
     HAL_Delay(50); // Задержка на время ожидания ответа и сразу разбираем ответ который будет в буфере который указали для ожмдания прерывания по DMA
-    // DEBUG_PRINTF("setAddress DATA => %X %X %X %X %X\n", rx_bufferLaser0[0], rx_bufferLaser0[1], rx_bufferLaser0[2], rx_bufferLaser0[3], rx_bufferLaser0[4]);
+    // printf("setAddress DATA => %X %X %X %X %X\n", rx_bufferLaser0[0], rx_bufferLaser0[1], rx_bufferLaser0[2], rx_bufferLaser0[3], rx_bufferLaser0[4]);
     if (rx_bufferLaser0[0] == 0xFA && rx_bufferLaser0[1] == 0x04 && rx_bufferLaser0[2] == 0x81 && rx_bufferLaser0[3] == 0x81)
     {
-        // DEBUG_PRINTF("setAddress ok \n");
+        // printf("setAddress ok \n");
         // return true;
     }
     else
     {
-        // DEBUG_PRINTF("setAddress ERROR\n");
+        // printf("setAddress ERROR\n");
         // return false;
     }
 }
@@ -109,17 +109,17 @@ void laser80_setAddress(UART_HandleTypeDef *huart, uint8_t addr_)
 // void laser80_singleMeasurement(UART_HandleTypeDef *huart, uint8_t addr_)
 void laser80_singleMeasurement(uint8_t port_)
 {
-    DEBUG_PRINTF("singleMeasurement ");
+    printf("singleMeasurement ");
     static uint8_t buf[4] = {0x80, 0x06, 0x02, 0x78};
     buf[3] = lazer80_calcCs(buf, 4);
     HAL_UART_Transmit(dataUART[port_].huart, buf, sizeof(buf), 100);
     HAL_Delay(1000); // Задержка
-    DEBUG_PRINTF(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
+    printf(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
     for (int i = 0; i < dataUART[port_].len; i++)
     {
-        DEBUG_PRINTF("%X-", dataUART[port_].adr[i]);
+        printf("%X-", dataUART[port_].adr[i]);
     }
-    DEBUG_PRINTF("\r\n");
+    printf("\r\n");
     //************************
     // // digitalWrite(PIN_LED, 1);
     // // clearBuf();
@@ -237,7 +237,7 @@ uint8_t WaitForFlagOrTimeout(uint16_t port_, uint32_t timeout_ms)
 // Управление лазером 1- Включен 0-Выключен
 void laser80_controlLaser(uint16_t port_, uint8_t status_)
 {
-    DEBUG_PRINTF("controlLaser -> ");
+    printf("controlLaser -> ");
     if (status_ == 0) //  Выключить
     {
         uint8_t buf[5] = {0x80, 0x06, 0x05, 0x00, 0x00};
@@ -254,18 +254,18 @@ void laser80_controlLaser(uint16_t port_, uint8_t status_)
     // WaitForFlagOrTimeout(port_, 200);
     dataUART[port_].flag = 0; // Убираем флаг
 
-    DEBUG_PRINTF(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
+    printf(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
     if (dataUART[port_].adr[0] == 0x80 && dataUART[port_].adr[1] == 0x06 && dataUART[port_].adr[2] == 0x85 && dataUART[port_].adr[3] == 0x01)
-        DEBUG_PRINTF(" ok \r\n");
+        printf(" ok \r\n");
     else
-        DEBUG_PRINTF(" ERROR \r\n");
+        printf(" ERROR \r\n");
     memset(dataUART[port_].adr, 0, RX_BUFFER_SIZE); // Очистка буфера
-    // DEBUG_PRINTF("\r\n");
+    // printf("\r\n");
 }
 // Установка интервала вывода значения при настройке. Не понятно что это.
 void laser80_setTimeInterval(uint16_t port_, uint8_t data_)
 {
-    DEBUG_PRINTF("setTimeInterval -> ");
+    printf("setTimeInterval -> ");
 
     if (data_ == 0) // через 0 секунду
     {
@@ -279,13 +279,13 @@ void laser80_setTimeInterval(uint16_t port_, uint8_t data_)
     }
     HAL_Delay(50); // Задержка что точно исполниться и не испортися чем-то другим
 
-    DEBUG_PRINTF(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
+    printf(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
     if (dataUART[port_].adr[0] == 0xFA && dataUART[port_].adr[1] == 0x04 && dataUART[port_].adr[2] == 0x85 && dataUART[port_].adr[3] == 0x7D)
-        DEBUG_PRINTF(" ok \r\n");
+        printf(" ok \r\n");
     else
-        DEBUG_PRINTF(" ERROR \r\n");
+        printf(" ERROR \r\n");
     memset(dataUART[port_].adr, 0, RX_BUFFER_SIZE); // Очистка буфера
-    // DEBUG_PRINTF("\r\n");
+    // printf("\r\n");
 }
 
 // // Модификация дистанции. Думаю что колибровка измерений. Можно в плюс или в минус
@@ -329,7 +329,7 @@ void laser80_setTimeInterval(uint16_t port_, uint8_t data_)
 // Установка точки откоторой считем расстояние. 1- от носа 0 - от зада
 void laser80_setStartingPoint(uint16_t port_, uint8_t data_)
 {
-    DEBUG_PRINTF("setStartingPoint -> ");
+    printf("setStartingPoint -> ");
     if (data_ == 0) //
     {
         uint8_t buf[5] = {0xFA, 0x04, 0x08, 0x00, 0xFA};
@@ -342,13 +342,13 @@ void laser80_setStartingPoint(uint16_t port_, uint8_t data_)
     }
     HAL_Delay(25); // Задержка что точно исполниться и не испортися чем-то другим
 
-    DEBUG_PRINTF(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
+    printf(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
     if (dataUART[port_].adr[0] == 0xFA && dataUART[port_].adr[1] == 0x04 && dataUART[port_].adr[2] == 0x88 && dataUART[port_].adr[3] == 0x7A)
-        DEBUG_PRINTF(" %i ok \r\n", data_);
+        printf(" %i ok \r\n", data_);
     else
-        DEBUG_PRINTF(" ERROR \r\n");
+        printf(" ERROR \r\n");
     memset(dataUART[port_].adr, 0, RX_BUFFER_SIZE); // Очистка буфера
-    // DEBUG_PRINTF("\r\n");
+    // printf("\r\n");
 }
 
 // // Установка нужно ли проводить тест датчика после включения питания. Значение 0 или 1
@@ -371,7 +371,7 @@ void laser80_setStartingPoint(uint16_t port_, uint8_t data_)
 // Установление максимального диапзона измерений. Возможно 5,10,30,50,80 метров
 void laser80_setRange(u_int16_t port_, uint8_t range_)
 {
-    DEBUG_PRINTF("setRange -> ");
+    printf("setRange -> ");
     if (range_ == 5) //
     {
         uint8_t buf[5] = {0xFA, 0x04, 0x09, 0x05, 0xF4};
@@ -399,19 +399,19 @@ void laser80_setRange(u_int16_t port_, uint8_t range_)
     }
     HAL_Delay(50); // Задержка что точно исполниться и не испортися чем-то другим
 
-    DEBUG_PRINTF(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
+    printf(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
     if (dataUART[port_].adr[0] == 0xFA && dataUART[port_].adr[1] == 0x04 && dataUART[port_].adr[2] == 0x89 && dataUART[port_].adr[3] == 0x79)
-        DEBUG_PRINTF(" %i ok \r\n", range_);
+        printf(" %i ok \r\n", range_);
     else
-        DEBUG_PRINTF(" ERROR \r\n");
+        printf(" ERROR \r\n");
     memset(dataUART[port_].adr, 0, RX_BUFFER_SIZE); // Очистка буфера
-    // DEBUG_PRINTF("\r\n");
+    // printf("\r\n");
 }
 
 // Установка разрешения измерения есди 1- то 1 мм, если 2 то 0,1 мм. Непонятно работает ли нет фактически и на чем сказывается (время измерения?)
 void laser80_setResolution(u_int16_t port_, uint8_t reso_)
 {
-    DEBUG_PRINTF("setResolution -> ");
+    printf("setResolution -> ");
     if (reso_ == 1) //
     {
         uint8_t buf[5] = {0xFA, 0x04, 0x0C, 0x01, 0xF5};
@@ -424,19 +424,19 @@ void laser80_setResolution(u_int16_t port_, uint8_t reso_)
     }
     HAL_Delay(50); // Задержка что точно исполниться и не испортися чем-то другим
 
-    DEBUG_PRINTF(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
+    printf(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
     if (dataUART[port_].adr[0] == 0xFA && dataUART[port_].adr[1] == 0x04 && dataUART[port_].adr[2] == 0x8C && dataUART[port_].adr[3] == 0x76)
-        DEBUG_PRINTF(" %i ok \r\n", reso_);
+        printf(" %i ok \r\n", reso_);
     else
-        DEBUG_PRINTF(" ERROR \r\n");
+        printf(" ERROR \r\n");
     memset(dataUART[port_].adr, 0, RX_BUFFER_SIZE); // Очистка буфера
-    // DEBUG_PRINTF("\r\n");
+    // printf("\r\n");
 }
 
 // Установка частоты измерений, задается в герцах 3,5,10,20 только такие частоты
 void laser80_setFrequency(uint16_t port_, uint8_t freq_)
 {
-    DEBUG_PRINTF("setFrequency -> ");
+    printf("setFrequency -> ");
     if (freq_ == 3) //  примерно 3 Hz
     {
         uint8_t buf[5] = {0xFA, 0x04, 0x0A, 0x00, 0xF8};
@@ -459,13 +459,13 @@ void laser80_setFrequency(uint16_t port_, uint8_t freq_)
     }
     HAL_Delay(50);
 
-    DEBUG_PRINTF(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
+    printf(" DATA => %X %X %X %X ", dataUART[port_].adr[0], dataUART[port_].adr[1], dataUART[port_].adr[2], dataUART[port_].adr[3]);
     if (dataUART[port_].adr[0] == 0xFA && dataUART[port_].adr[1] == 0x04 && dataUART[port_].adr[2] == 0x8A && dataUART[port_].adr[3] == 0x78)
-        DEBUG_PRINTF(" %i ok \r\n", freq_);
+        printf(" %i ok \r\n", freq_);
     else
-        DEBUG_PRINTF(" ERROR \r\n");
+        printf(" ERROR \r\n");
     memset(dataUART[port_].adr, 0, RX_BUFFER_SIZE); // Очистка буфера
-    // DEBUG_PRINTF("\r\n");
+    // printf("\r\n");
 }
 
 uint8_t lazer80_calcCs(uint8_t *data_, uint8_t len_) // Расчет контрольной суммы. Берется массив всех оправляемых данных без последнего байта и суммируется побайтно, потом в бинарном виде инвертируются 1 в нолик и нолик в единицу и потом прибавляется 1

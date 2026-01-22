@@ -10,9 +10,10 @@ extern "C"
 #include "stm32f4xx_hal.h"
 
 // ВЫБОР С КАКИМИ ДАТЧИКАМИ РАБОТАЕМ. НУЖНО ОСТАВИТЬТОЛЬКО ОДНУ СРОЧКУ, ОСТАЛЬНЫЕ ЗАКОММЕНТИРОВАТЬ
-// #define LASER80 yes
-#define LASER60 yes
-    // #define LASER50 yes
+#define LASER80 yes
+// #define LASER60 yes
+// #define LASER50 yes
+// #define ICM20948 yes
 
     struct dataUART
     {
@@ -23,7 +24,7 @@ extern "C"
         uint32_t distance; // Дистанция по последнему хорошему измерению
         uint16_t quality;  // Качество сигнала
         float angle;       // Угол в котором находился мотор в момент когда пришли данные по измерению
-        float rate;       //  Фактическая частота работы датчика
+        float rate;        //  Фактическая частота работы датчика
         uint32_t time;     // Время измерения от начала запуска программы
         uint32_t timeSend; // Время отправки запроса к датчику
         uint8_t *adr;      // Адрес буфера
@@ -83,18 +84,17 @@ extern "C"
 #define micMotor3_GPIO_Port GPIOB
 #define micMotor3_EXTI_IRQn EXTI9_5_IRQn
 
-
-
     // Установите DEBUG для включения отладочной информации
-#define DEBUG 1 // Поставьте 0 для отключения отладочной информации
+#define DEBUG 1 // Поставьте 0 для отключения ВСЕЙ отладочной информации
 
-#if DEBUG
+#define DEBUG_2 1 // Поставьте 1 для выаода DEBUG_PRINTF
+
+#if DEBUG_2
 #define DEBUG_PRINTF(...) printf(__VA_ARGS__)
     // #define DEBUG_PRINTF(fmt,...) printf("GREEN" fmt , ##__VA_ARGS__)
 #else
 #define DEBUG_PRINTF(...) (void)0 // Приведение 0 к типу void, ничего не делает
 #endif
-
 
 #ifdef __cplusplus
 }

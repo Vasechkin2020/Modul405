@@ -1,6 +1,9 @@
 {
     "files.associations": {
         "code.h": "c",
-        "dma.h": "c"
+        "dma.h": "c",
+        "laser80m.h": "c",
+        "myfat.h": "c",
+        "bno055.h": "c"
     }
 }
