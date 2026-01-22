@@ -48,6 +48,8 @@ int main(void)
   MX_USART1_UART_Init();     // Инициализация USART1
   HAL_Delay(3000);
   printf("\r\n *** Modul ver 1.6 22-01-26 *** printBIM.ru *** 2025 *** \r\n");
+  
+  printf(" Firmware Build: %s | %s \r\n", __DATE__, __TIME__);  // Добавляем вывод даты и времени сборки
 
 #if MDEBUG == 1
   printf("debug.\n");
